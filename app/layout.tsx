@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toast";
+import { Providers } from "@/app/providers";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         "h-full",
         "antialiased",
@@ -35,8 +37,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       )}
     >
       <body className="min-h-full flex flex-col">
-        <main>{children}</main>
-        <Toaster />
+        <Providers>
+          <main>{children}</main>
+          <Toaster />
+        </Providers>
       </body>
     </html>
   );
