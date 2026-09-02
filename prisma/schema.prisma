@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ReferenceCurrency {
+  USD
+  GBP
+  EUR
+  AUD
+}
+
+enum ExpenseCategory {
+  EXPENSE
+  LIFESTYLE
+  INVESTMENT
+  EMERGENCY_FUND
+}
+
+/// An incoming payment. Recorded in PKR; the original foreign-currency
+/// amount is kept only for reference and never used in calculations.
+/// On creation, netEarning (amount - teamPay) is split across the
+/// distribution buckets per lib/finance/constants.ts.
+model Earning {
+  id                String             @id @default(cuid())
+  date              DateTime           @db.Date
+  name              String
+  amount            Decimal            @db.Decimal(14, 2)
+  teamPay           Decimal            @default(0) @db.Decimal(14, 2)
+  referenceAmount   Decimal?           @db.Decimal(14, 2)
+  referenceCurrency ReferenceCurrency?
+  createdByUserId   String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([date])
+}
+
+/// A spend against one of the four non-donation buckets.
+model Expense {
+  id              String          @id @default(cuid())
+  date            DateTime        @db.Date
+  category        ExpenseCategory
+  name            String
+  amount          Decimal         @db.Decimal(14, 2)
+  createdByUserId String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([date])
+  @@index([category])
+}
+
+/// A payment out of the donation bucket.
+model Donation {
+  id              String   @id @default(cuid())
+  date            DateTime @db.Date
+  name            String
+  amount          Decimal  @db.Decimal(14, 2)
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([date])
+}
