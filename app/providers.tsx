@@ -16,6 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       replace={router.replace}
       onSessionChange={() => router.refresh()}
       redirectTo="/"
+      social={{ providers: ["google"] }}
       Link={Link}
     >
       {children}
