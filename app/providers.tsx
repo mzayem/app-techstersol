@@ -17,6 +17,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       onSessionChange={() => router.refresh()}
       redirectTo="/"
       social={{ providers: ["google"] }}
+      account={{ basePath: "/profile" }}
       Link={Link}
     >
       {children}
