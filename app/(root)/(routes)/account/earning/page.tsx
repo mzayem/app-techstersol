@@ -1,4 +1,4 @@
-import { EarningDialog } from "@/components/finance/earning-dialog";
+import { EarningDialog, EarningRowActions } from "@/components/finance/earning-dialog";
 import { FilterBar } from "@/components/finance/filter-bar";
 import { StatCards } from "@/components/finance/stat-cards";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -46,12 +46,13 @@ export default async function EarningPage({
               <TableHead className="text-right">Team pay</TableHead>
               <TableHead className="text-right">Net earning</TableHead>
               <TableHead className="text-right">Reference</TableHead>
+              <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {earnings.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   No earnings recorded for this range.
                 </TableCell>
               </TableRow>
@@ -59,6 +60,15 @@ export default async function EarningPage({
             {earnings.map((earning) => {
               const amount = Number(earning.amount);
               const teamPay = Number(earning.teamPay);
+              const entry = {
+                id: earning.id,
+                date: earning.date,
+                name: earning.name,
+                amount,
+                teamPay,
+                referenceAmount: earning.referenceAmount ? Number(earning.referenceAmount) : null,
+                referenceCurrency: earning.referenceCurrency as ReferenceCurrency | null,
+              };
               return (
                 <TableRow key={earning.id}>
                   <TableCell>{formatDate(earning.date)}</TableCell>
@@ -72,6 +82,11 @@ export default async function EarningPage({
                     {earning.referenceAmount && earning.referenceCurrency
                       ? `${CURRENCY_SYMBOLS[earning.referenceCurrency as ReferenceCurrency]}${Number(earning.referenceAmount).toLocaleString()}`
                       : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end">
+                      <EarningRowActions entry={entry} />
+                    </div>
                   </TableCell>
                 </TableRow>
               );

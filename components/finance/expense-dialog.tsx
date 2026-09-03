@@ -20,11 +20,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EXPENSE_CATEGORIES, BUCKET_LABELS } from "@/lib/finance/constants";
-import { createExpense } from "@/lib/finance/actions";
+import { EXPENSE_CATEGORIES, BUCKET_LABELS, type ExpenseCategory } from "@/lib/finance/constants";
+import { createExpense, deleteExpense, updateExpense } from "@/lib/finance/actions";
+import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
+import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
-export function ExpenseDialog() {
-  const [open, setOpen] = React.useState(false);
+export type ExpenseEntry = {
+  id: string;
+  date: Date;
+  category: ExpenseCategory;
+  name: string;
+  amount: number;
+};
+
+export function ExpenseDialog({
+  expense,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+}: {
+  expense?: ExpenseEntry;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const isEdit = !!expense;
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const open = isEdit ? (openProp ?? false) : internalOpen;
+  const setOpen = isEdit ? (onOpenChangeProp ?? (() => {})) : setInternalOpen;
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -33,8 +54,12 @@ export function ExpenseDialog() {
     setError(null);
     startTransition(async () => {
       try {
-        await createExpense(formData);
-        formRef.current?.reset();
+        if (isEdit) {
+          await updateExpense(expense.id, formData);
+        } else {
+          await createExpense(formData);
+          formRef.current?.reset();
+        }
         setOpen(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
@@ -44,21 +69,28 @@ export function ExpenseDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>
-        <PlusIcon />
-        Add expense
-      </DialogTrigger>
+      {!isEdit && (
+        <DialogTrigger render={<Button />}>
+          <PlusIcon />
+          Add expense
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add expense</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit expense" : "Add expense"}</DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Date">
-              <Input type="date" name="date" required defaultValue={today()} />
+              <Input
+                type="date"
+                name="date"
+                required
+                defaultValue={expense ? toDateInputValue(expense.date) : today()}
+              />
             </Field>
             <Field label="Type">
-              <Select name="category" defaultValue="EXPENSE">
+              <Select name="category" defaultValue={expense?.category ?? "EXPENSE"}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -73,7 +105,12 @@ export function ExpenseDialog() {
             </Field>
           </div>
           <Field label="Name">
-            <Input name="name" placeholder="What was it for" required />
+            <Input
+              name="name"
+              placeholder="What was it for"
+              required
+              defaultValue={expense?.name}
+            />
           </Field>
           <Field label="Amount (PKR)">
             <Input
@@ -83,17 +120,40 @@ export function ExpenseDialog() {
               step="0.01"
               placeholder="0.00"
               required
+              defaultValue={expense?.amount}
             />
           </Field>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save expense"}
+              {pending ? "Saving…" : isEdit ? "Save changes" : "Save expense"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function ExpenseRowActions({ entry }: { entry: ExpenseEntry }) {
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  return (
+    <>
+      <EntryActionsMenu
+        id={entry.id}
+        onEdit={() => setEditOpen(true)}
+        onDelete={() => setDeleteOpen(true)}
+      />
+      <ExpenseDialog expense={entry} open={editOpen} onOpenChange={setEditOpen} />
+      <DeleteEntryDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        entryLabel={`expense "${entry.name}"`}
+        onDelete={deleteExpense.bind(null, entry.id)}
+      />
+    </>
   );
 }
 
@@ -108,4 +168,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function today() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
 }

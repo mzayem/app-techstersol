@@ -1,4 +1,4 @@
-import { DonationDialog } from "@/components/finance/donation-dialog";
+import { DonationDialog, DonationRowActions } from "@/components/finance/donation-dialog";
 import { FilterBar } from "@/components/finance/filter-bar";
 import { StatCards } from "@/components/finance/stat-cards";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -43,12 +43,13 @@ export default async function DonationsPage({
               <TableHead>Date</TableHead>
               <TableHead>Name</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {donations.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   No donations recorded for this range.
                 </TableCell>
               </TableRow>
@@ -59,6 +60,18 @@ export default async function DonationsPage({
                 <TableCell className="font-medium">{donation.name}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPkr(Number(donation.amount))}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end">
+                    <DonationRowActions
+                      entry={{
+                        id: donation.id,
+                        date: donation.date,
+                        name: donation.name,
+                        amount: Number(donation.amount),
+                      }}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

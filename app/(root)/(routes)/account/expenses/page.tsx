@@ -1,4 +1,4 @@
-import { ExpenseDialog } from "@/components/finance/expense-dialog";
+import { ExpenseDialog, ExpenseRowActions } from "@/components/finance/expense-dialog";
 import { FilterBar } from "@/components/finance/filter-bar";
 import { StatCards } from "@/components/finance/stat-cards";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -44,12 +44,13 @@ export default async function ExpensesPage({
               <TableHead>Type</TableHead>
               <TableHead>Name</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {expenses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   No expenses recorded for this range.
                 </TableCell>
               </TableRow>
@@ -63,6 +64,19 @@ export default async function ExpensesPage({
                 <TableCell className="font-medium">{expense.name}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPkr(Number(expense.amount))}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end">
+                    <ExpenseRowActions
+                      entry={{
+                        id: expense.id,
+                        date: expense.date,
+                        category: expense.category as ExpenseCategory,
+                        name: expense.name,
+                        amount: Number(expense.amount),
+                      }}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
