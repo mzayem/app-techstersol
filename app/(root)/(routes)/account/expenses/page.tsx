@@ -1,10 +1,28 @@
-import { ExpenseDialog, ExpenseRowActions } from "@/components/finance/expense-dialog";
+import {
+  ExpenseDialog,
+  ExpenseRowActions,
+} from "@/components/finance/expense-dialog";
 import { FilterBar } from "@/components/finance/filter-bar";
 import { StatCards } from "@/components/finance/stat-cards";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { resolveDateRange } from "@/lib/finance/date-range";
-import { BUCKET_LABELS, formatPkr, type ExpenseCategory } from "@/lib/finance/constants";
-import { getBucketBalances, listExpenses, type SortOption } from "@/actions/finance/queries";
+import {
+  BUCKET_LABELS,
+  formatPkr,
+  type ExpenseCategory,
+} from "@/lib/finance/constants";
+import {
+  getBucketBalances,
+  listExpenses,
+  type SortOption,
+} from "@/actions/finance/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +54,7 @@ export default async function ExpensesPage({
 
       <FilterBar />
 
-      <div className="rounded-xl bg-card ring-1 ring-foreground/10">
+      <div className="rounded-md bg-card ring-1 ring-foreground/10">
         <Table>
           <TableHeader>
             <TableRow>
@@ -50,7 +68,10 @@ export default async function ExpensesPage({
           <TableBody>
             {expenses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={5}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No expenses recorded for this range.
                 </TableCell>
               </TableRow>
@@ -88,5 +109,9 @@ export default async function ExpensesPage({
 }
 
 function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }

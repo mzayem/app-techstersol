@@ -6,7 +6,10 @@ import {
   DISTRIBUTION_SPLIT,
   formatPkr,
 } from "@/lib/finance/constants";
-import { getDistributionBreakdown, getTotalNetEarnings } from "@/actions/finance/queries";
+import {
+  getDistributionBreakdown,
+  getTotalNetEarnings,
+} from "@/actions/finance/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -26,22 +29,27 @@ export default async function DistributionsPage() {
       </div>
 
       <StatCards
-        balances={Object.fromEntries(
-          BUCKETS.map((b) => [b, breakdown[b].remaining]),
-        ) as Record<(typeof BUCKETS)[number], number>}
+        balances={
+          Object.fromEntries(
+            BUCKETS.map((b) => [b, breakdown[b].remaining]),
+          ) as Record<(typeof BUCKETS)[number], number>
+        }
       />
 
-      <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:p-6">
+      <div className="rounded-md bg-card p-4 ring-1 ring-foreground/10 sm:p-6">
         <p className="text-sm text-muted-foreground">
           Total net earning distributed:{" "}
-          <span className="font-medium text-foreground">{formatPkr(netEarnings)}</span>
+          <span className="font-medium text-foreground">
+            {formatPkr(netEarnings)}
+          </span>
         </p>
 
         <div className="mt-6 flex flex-col gap-5">
           {BUCKETS.map((bucket) => {
             const Icon = BUCKET_ICONS[bucket];
             const { allocated, spent, remaining } = breakdown[bucket];
-            const usedPct = allocated > 0 ? Math.min(100, (spent / allocated) * 100) : 0;
+            const usedPct =
+              allocated > 0 ? Math.min(100, (spent / allocated) * 100) : 0;
             return (
               <div key={bucket} className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-sm">
@@ -68,7 +76,9 @@ export default async function DistributionsPage() {
                 <span
                   className={
                     "text-xs " +
-                    (remaining < 0 ? "text-destructive" : "text-muted-foreground")
+                    (remaining < 0
+                      ? "text-destructive"
+                      : "text-muted-foreground")
                   }
                 >
                   {remaining < 0 ? "Over by " : "Remaining: "}

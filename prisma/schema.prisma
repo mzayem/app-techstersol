@@ -34,6 +34,18 @@ enum ClientStatus {
   DEAD
 }
 
+enum ContractPaymentType {
+  PROJECT
+  MILESTONE
+}
+
+enum ContractStatus {
+  PROPOSED
+  ACTIVE
+  PENDING_PAYMENT
+  COMPLETED
+}
+
 /// An incoming payment. Recorded in PKR; the original foreign-currency
 /// amount is kept only for reference and never used in calculations.
 /// On creation, netEarning (amount - teamPay) is split across the
@@ -93,7 +105,45 @@ model Client {
   createdByUserId String
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  contracts       Contract[]
 
   @@index([status])
   @@index([name])
+}
+
+/// A project engagement with a client, billed either as one project amount
+/// or split across milestones (see Milestone).
+model Contract {
+  id              String              @id @default(cuid())
+  clientId        String
+  client          Client              @relation(fields: [clientId], references: [id])
+  date            DateTime            @db.Date
+  deadline        DateTime            @db.Date
+  projectName     String
+  description     String?
+  currency        PaymentCurrency
+  paymentType     ContractPaymentType
+  amount          Decimal?            @db.Decimal(14, 2)
+  status          ContractStatus      @default(PROPOSED)
+  createdByUserId String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  milestones      Milestone[]
+
+  @@index([status])
+  @@index([clientId])
+}
+
+/// One installment of a milestone-billed contract.
+model Milestone {
+  id         String   @id @default(cuid())
+  contractId String
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  name       String
+  amount     Decimal  @db.Decimal(14, 2)
+  deadline   DateTime @db.Date
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([contractId])
 }

@@ -1,10 +1,28 @@
-import { EarningDialog, EarningRowActions } from "@/components/finance/earning-dialog";
+import {
+  EarningDialog,
+  EarningRowActions,
+} from "@/components/finance/earning-dialog";
 import { FilterBar } from "@/components/finance/filter-bar";
 import { StatCards } from "@/components/finance/stat-cards";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { resolveDateRange } from "@/lib/finance/date-range";
-import { CURRENCY_SYMBOLS, formatPkr, type ReferenceCurrency } from "@/lib/finance/constants";
-import { getBucketBalances, listEarnings, type SortOption } from "@/actions/finance/queries";
+import {
+  CURRENCY_SYMBOLS,
+  formatPkr,
+  type ReferenceCurrency,
+} from "@/lib/finance/constants";
+import {
+  getBucketBalances,
+  listEarnings,
+  type SortOption,
+} from "@/actions/finance/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +54,7 @@ export default async function EarningPage({
 
       <FilterBar />
 
-      <div className="rounded-xl bg-card ring-1 ring-foreground/10">
+      <div className="rounded-md bg-card ring-1 ring-foreground/10">
         <Table>
           <TableHeader>
             <TableRow>
@@ -52,7 +70,10 @@ export default async function EarningPage({
           <TableBody>
             {earnings.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No earnings recorded for this range.
                 </TableCell>
               </TableRow>
@@ -66,15 +87,22 @@ export default async function EarningPage({
                 name: earning.name,
                 amount,
                 teamPay,
-                referenceAmount: earning.referenceAmount ? Number(earning.referenceAmount) : null,
-                referenceCurrency: earning.referenceCurrency as ReferenceCurrency | null,
+                referenceAmount: earning.referenceAmount
+                  ? Number(earning.referenceAmount)
+                  : null,
+                referenceCurrency:
+                  earning.referenceCurrency as ReferenceCurrency | null,
               };
               return (
                 <TableRow key={earning.id}>
                   <TableCell>{formatDate(earning.date)}</TableCell>
                   <TableCell className="font-medium">{earning.name}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPkr(amount)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPkr(teamPay)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatPkr(amount)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatPkr(teamPay)}
+                  </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatPkr(amount - teamPay)}
                   </TableCell>
@@ -99,5 +127,9 @@ export default async function EarningPage({
 }
 
 function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }

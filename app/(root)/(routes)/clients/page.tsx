@@ -1,4 +1,7 @@
-import { ClientDialog, ClientRowActions } from "@/components/clients/client-dialog";
+import {
+  ClientDialog,
+  ClientRowActions,
+} from "@/components/clients/client-dialog";
 import { ClientFilterBar } from "@/components/clients/client-filter-bar";
 import {
   Table,
@@ -8,7 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CLIENT_STATUS_LABELS, type ClientStatus, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  CLIENT_STATUS_LABELS,
+  type ClientStatus,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import { listClients, type SortOption } from "@/actions/clients/queries";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +42,7 @@ export default async function ClientsPage({
 
       <ClientFilterBar />
 
-      <div className="rounded-xl bg-card ring-1 ring-foreground/10">
+      <div className="rounded-md bg-card ring-1 ring-foreground/10">
         <Table>
           <TableHeader>
             <TableRow>
@@ -51,7 +58,10 @@ export default async function ClientsPage({
           <TableBody>
             {clients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No clients found.
                 </TableCell>
               </TableRow>
@@ -70,7 +80,9 @@ export default async function ClientsPage({
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.phone}</TableCell>
-                  <TableCell className="text-muted-foreground">{client.email}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {client.email}
+                  </TableCell>
                   <TableCell>{client.country}</TableCell>
                   <TableCell>{client.currency}</TableCell>
                   <TableCell>
