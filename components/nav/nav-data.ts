@@ -2,6 +2,7 @@ import {
   FileSignature,
   FileText,
   Gift,
+  Landmark,
   LayoutDashboard,
   Receipt,
   Share2,
@@ -27,6 +28,7 @@ export const navGroups = [
       { title: "Expenses", url: "/account/expenses", icon: Receipt },
       { title: "Distributions", url: "/account/distributions", icon: Share2 },
       { title: "Donations", url: "/account/donations", icon: Gift },
+      { title: "Bank Details", url: "/account/bank-details", icon: Landmark },
     ],
   },
   {

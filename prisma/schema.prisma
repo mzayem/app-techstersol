@@ -27,6 +27,7 @@ enum PaymentCurrency {
   GBP
   EUR
   AUD
+  AED
 }
 
 enum ClientStatus {
@@ -146,4 +147,25 @@ model Milestone {
   updatedAt  DateTime @updatedAt
 
   @@index([contractId])
+}
+
+/// A company bank account to receive client payments. The set of populated
+/// fields below depends on currency — see lib/bank-accounts/constants.ts.
+model BankAccount {
+  id                String          @id @default(cuid())
+  currency          PaymentCurrency
+  bankName          String
+  accountHolderName String
+  accountType       String?
+  routingNumber     String?
+  accountNumber     String?
+  iban              String?
+  sortCode          String?
+  bsbCode           String?
+  swift             String
+  createdByUserId   String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([currency])
 }
