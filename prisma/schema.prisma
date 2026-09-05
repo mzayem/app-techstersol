@@ -7,13 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ReferenceCurrency {
-  USD
-  GBP
-  EUR
-  AUD
-}
-
 enum ExpenseCategory {
   EXPENSE
   LIFESTYLE
@@ -47,6 +40,11 @@ enum ContractStatus {
   COMPLETED
 }
 
+enum InvoiceStatus {
+  UNPAID
+  PAID
+}
+
 /// An incoming payment. Recorded in PKR; the original foreign-currency
 /// amount is kept only for reference and never used in calculations.
 /// On creation, netEarning (amount - teamPay) is split across the
@@ -58,7 +56,7 @@ model Earning {
   amount            Decimal            @db.Decimal(14, 2)
   teamPay           Decimal            @default(0) @db.Decimal(14, 2)
   referenceAmount   Decimal?           @db.Decimal(14, 2)
-  referenceCurrency ReferenceCurrency?
+  referenceCurrency PaymentCurrency?
   createdByUserId   String
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -107,6 +105,7 @@ model Client {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   contracts       Contract[]
+  invoices        Invoice[]
 
   @@index([status])
   @@index([name])
@@ -130,6 +129,7 @@ model Contract {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   milestones      Milestone[]
+  invoiceLinks    InvoiceContract[]
 
   @@index([status])
   @@index([clientId])
@@ -166,6 +166,59 @@ model BankAccount {
   createdByUserId   String
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  invoices          Invoice[]
 
   @@index([currency])
+}
+
+/// A generated invoice billing one or more contracts of a single client, in
+/// one currency. See lib/invoices/constants.ts for the numbering scheme and
+/// the fixed company details rendered on the PDF.
+model Invoice {
+  id              String            @id @default(cuid())
+  number          Int               @unique
+  clientId        String
+  client          Client            @relation(fields: [clientId], references: [id])
+  bankAccountId   String
+  bankAccount     BankAccount       @relation(fields: [bankAccountId], references: [id])
+  currency        PaymentCurrency
+  issueDate       DateTime          @db.Date
+  dueDate         DateTime          @db.Date
+  status          InvoiceStatus     @default(UNPAID)
+  paidOn          DateTime?         @db.Date
+  transactionId   String?
+  createdByUserId String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  items           InvoiceItem[]
+  contracts       InvoiceContract[]
+
+  @@index([status])
+  @@index([clientId])
+}
+
+/// One billable line on an invoice — a project's full amount, or a single
+/// milestone installment — snapshotted at invoice-creation time.
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  amount      Decimal @db.Decimal(14, 2)
+  sortOrder   Int     @default(0)
+
+  @@index([invoiceId])
+}
+
+/// Links an invoice to the contract(s) it bills, so paying the invoice can
+/// mark those contracts completed.
+model InvoiceContract {
+  id         String   @id @default(cuid())
+  invoiceId  String
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  contractId String
+  contract   Contract @relation(fields: [contractId], references: [id])
+
+  @@unique([invoiceId, contractId])
+  @@index([contractId])
 }

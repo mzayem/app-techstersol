@@ -7,14 +7,18 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export const REFERENCE_CURRENCIES = ["USD", "GBP", "EUR", "AUD"] as const;
-export type ReferenceCurrency = (typeof REFERENCE_CURRENCIES)[number];
+import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+
+export const REFERENCE_CURRENCIES = PAYMENT_CURRENCIES;
+export type ReferenceCurrency = PaymentCurrency;
 
 export const CURRENCY_SYMBOLS: Record<ReferenceCurrency, string> = {
+  PKR: "₨",
   USD: "$",
   GBP: "£",
   EUR: "€",
   AUD: "A$",
+  AED: "AED ",
 };
 
 export const EXPENSE_CATEGORIES = [
