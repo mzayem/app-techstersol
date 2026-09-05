@@ -33,6 +33,7 @@ export async function createInvoice(
   const currencyRaw = str(formData, "currency");
   const issueDate = str(formData, "issueDate");
   const dueDate = str(formData, "dueDate");
+  const discountRaw = str(formData, "discount");
 
   if (!clientId || !bankAccountId || !issueDate || !dueDate) {
     throw new Error("Client, bank account, and dates are required");
@@ -50,6 +51,15 @@ export async function createInvoice(
     if (!item.description.trim() || !(item.amount > 0)) {
       throw new Error("Each line item needs a description and a positive amount");
     }
+  }
+
+  const discount = discountRaw ? Number(discountRaw) : 0;
+  if (Number.isNaN(discount) || discount < 0) {
+    throw new Error("Discount must be zero or a positive amount");
+  }
+  const total = items.reduce((sum, item) => sum + item.amount, 0);
+  if (discount > total) {
+    throw new Error("Discount can't be more than the invoice total");
   }
 
   const contracts = await prisma.contract.findMany({
@@ -83,6 +93,7 @@ export async function createInvoice(
           clientId,
           bankAccountId,
           currency,
+          discount,
           issueDate: new Date(issueDate),
           dueDate: new Date(dueDate),
           createdByUserId,
@@ -130,9 +141,10 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   if (!invoice) throw new Error("Invoice not found");
 
   const total = invoice.items.reduce((sum, item) => sum + Number(item.amount), 0);
+  const balanceDue = total - Number(invoice.discount);
   const currency = invoice.currency as PaymentCurrency;
 
-  let pkrAmount = total;
+  let pkrAmount = balanceDue;
   if (currency !== "PKR") {
     pkrAmount = Number(pkrAmountRaw);
     if (!pkrAmountRaw || Number.isNaN(pkrAmount) || pkrAmount <= 0) {
@@ -157,7 +169,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
         date: paidOn,
         name: `${invoice.client.name} — Invoice ${formatInvoiceNumber(invoice.number)}`,
         amount: pkrAmount,
-        referenceAmount: currency === "PKR" ? null : total,
+        referenceAmount: currency === "PKR" ? null : balanceDue,
         referenceCurrency: currency === "PKR" ? null : currency,
         createdByUserId,
       },

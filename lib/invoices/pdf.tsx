@@ -68,6 +68,7 @@ export type InvoicePdfData = {
   paidOn: Date | null;
   transactionId: string | null;
   currency: PaymentCurrency;
+  discount: number;
   client: { name: string; phone: string; email: string; country: string };
   bankAccount: {
     bankName: string;
@@ -228,6 +229,7 @@ function InvoiceDocument({
   logoDataUrl: string | null;
 }) {
   const total = invoice.items.reduce((sum, item) => sum + item.amount, 0);
+  const balanceDue = total - invoice.discount;
   const isPaid = invoice.status === "PAID";
 
   return (
@@ -327,6 +329,12 @@ function InvoiceDocument({
             <Text style={styles.bold}>TOTAL</Text>
             <Text>{formatMoney(total, invoice.currency)}</Text>
           </View>
+          {invoice.discount > 0 && (
+            <View style={styles.totalsRow}>
+              <Text style={styles.bold}>Total DISCOUNT</Text>
+              <Text>{formatMoney(invoice.discount, invoice.currency)}</Text>
+            </View>
+          )}
           <View
             style={[
               styles.totalsRow,
@@ -340,7 +348,7 @@ function InvoiceDocument({
           >
             <Text style={styles.balanceDue}>Balance Due</Text>
             <Text style={styles.balanceDue}>
-              {formatMoney(total, invoice.currency)}
+              {formatMoney(balanceDue, invoice.currency)}
             </Text>
           </View>
         </View>

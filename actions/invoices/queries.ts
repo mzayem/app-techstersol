@@ -81,18 +81,21 @@ export async function getInvoiceForPdf(id: string) {
   });
 }
 
-/** Public-safe fields only — no amounts or bank details. */
+/** Public-safe fields only — no amounts or bank account numbers. */
 export async function getInvoiceForVerification(id: string) {
   const invoice = await prisma.invoice.findUnique({
     where: { id },
     select: {
       number: true,
       status: true,
+      currency: true,
       issueDate: true,
       dueDate: true,
       paidOn: true,
       transactionId: true,
       client: { select: { name: true } },
+      bankAccount: { select: { bankName: true } },
+      items: { select: { description: true }, orderBy: { sortOrder: "asc" } },
     },
   });
   if (!invoice) return null;
@@ -104,5 +107,8 @@ export async function getInvoiceForVerification(id: string) {
     paidOn: invoice.paidOn,
     transactionId: invoice.transactionId,
     clientName: invoice.client.name,
+    bankName: invoice.bankAccount.bankName,
+    currency: invoice.currency,
+    task: invoice.items.map((item) => item.description).join(", "),
   };
 }

@@ -96,6 +96,7 @@ export default async function InvoicesPage({
               const currency = invoice.currency as PaymentCurrency;
               const status = invoice.status as InvoiceStatus;
               const total = invoice.items.reduce((sum, item) => sum + Number(item.amount), 0);
+              const balanceDue = total - Number(invoice.discount);
               return (
                 <TableRow key={invoice.id}>
                   <TableCell className="font-medium">
@@ -108,7 +109,12 @@ export default async function InvoicesPage({
                   <TableCell>{formatDate(invoice.issueDate)}</TableCell>
                   <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatContractAmount(total, currency)}
+                    {formatContractAmount(balanceDue, currency)}
+                    {Number(invoice.discount) > 0 && (
+                      <span className="block text-xs text-muted-foreground">
+                        {formatContractAmount(total, currency)} − discount
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <StatusPill status={status} />

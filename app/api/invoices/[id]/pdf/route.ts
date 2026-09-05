@@ -32,6 +32,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       paidOn: invoice.paidOn,
       transactionId: invoice.transactionId,
       currency: invoice.currency as PaymentCurrency,
+      discount: Number(invoice.discount),
       client: {
         name: invoice.client.name,
         phone: invoice.client.phone,

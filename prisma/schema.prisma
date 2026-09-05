@@ -182,6 +182,7 @@ model Invoice {
   bankAccountId   String
   bankAccount     BankAccount       @relation(fields: [bankAccountId], references: [id])
   currency        PaymentCurrency
+  discount        Decimal           @default(0) @db.Decimal(14, 2)
   issueDate       DateTime          @db.Date
   dueDate         DateTime          @db.Date
   status          InvoiceStatus     @default(UNPAID)

@@ -80,6 +80,7 @@ export function InvoiceDialog({
   const [clientId, setClientId] = React.useState("");
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [bankAccountId, setBankAccountId] = React.useState("");
+  const [discountInput, setDiscountInput] = React.useState("");
 
   const clientContracts = React.useMemo(
     () => contracts.filter((c) => c.clientId === clientId),
@@ -98,6 +99,8 @@ export function InvoiceDialog({
     [selectedContracts],
   );
   const total = items.reduce((sum, item) => sum + item.amount, 0);
+  const discount = Math.min(Math.max(Number(discountInput) || 0, 0), total);
+  const balanceDue = total - discount;
 
   const matchingBankAccounts = React.useMemo(
     () => (currency ? bankAccounts.filter((b) => b.currency === currency) : []),
@@ -133,6 +136,7 @@ export function InvoiceDialog({
     setClientId("");
     setSelectedIds(new Set());
     setBankAccountId("");
+    setDiscountInput("");
   }
 
   function onSubmit(formData: FormData) {
@@ -233,13 +237,42 @@ export function InvoiceDialog({
                   </span>
                 </div>
               ))}
-              <div className="mt-1 flex items-center justify-between gap-2 border-t border-border pt-1 font-medium">
+              <div className="mt-1 flex items-center justify-between gap-2 border-t border-border pt-1">
                 <span>Total</span>
                 <span className="tabular-nums">
                   {currency && formatContractAmount(total, currency)}
                 </span>
               </div>
+              {discount > 0 && (
+                <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                  <span>Discount</span>
+                  <span className="tabular-nums">
+                    -{currency && formatContractAmount(discount, currency)}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-2 font-medium">
+                <span>Balance due</span>
+                <span className="tabular-nums">
+                  {currency && formatContractAmount(balanceDue, currency)}
+                </span>
+              </div>
             </div>
+          )}
+
+          {items.length > 0 && (
+            <Field label="Discount (optional)">
+              <Input
+                type="number"
+                name="discount"
+                min="0"
+                step="0.01"
+                max={total}
+                placeholder="0.00"
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+              />
+            </Field>
           )}
 
           <input type="hidden" name="currency" value={currency ?? ""} />
