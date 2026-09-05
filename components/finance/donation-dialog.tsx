@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { createDonation, deleteDonation, updateDonation } from "@/lib/finance/actions";
+import { createDonation, deleteDonation, updateDonation } from "@/actions/finance/actions";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 

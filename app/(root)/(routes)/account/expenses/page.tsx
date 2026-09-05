@@ -4,7 +4,7 @@ import { StatCards } from "@/components/finance/stat-cards";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { resolveDateRange } from "@/lib/finance/date-range";
 import { BUCKET_LABELS, formatPkr, type ExpenseCategory } from "@/lib/finance/constants";
-import { getBucketBalances, listExpenses, type SortOption } from "@/lib/finance/queries";
+import { getBucketBalances, listExpenses, type SortOption } from "@/actions/finance/queries";
 
 export const dynamic = "force-dynamic";
 

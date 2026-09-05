@@ -12,25 +12,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DATE_PRESETS, DATE_PRESET_LABELS } from "@/lib/finance/date-range";
-import type { SortOption } from "@/actions/finance/queries";
+import { CLIENT_STATUSES, CLIENT_STATUS_LABELS } from "@/lib/clients/constants";
+import type { SortOption } from "@/actions/clients/queries";
 
 const SORT_LABELS: Record<SortOption, string> = {
-  "date-desc": "Date (newest)",
-  "date-asc": "Date (oldest)",
-  "amount-desc": "Amount (highest)",
-  "amount-asc": "Amount (lowest)",
   "name-asc": "Name (A–Z)",
   "name-desc": "Name (Z–A)",
+  newest: "Newest first",
+  oldest: "Oldest first",
 };
 
-export function FilterBar() {
+export function ClientFilterBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const preset = searchParams.get("range") ?? "this-month";
-  const sort = (searchParams.get("sort") as SortOption) ?? "date-desc";
+  const status = searchParams.get("status") ?? "all";
+  const sort = (searchParams.get("sort") as SortOption) ?? "name-asc";
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
 
   function updateParams(updates: Record<string, string | null>) {
@@ -55,59 +53,34 @@ export function FilterBar() {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <Select
-        value={preset}
-        onValueChange={(value) =>
-          updateParams({
-            range: value,
-            ...(value !== "custom" ? { from: null, to: null } : {}),
-          })
-        }
+        value={status}
+        onValueChange={(value) => updateParams({ status: value === "all" ? null : value })}
       >
-        <SelectTrigger className="w-full sm:w-40">
+        <SelectTrigger className="w-full sm:w-36">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {DATE_PRESETS.map((p) => (
-            <SelectItem key={p} value={p}>
-              {DATE_PRESET_LABELS[p]}
+          <SelectItem value="all">All statuses</SelectItem>
+          {CLIENT_STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {CLIENT_STATUS_LABELS[s]}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      {preset === "custom" && (
-        <div className="flex items-center gap-1.5">
-          <Input
-            type="date"
-            className="w-36"
-            defaultValue={searchParams.get("from") ?? ""}
-            onChange={(e) => updateParams({ from: e.target.value || null })}
-          />
-          <span className="text-muted-foreground">–</span>
-          <Input
-            type="date"
-            className="w-36"
-            defaultValue={searchParams.get("to") ?? ""}
-            onChange={(e) => updateParams({ to: e.target.value || null })}
-          />
-        </div>
-      )}
-
-      <div className="relative w-full sm:w-52">
+      <div className="relative w-full sm:w-56">
         <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search by name"
+          placeholder="Search by name, email, phone, country"
           className="pl-8"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      <Select
-        value={sort}
-        onValueChange={(value) => updateParams({ sort: value })}
-      >
-        <SelectTrigger className="w-full sm:w-44">
+      <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
+        <SelectTrigger className="w-full sm:w-40">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

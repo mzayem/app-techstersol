@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EXPENSE_CATEGORIES, BUCKET_LABELS, type ExpenseCategory } from "@/lib/finance/constants";
-import { createExpense, deleteExpense, updateExpense } from "@/lib/finance/actions";
+import { createExpense, deleteExpense, updateExpense } from "@/actions/finance/actions";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 

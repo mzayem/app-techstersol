@@ -6,7 +6,7 @@ import {
   DISTRIBUTION_SPLIT,
   formatPkr,
 } from "@/lib/finance/constants";
-import { getDistributionBreakdown, getTotalNetEarnings } from "@/lib/finance/queries";
+import { getDistributionBreakdown, getTotalNetEarnings } from "@/actions/finance/queries";
 
 export const dynamic = "force-dynamic";
 

@@ -20,31 +20,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { REFERENCE_CURRENCIES, type ReferenceCurrency } from "@/lib/finance/constants";
-import { createEarning, deleteEarning, updateEarning } from "@/actions/finance/actions";
-import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
+import {
+  CLIENT_STATUSES,
+  CLIENT_STATUS_LABELS,
+  PAYMENT_CURRENCIES,
+  type ClientStatus,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
+import { COUNTRIES } from "@/lib/clients/countries";
+import { createClient, deleteClient, updateClient } from "@/actions/clients/actions";
+import { ClientActionsMenu } from "@/components/clients/client-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
-export type EarningEntry = {
+export type ClientEntry = {
   id: string;
-  date: Date;
   name: string;
-  amount: number;
-  teamPay: number;
-  referenceAmount: number | null;
-  referenceCurrency: ReferenceCurrency | null;
+  phone: string;
+  email: string;
+  country: string;
+  currency: PaymentCurrency;
+  status: ClientStatus;
 };
 
-export function EarningDialog({
-  earning,
+export function ClientDialog({
+  client,
   open: openProp,
   onOpenChange: onOpenChangeProp,
 }: {
-  earning?: EarningEntry;
+  client?: ClientEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
-  const isEdit = !!earning;
+  const isEdit = !!client;
   const [internalOpen, setInternalOpen] = React.useState(false);
   const open = isEdit ? (openProp ?? false) : internalOpen;
   const setOpen = isEdit ? (onOpenChangeProp ?? (() => {})) : setInternalOpen;
@@ -57,9 +64,9 @@ export function EarningDialog({
     startTransition(async () => {
       try {
         if (isEdit) {
-          await updateEarning(earning.id, formData);
+          await updateClient(client.id, formData);
         } else {
-          await createEarning(formData);
+          await createClient(formData);
           formRef.current?.reset();
         }
         setOpen(false);
@@ -74,76 +81,80 @@ export function EarningDialog({
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
-          Add earning
+          Add client
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit earning" : "Add earning"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit client" : "Add client"}</DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
-          <Field label="Date">
-            <Input
-              type="date"
-              name="date"
-              required
-              defaultValue={earning ? toDateInputValue(earning.date) : today()}
-            />
-          </Field>
           <Field label="Name">
             <Input
               name="name"
-              placeholder="Client or project"
+              placeholder="Client name"
               required
-              defaultValue={earning?.name}
+              defaultValue={client?.name}
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Amount (PKR)">
+            <Field label="Phone">
               <Input
-                type="number"
-                name="amount"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
+                type="tel"
+                name="phone"
+                placeholder="+92 300 1234567"
                 required
-                defaultValue={earning?.amount}
+                defaultValue={client?.phone}
               />
             </Field>
-            <Field label="Team pay (PKR)">
+            <Field label="Email">
               <Input
-                type="number"
-                name="teamPay"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                defaultValue={earning?.teamPay ?? "0"}
+                type="email"
+                name="email"
+                placeholder="client@example.com"
+                required
+                defaultValue={client?.email}
               />
             </Field>
           </div>
+          <Field label="Country">
+            <Select name="country" defaultValue={client?.country}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select country" />
+              </SelectTrigger>
+              <SelectContent>
+                {COUNTRIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Reference amount">
-              <Input
-                type="number"
-                name="referenceAmount"
-                min="0"
-                step="0.01"
-                placeholder="Optional"
-                defaultValue={earning?.referenceAmount ?? undefined}
-              />
-            </Field>
-            <Field label="Reference currency">
-              <Select
-                name="referenceCurrency"
-                defaultValue={earning?.referenceCurrency ?? undefined}
-              >
+            <Field label="Payment currency">
+              <Select name="currency" defaultValue={client?.currency}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Currency" />
                 </SelectTrigger>
                 <SelectContent>
-                  {REFERENCE_CURRENCIES.map((c) => (
+                  {PAYMENT_CURRENCIES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Status">
+              <Select name="status" defaultValue={client?.status ?? "ACTIVE"}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLIENT_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {CLIENT_STATUS_LABELS[s]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -153,7 +164,7 @@ export function EarningDialog({
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Save earning"}
+              {pending ? "Saving…" : isEdit ? "Save changes" : "Save client"}
             </Button>
           </DialogFooter>
         </form>
@@ -162,23 +173,19 @@ export function EarningDialog({
   );
 }
 
-export function EarningRowActions({ entry }: { entry: EarningEntry }) {
+export function ClientRowActions({ entry }: { entry: ClientEntry }) {
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
     <>
-      <EntryActionsMenu
-        id={entry.id}
-        onEdit={() => setEditOpen(true)}
-        onDelete={() => setDeleteOpen(true)}
-      />
-      <EarningDialog earning={entry} open={editOpen} onOpenChange={setEditOpen} />
+      <ClientActionsMenu onEdit={() => setEditOpen(true)} onDelete={() => setDeleteOpen(true)} />
+      <ClientDialog client={entry} open={editOpen} onOpenChange={setEditOpen} />
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        entryLabel={`earning from ${entry.name}`}
-        onDelete={deleteEarning.bind(null, entry.id)}
+        entryLabel={`client ${entry.name}`}
+        onDelete={deleteClient.bind(null, entry.id)}
       />
     </>
   );
@@ -191,12 +198,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </label>
   );
-}
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function toDateInputValue(date: Date) {
-  return date.toISOString().slice(0, 10);
 }

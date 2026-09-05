@@ -21,6 +21,19 @@ enum ExpenseCategory {
   EMERGENCY_FUND
 }
 
+enum PaymentCurrency {
+  PKR
+  USD
+  GBP
+  EUR
+  AUD
+}
+
+enum ClientStatus {
+  ACTIVE
+  DEAD
+}
+
 /// An incoming payment. Recorded in PKR; the original foreign-currency
 /// amount is kept only for reference and never used in calculations.
 /// On creation, netEarning (amount - teamPay) is split across the
@@ -66,4 +79,21 @@ model Donation {
   updatedAt       DateTime @updatedAt
 
   @@index([date])
+}
+
+/// A client contact and their payment/status details.
+model Client {
+  id              String          @id @default(cuid())
+  name            String
+  phone           String
+  email           String
+  country         String
+  currency        PaymentCurrency
+  status          ClientStatus    @default(ACTIVE)
+  createdByUserId String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([name])
 }

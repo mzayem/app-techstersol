@@ -6,6 +6,7 @@ import {
   Receipt,
   Share2,
   TrendingUp,
+  Users,
 } from "lucide-react";
 
 export const navMain = {
@@ -15,6 +16,10 @@ export const navMain = {
 };
 
 export const navGroups = [
+  {
+    title: "Clients",
+    items: [{ title: "Clients", url: "/clients", icon: Users }],
+  },
   {
     title: "Account",
     items: [
