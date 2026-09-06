@@ -126,10 +126,6 @@ model Client {
   @@index([name])
 }
 
-/// A project engagement with a client, billed either as one project amount
-/// or split across milestones (see Milestone). If teamMemberId is set, the
-/// work is outsourced to that team member for teamPayAmount (PKR); if null,
-/// the work is handled in-house and no team cut is deducted from earning.
 model Contract {
   id              String              @id @default(cuid())
   clientId        String
@@ -166,7 +162,7 @@ model TeamMember {
   phone           String?
   email           String?
   country         String?
-  currency        PaymentCurrency?
+  currency        PaymentCurrency
   address         String?
   type            TeamMemberType   @default(PROJECT_BASED)
   hourlyRate      Decimal?         @db.Decimal(14, 2)
@@ -175,14 +171,29 @@ model TeamMember {
   updatedAt       DateTime         @updatedAt
   contracts       Contract[]
   payslips        Payslip[]
+  workDiaryEntries WorkDiaryEntry[]
 
   @@index([name])
 }
 
-/// A generated payslip paying a team member for a period of work. contractId
-/// is an optional "assigned project" shown on the payslip so the team member
-/// knows what the payment is for; it carries no financial logic on its own.
-/// See lib/team/constants.ts for the numbering scheme.
+model WorkDiaryEntry {
+  id              String     @id @default(cuid())
+  teamMemberId    String
+  teamMember      TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+  weekStart       DateTime   @db.Date
+  weekEnd         DateTime   @db.Date
+  hours           Decimal    @db.Decimal(6, 2)
+  amount          Decimal?   @db.Decimal(14, 2)
+  notes           String?
+  createdByUserId String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([teamMemberId, weekStart])
+  @@index([teamMemberId])
+  @@index([weekStart])
+}
+
 model Payslip {
   id              String      @id @default(cuid())
   number          Int         @unique
@@ -204,11 +215,7 @@ model Payslip {
   @@index([contractId])
 }
 
-/// A team payment recorded in the finance ledger — created alongside a
-/// Payslip only when that payment isn't already reflected in an existing
-/// Earning.teamPay deduction (see actions/team/payslip-actions.ts), so
-/// money leaving the company for team pay is never counted twice but is
-/// always accounted for somewhere.
+
 model TeamPayment {
   id              String        @id @default(cuid())
   date            DateTime      @db.Date
@@ -261,8 +268,6 @@ model Milestone {
   @@index([contractId])
 }
 
-/// A company bank account to receive client payments. The set of populated
-/// fields below depends on currency — see lib/bank-accounts/constants.ts.
 model BankAccount {
   id                String          @id @default(cuid())
   currency          PaymentCurrency
@@ -283,9 +288,6 @@ model BankAccount {
   @@index([currency])
 }
 
-/// A generated invoice billing one or more contracts of a single client, in
-/// one currency. See lib/invoices/constants.ts for the numbering scheme and
-/// the fixed company details rendered on the PDF.
 model Invoice {
   id              String            @id @default(cuid())
   number          Int               @unique
@@ -311,10 +313,6 @@ model Invoice {
   @@index([clientId])
 }
 
-/// One billable line on an invoice — a project's full amount, or a single
-/// milestone installment — snapshotted at invoice-creation time. contractId/
-/// milestoneId trace the line back to its source so remaining balances (for
-/// partial payments and "already paid" filtering) can be computed later.
 model InvoiceItem {
   id          String     @id @default(cuid())
   invoiceId   String

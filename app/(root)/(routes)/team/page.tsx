@@ -58,7 +58,7 @@ export default async function TeamPage() {
                 phone: member.phone,
                 email: member.email,
                 country: member.country,
-                currency: member.currency as PaymentCurrency | null,
+                currency: member.currency as PaymentCurrency,
                 address: member.address,
                 type,
                 hourlyRate: member.hourlyRate ? Number(member.hourlyRate) : null,
@@ -69,7 +69,7 @@ export default async function TeamPage() {
                   <TableCell className="text-muted-foreground">
                     {TEAM_MEMBER_TYPE_LABELS[type]}
                     {type === "HOURLY" && entry.hourlyRate
-                      ? ` · ${entry.hourlyRate}/hr`
+                      ? ` · ${entry.hourlyRate} ${entry.currency}/hr`
                       : ""}
                   </TableCell>
                   <TableCell>{member.phone ?? "—"}</TableCell>
@@ -77,7 +77,7 @@ export default async function TeamPage() {
                     {member.email ?? "—"}
                   </TableCell>
                   <TableCell>{member.country ?? "—"}</TableCell>
-                  <TableCell>{member.currency ?? "—"}</TableCell>
+                  <TableCell>{member.currency}</TableCell>
                 </TeamMemberRowActions>
               );
             })}

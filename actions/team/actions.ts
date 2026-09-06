@@ -37,8 +37,8 @@ function readTeamMemberFields(formData: FormData) {
   if (email && !EMAIL_RE.test(email)) {
     throw new Error("Enter a valid email address");
   }
-  if (currencyRaw && !PAYMENT_CURRENCIES.includes(currencyRaw as PaymentCurrency)) {
-    throw new Error("Invalid payment currency");
+  if (!PAYMENT_CURRENCIES.includes(currencyRaw as PaymentCurrency)) {
+    throw new Error("Payment currency is required");
   }
   if (!TEAM_MEMBER_TYPES.includes(typeRaw as TeamMemberType)) {
     throw new Error("Invalid member type");
@@ -57,7 +57,7 @@ function readTeamMemberFields(formData: FormData) {
     phone: phone || null,
     email: email || null,
     country: country || null,
-    currency: currencyRaw ? (currencyRaw as PaymentCurrency) : null,
+    currency: currencyRaw as PaymentCurrency,
     address: address || null,
     type,
     // Only meaningful for HOURLY — cleared if the member is project-based.

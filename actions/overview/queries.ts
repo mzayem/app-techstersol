@@ -270,19 +270,25 @@ export async function getPendingPayments(): Promise<{
   };
 }
 
-/** Team pay (PKR) sitting on outsourced contracts that haven't completed
- * yet — money the company will owe a team member once the work is signed
- * off, as opposed to client-side pending payments (money owed to the
- * company). Always all-time, same reasoning as getPendingPayments. */
+/** Team pay (PKR) still owed to the team: outsourced contracts that haven't
+ * completed yet, plus every logged work diary week's amount (there's no
+ * "paid" flag on a diary entry yet, so a logged hourly week counts as owed
+ * until a payslip is issued for it by hand). As opposed to client-side
+ * pending payments (money owed to the company). Always all-time, same
+ * reasoning as getPendingPayments. */
 export async function getTeamPendingPayments(): Promise<number> {
-  const openOutsourced = await prisma.contract.findMany({
-    where: { teamMemberId: { not: null }, status: { not: "COMPLETED" } },
-    select: { teamPayAmount: true },
-  });
-  return openOutsourced.reduce(
+  const [openOutsourced, diarySum] = await Promise.all([
+    prisma.contract.findMany({
+      where: { teamMemberId: { not: null }, status: { not: "COMPLETED" } },
+      select: { teamPayAmount: true },
+    }),
+    prisma.workDiaryEntry.aggregate({ _sum: { amount: true } }),
+  ]);
+  const contractPending = openOutsourced.reduce(
     (sum, c) => sum + Number(c.teamPayAmount ?? 0),
     0,
   );
+  return contractPending + Number(diarySum._sum.amount ?? 0);
 }
 
 export const OTHER_REVENUE_CLIENT_ID = "__other__";

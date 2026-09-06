@@ -46,7 +46,7 @@ export type TeamMemberEntry = {
   phone: string | null;
   email: string | null;
   country: string | null;
-  currency: PaymentCurrency | null;
+  currency: PaymentCurrency;
   address: string | null;
   type: TeamMemberType;
   hourlyRate: number | null;
@@ -76,6 +76,9 @@ export function TeamMemberDialog({
   const [memberType, setMemberType] = React.useState<TeamMemberType>(
     member?.type ?? "PROJECT_BASED",
   );
+  const [currency, setCurrency] = React.useState<PaymentCurrency | "">(
+    member?.currency ?? "",
+  );
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -88,6 +91,7 @@ export function TeamMemberDialog({
           formRef.current?.reset();
           setCountry("");
           setMemberType("PROJECT_BASED");
+          setCurrency("");
         }
         setOpen(false);
       } catch (e) {
@@ -139,7 +143,7 @@ export function TeamMemberDialog({
               </Select>
             </Field>
             {memberType === "HOURLY" && (
-              <Field label="Rate per hour">
+              <Field label={`Rate per hour${currency ? ` (${currency})` : ""}`}>
                 <Input
                   type="number"
                   name="hourlyRate"
@@ -185,13 +189,17 @@ export function TeamMemberDialog({
             />
             <input type="hidden" name="country" value={country} />
           </Field>
-          <Field label="Payment currency (optional)">
-            <Select name="currency" defaultValue={member?.currency ?? undefined} disabled={locked}>
+          <Field label="Payment currency">
+            <Select
+              name="currency"
+              value={currency}
+              onValueChange={(v) => v && setCurrency(v as PaymentCurrency)}
+              disabled={locked}
+            >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Currency" />
+                <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Currency</SelectItem>
                 {PAYMENT_CURRENCIES.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c}

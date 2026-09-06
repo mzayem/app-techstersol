@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   FileSignature,
   FileText,
   Gift,
@@ -51,6 +52,7 @@ export const navGroups = [
     items: [
       { title: "Team Members", url: "/team", icon: UserCog },
       { title: "Payslips", url: "/team/payslips", icon: ReceiptText },
+      { title: "Work Diary", url: "/team/work-diary", icon: CalendarDays },
     ],
   },
 ];

@@ -36,11 +36,12 @@ export async function listTeamMembers(filters: ListFilters) {
   });
 }
 
-/** Lightweight options list for the contract and payslip dialogs' team
- * member pickers. */
+/** Lightweight options list for the contract, payslip, and work diary
+ * dialogs' team member pickers. type/hourlyRate/currency ride along so the
+ * work diary dialog can preview an entry's amount without a second query. */
 export async function listTeamMemberOptions() {
   return prisma.teamMember.findMany({
-    select: { id: true, name: true },
+    select: { id: true, name: true, type: true, hourlyRate: true, currency: true },
     orderBy: { name: "asc" },
     take: 100,
   });

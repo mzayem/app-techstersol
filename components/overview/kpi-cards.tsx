@@ -199,7 +199,7 @@ export function KpiCards({
             icon={HourglassIcon}
             label="Pending payment for teams"
             value={formatCompactPkr(teamPendingPkr)}
-            hint="Owed on unfinished outsourced work · all time"
+            hint="Outsourced work + logged diary hours · all time"
           />
           <StatStrip
             icon={FileWarningIcon}
