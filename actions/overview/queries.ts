@@ -285,26 +285,31 @@ export async function getTeamPendingPayments(): Promise<number> {
   );
 }
 
+export const OTHER_REVENUE_CLIENT_ID = "__other__";
+
 export type ClientRevenueSlice = {
   clientId: string;
   clientName: string;
   revenue: number;
   projectCount: number;
+  /** True only for the synthetic "Other" slice — an Earning not tied to any
+   * client invoice (entered by hand, with no contract behind it), so there's
+   * no client or project count to attribute it to. */
+  isOther?: boolean;
 };
 
 /** Revenue per client in PKR (via the Earning row each paid invoice
  * created — the one place a converted, comparable amount is recorded) for
  * the selected period, alongside how many contracts (projects) that
- * client has overall. Only clients with recorded revenue are included. */
+ * client has overall, plus a catch-all "Other" slice for earnings with no
+ * invoice behind them at all. Only slices with recorded revenue are
+ * included. */
 export async function getClientRevenueBreakdown(
   period: ResolvedPeriod,
 ): Promise<ClientRevenueSlice[]> {
-  const [earningsByClient, contractCounts] = await Promise.all([
+  const [earnings, contractCounts] = await Promise.all([
     prisma.earning.findMany({
-      where: {
-        invoiceId: { not: null },
-        date: { gte: period.from, lte: period.to },
-      },
+      where: { date: { gte: period.from, lte: period.to } },
       select: {
         amount: true,
         invoice: {
@@ -320,8 +325,12 @@ export async function getClientRevenueBreakdown(
   );
 
   const revenueByClient = new Map<string, ClientRevenueSlice>();
-  for (const row of earningsByClient) {
-    if (!row.invoice) continue;
+  let otherRevenue = 0;
+  for (const row of earnings) {
+    if (!row.invoice) {
+      otherRevenue += Number(row.amount);
+      continue;
+    }
     const { clientId, client } = row.invoice;
     const existing = revenueByClient.get(clientId);
     if (existing) {
@@ -336,9 +345,20 @@ export async function getClientRevenueBreakdown(
     }
   }
 
-  return [...revenueByClient.values()]
-    .filter((slice) => slice.revenue > 0)
-    .sort((a, b) => b.revenue - a.revenue);
+  const slices = [...revenueByClient.values()].filter(
+    (slice) => slice.revenue > 0,
+  );
+  if (otherRevenue > 0) {
+    slices.push({
+      clientId: OTHER_REVENUE_CLIENT_ID,
+      clientName: "Other",
+      revenue: otherRevenue,
+      projectCount: 0,
+      isOther: true,
+    });
+  }
+
+  return slices.sort((a, b) => b.revenue - a.revenue);
 }
 
 export type IncompleteContract = {

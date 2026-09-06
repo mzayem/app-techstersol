@@ -54,6 +54,11 @@ enum LedgerEntryType {
   TEAM_PAYMENT
 }
 
+enum TeamMemberType {
+  PROJECT_BASED
+  HOURLY
+}
+
 model Earning {
   id                String           @id @default(cuid())
   date              DateTime         @db.Date
@@ -163,6 +168,8 @@ model TeamMember {
   country         String?
   currency        PaymentCurrency?
   address         String?
+  type            TeamMemberType   @default(PROJECT_BASED)
+  hourlyRate      Decimal?         @db.Decimal(14, 2)
   createdByUserId String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

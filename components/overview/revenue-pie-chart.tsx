@@ -25,11 +25,24 @@ const COLORS = [
   "#6366f1",
 ];
 
+/** The "Other" slice (earnings with no client invoice behind them) always
+ * gets this neutral gray rather than a color from the client palette, so it
+ * reads as a catch-all bucket rather than another client. */
+const OTHER_COLOR = "#94a3b8";
+
+function colorFor(client: ClientRevenueSlice, clientIndex: number) {
+  return client.isOther ? OTHER_COLOR : COLORS[clientIndex % COLORS.length];
+}
+
 export function RevenuePieChart({ clients }: { clients: ClientRevenueSlice[] }) {
   const chartConfig = React.useMemo(() => {
     const config: ChartConfig = {};
-    clients.forEach((c, i) => {
-      config[c.clientId] = { label: c.clientName, color: COLORS[i % COLORS.length] };
+    let clientIndex = 0;
+    clients.forEach((c) => {
+      config[c.clientId] = {
+        label: c.clientName,
+        color: colorFor(c, c.isOther ? 0 : clientIndex++),
+      };
     });
     return config;
   }, [clients]);
@@ -62,8 +75,8 @@ export function RevenuePieChart({ clients }: { clients: ClientRevenueSlice[] }) 
                 outerRadius={100}
                 strokeWidth={2}
               >
-                {clients.map((c, i) => (
-                  <Cell key={c.clientId} fill={COLORS[i % COLORS.length]} />
+                {clients.map((c) => (
+                  <Cell key={c.clientId} fill={chartConfig[c.clientId]?.color} />
                 ))}
               </Pie>
               <ChartTooltip content={<RevenueTooltip />} />
@@ -73,11 +86,11 @@ export function RevenuePieChart({ clients }: { clients: ClientRevenueSlice[] }) 
       </CardContent>
       {clients.length > 0 && (
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-(--card-spacing) text-xs sm:grid-cols-3">
-          {clients.map((c, i) => (
+          {clients.map((c) => (
             <div key={c.clientId} className="flex items-center gap-1.5 truncate">
               <span
                 className="size-2 shrink-0 rounded-xs"
-                style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                style={{ backgroundColor: chartConfig[c.clientId]?.color }}
               />
               <span className="truncate text-muted-foreground">{c.clientName}</span>
             </div>
@@ -101,8 +114,9 @@ function RevenueTooltip({
     <div className="grid gap-1 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
       <span className="font-medium">{slice.clientName}</span>
       <span className="text-muted-foreground">
-        {formatPkr(slice.revenue)} · {slice.projectCount} project
-        {slice.projectCount === 1 ? "" : "s"}
+        {formatPkr(slice.revenue)}
+        {!slice.isOther &&
+          ` · ${slice.projectCount} project${slice.projectCount === 1 ? "" : "s"}`}
       </span>
     </div>
   );

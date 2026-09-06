@@ -2,6 +2,7 @@ import {
   ExpenseDialog,
   ExpenseRowActions,
 } from "@/components/finance/expense-dialog";
+import { ExpenseImportDialog } from "@/components/finance/expense-import-dialog";
 import { FilterBar } from "@/components/finance/filter-bar";
 import { StatCards } from "@/components/finance/stat-cards";
 import {
@@ -47,7 +48,10 @@ export default async function ExpensesPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Expenses</h1>
-        <ExpenseDialog />
+        <div className="flex items-center gap-2">
+          <ExpenseImportDialog />
+          <ExpenseDialog />
+        </div>
       </div>
 
       <StatCards balances={balances} />

@@ -25,6 +25,11 @@ import {
 import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
 import { COUNTRIES } from "@/lib/clients/countries";
 import {
+  TEAM_MEMBER_TYPES,
+  TEAM_MEMBER_TYPE_LABELS,
+  type TeamMemberType,
+} from "@/lib/team/constants";
+import {
   createTeamMember,
   deleteTeamMember,
   updateTeamMember,
@@ -43,6 +48,8 @@ export type TeamMemberEntry = {
   country: string | null;
   currency: PaymentCurrency | null;
   address: string | null;
+  type: TeamMemberType;
+  hourlyRate: number | null;
 };
 
 export function TeamMemberDialog({
@@ -66,6 +73,9 @@ export function TeamMemberDialog({
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
   const [country, setCountry] = React.useState(member?.country ?? "");
+  const [memberType, setMemberType] = React.useState<TeamMemberType>(
+    member?.type ?? "PROJECT_BASED",
+  );
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -77,6 +87,7 @@ export function TeamMemberDialog({
           await createTeamMember(formData);
           formRef.current?.reset();
           setCountry("");
+          setMemberType("PROJECT_BASED");
         }
         setOpen(false);
       } catch (e) {
@@ -107,6 +118,41 @@ export function TeamMemberDialog({
               defaultValue={member?.name}
             />
           </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Member type">
+              <Select
+                name="type"
+                value={memberType}
+                onValueChange={(v) => v && setMemberType(v as TeamMemberType)}
+                disabled={locked}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TEAM_MEMBER_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {TEAM_MEMBER_TYPE_LABELS[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            {memberType === "HOURLY" && (
+              <Field label="Rate per hour">
+                <Input
+                  type="number"
+                  name="hourlyRate"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  required
+                  disabled={locked}
+                  defaultValue={member?.hourlyRate ?? undefined}
+                />
+              </Field>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Phone (optional)">
               <Input

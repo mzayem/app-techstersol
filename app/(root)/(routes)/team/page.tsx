@@ -11,6 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { PaymentCurrency } from "@/lib/clients/constants";
+import {
+  TEAM_MEMBER_TYPE_LABELS,
+  type TeamMemberType,
+} from "@/lib/team/constants";
 import { listTeamMembers } from "@/actions/team/queries";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +34,7 @@ export default async function TeamPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Country</TableHead>
@@ -40,12 +45,13 @@ export default async function TeamPage() {
           <TableBody>
             {members.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   No team members yet.
                 </TableCell>
               </TableRow>
             )}
             {members.map((member) => {
+              const type = member.type as TeamMemberType;
               const entry = {
                 id: member.id,
                 name: member.name,
@@ -54,10 +60,18 @@ export default async function TeamPage() {
                 country: member.country,
                 currency: member.currency as PaymentCurrency | null,
                 address: member.address,
+                type,
+                hourlyRate: member.hourlyRate ? Number(member.hourlyRate) : null,
               };
               return (
                 <TeamMemberRowActions key={member.id} entry={entry}>
                   <TableCell className="font-medium">{member.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {TEAM_MEMBER_TYPE_LABELS[type]}
+                    {type === "HOURLY" && entry.hourlyRate
+                      ? ` · ${entry.hourlyRate}/hr`
+                      : ""}
+                  </TableCell>
                   <TableCell>{member.phone ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {member.email ?? "—"}

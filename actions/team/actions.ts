@@ -6,6 +6,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import { TEAM_MEMBER_TYPES, type TeamMemberType } from "@/lib/team/constants";
 
 async function requireUserId() {
   const { data } = await auth.getSession();
@@ -27,6 +28,8 @@ function readTeamMemberFields(formData: FormData) {
   const country = str(formData, "country");
   const currencyRaw = str(formData, "currency");
   const address = str(formData, "address");
+  const typeRaw = str(formData, "type") || "PROJECT_BASED";
+  const hourlyRateRaw = str(formData, "hourlyRate");
 
   if (!name) {
     throw new Error("Name is required");
@@ -37,6 +40,17 @@ function readTeamMemberFields(formData: FormData) {
   if (currencyRaw && !PAYMENT_CURRENCIES.includes(currencyRaw as PaymentCurrency)) {
     throw new Error("Invalid payment currency");
   }
+  if (!TEAM_MEMBER_TYPES.includes(typeRaw as TeamMemberType)) {
+    throw new Error("Invalid member type");
+  }
+  const type = typeRaw as TeamMemberType;
+
+  const hourlyRate = hourlyRateRaw ? Number(hourlyRateRaw) : null;
+  if (type === "HOURLY") {
+    if (!hourlyRateRaw || Number.isNaN(hourlyRate) || (hourlyRate ?? 0) <= 0) {
+      throw new Error("Enter a valid hourly rate");
+    }
+  }
 
   return {
     name,
@@ -45,6 +59,9 @@ function readTeamMemberFields(formData: FormData) {
     country: country || null,
     currency: currencyRaw ? (currencyRaw as PaymentCurrency) : null,
     address: address || null,
+    type,
+    // Only meaningful for HOURLY — cleared if the member is project-based.
+    hourlyRate: type === "HOURLY" ? hourlyRate : null,
   };
 }
 
