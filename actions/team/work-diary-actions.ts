@@ -3,16 +3,36 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
-import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { getRatesToPkr } from "@/lib/fx/rates";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatWeekRange, mondayOf, sundayOf } from "@/lib/team/work-diary";
+import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
 
-async function requireUserId() {
-  const { data } = await auth.getSession();
-  if (!data?.user) throw new Error("Not signed in");
-  return data.user.id;
+/** Reachable from both the admin dashboard (role-gated, any team member)
+ * and the team portal (a TEAM login may only ever touch their own
+ * entries) — so this checks whichever rule applies instead of redirecting
+ * like requirePagePermission does. `ownerTeamMemberId` is the entry's
+ * actual owner: the submitted teamMemberId for a create, or the existing
+ * row's for an update/delete (never trust the form for those). */
+async function requireWorkDiaryWriteAccess(
+  action: "create" | "edit" | "delete",
+  ownerTeamMemberId: string,
+) {
+  const appUser = await getCurrentAppUser();
+  if (!appUser) throw new Error("Not signed in");
+
+  if (appUser.kind === "TEAM") {
+    if (appUser.teamMember?.id !== ownerTeamMemberId) {
+      throw new Error("You can only manage your own work diary");
+    }
+    return appUser.authUserId;
+  }
+
+  if (!checkPermission(appUser, "work-diary", action)) {
+    throw new Error("You don't have permission to do this");
+  }
+  return appUser.authUserId;
 }
 
 function str(formData: FormData, key: string) {
@@ -64,7 +84,8 @@ async function readWorkDiaryFields(formData: FormData) {
 }
 
 export async function createWorkDiaryEntry(formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const teamMemberId = str(formData, "teamMemberId");
+  const createdByUserId = await requireWorkDiaryWriteAccess("create", teamMemberId);
   const fields = await readWorkDiaryFields(formData);
 
   try {
@@ -82,10 +103,15 @@ export async function createWorkDiaryEntry(formData: FormData) {
   }
 
   revalidatePath("/team/work-diary");
+  revalidatePath("/portal/work-diary");
 }
 
 export async function updateWorkDiaryEntry(id: string, formData: FormData) {
-  await requireUserId();
+  const existing = await prisma.workDiaryEntry.findUniqueOrThrow({
+    where: { id },
+    select: { teamMemberId: true },
+  });
+  await requireWorkDiaryWriteAccess("edit", existing.teamMemberId);
   const fields = await readWorkDiaryFields(formData);
 
   try {
@@ -103,12 +129,18 @@ export async function updateWorkDiaryEntry(id: string, formData: FormData) {
   }
 
   revalidatePath("/team/work-diary");
+  revalidatePath("/portal/work-diary");
 }
 
 export async function deleteWorkDiaryEntry(id: string) {
-  await requireUserId();
+  const existing = await prisma.workDiaryEntry.findUniqueOrThrow({
+    where: { id },
+    select: { teamMemberId: true },
+  });
+  await requireWorkDiaryWriteAccess("delete", existing.teamMemberId);
 
   await prisma.workDiaryEntry.delete({ where: { id } });
 
   revalidatePath("/team/work-diary");
+  revalidatePath("/portal/work-diary");
 }

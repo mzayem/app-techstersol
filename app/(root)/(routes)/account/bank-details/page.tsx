@@ -20,6 +20,7 @@ import {
   listBankAccounts,
   type SortOption,
 } from "@/actions/bank-accounts/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export default async function BankDetailsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  await requirePagePermission("bank-details");
   const params = await searchParams;
 
   const bankAccounts = await listBankAccounts({

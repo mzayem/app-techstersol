@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { navGroups, navMain } from "@/components/nav/nav-data";
 import { NavUser } from "@/components/nav/nav-user";
+import type { PageKey } from "@/lib/rbac/pages";
 import {
   Sidebar,
   SidebarContent,
@@ -20,8 +21,18 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "../ui/separator";
 
-export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  visiblePages,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { visiblePages: PageKey[] }) {
   const pathname = usePathname();
+  const visible = new Set(visiblePages);
+  const filteredGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => visible.has(item.key)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -61,7 +72,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {navGroups.map((group) => (
+        {filteredGroups.map((group) => (
           <SidebarGroup key={group.title}>
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
             <SidebarGroupContent>

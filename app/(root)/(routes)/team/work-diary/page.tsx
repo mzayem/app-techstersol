@@ -19,6 +19,7 @@ import { formatWeekRange, resolveWorkDiaryPeriod } from "@/lib/team/work-diary";
 import { getRatesToPkr } from "@/lib/fx/rates";
 import { listTeamMemberOptions } from "@/actions/team/queries";
 import { listWorkDiaryEntries } from "@/actions/team/work-diary-queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function WorkDiaryPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  const { permission } = await requirePagePermission("work-diary");
   const params = await searchParams;
   const teamMemberId = params.teamMemberId ?? "";
   const period = params.period ?? "year";
@@ -58,10 +60,12 @@ export default async function WorkDiaryPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Work Diary</h1>
-        <div className="flex items-center gap-2">
-          <WorkDiaryImportDialog teamMembers={hourlyTeamMembers} />
-          <WorkDiaryDialog teamMembers={hourlyTeamMembers} ratesToPkr={ratesToPkr} />
-        </div>
+        {permission.canCreate && (
+          <div className="flex items-center gap-2">
+            <WorkDiaryImportDialog teamMembers={hourlyTeamMembers} />
+            <WorkDiaryDialog teamMembers={hourlyTeamMembers} ratesToPkr={ratesToPkr} />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

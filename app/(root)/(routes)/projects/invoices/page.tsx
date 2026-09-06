@@ -22,6 +22,7 @@ import {
   listInvoiceSources,
   type SortOption,
 } from "@/actions/invoices/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function InvoicesPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  await requirePagePermission("invoices");
   const params = await searchParams;
 
   const [invoices, sources, ratesToPkr] = await Promise.all([

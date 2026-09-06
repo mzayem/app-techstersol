@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { formatPkr } from "@/lib/finance/constants";
 import { getLedgerBalance, listLedgerEntries } from "@/actions/ledger/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default async function BalanceSheetPage() {
+  await requirePagePermission("balance-sheet");
   const [balance, chronological] = await Promise.all([
     getLedgerBalance(),
     listLedgerEntries({ sort: "date-asc" }),

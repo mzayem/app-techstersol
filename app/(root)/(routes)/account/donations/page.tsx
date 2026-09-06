@@ -20,6 +20,7 @@ import {
   listDonations,
   type SortOption,
 } from "@/actions/finance/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export default async function DonationsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  const { permission } = await requirePagePermission("donations");
   const params = await searchParams;
   const dateRange = resolveDateRange(params.range, params.from, params.to);
 
@@ -44,10 +46,12 @@ export default async function DonationsPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Donations</h1>
-        <div className="flex items-center gap-2">
-          <DonationImportDialog />
-          <DonationDialog />
-        </div>
+        {permission.canCreate && (
+          <div className="flex items-center gap-2">
+            <DonationImportDialog />
+            <DonationDialog />
+          </div>
+        )}
       </div>
 
       <StatCards balances={balances} />

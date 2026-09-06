@@ -17,6 +17,7 @@ import {
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import { listClients, type SortOption } from "@/actions/clients/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function ClientsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  await requirePagePermission("clients");
   const params = await searchParams;
 
   const clients = await listClients({

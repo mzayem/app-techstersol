@@ -24,6 +24,7 @@ import {
   listEarnings,
   type SortOption,
 } from "@/actions/finance/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function EarningPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  const { permission } = await requirePagePermission("earning");
   const params = await searchParams;
   const dateRange = resolveDateRange(params.range, params.from, params.to);
 
@@ -48,10 +50,12 @@ export default async function EarningPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Earning</h1>
-        <div className="flex items-center gap-2">
-          <EarningImportDialog />
-          <EarningDialog />
-        </div>
+        {permission.canCreate && (
+          <div className="flex items-center gap-2">
+            <EarningImportDialog />
+            <EarningDialog />
+          </div>
+        )}
       </div>
 
       <StatCards balances={balances} />

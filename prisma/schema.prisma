@@ -59,6 +59,55 @@ enum TeamMemberType {
   HOURLY
 }
 
+enum UserKind {
+  DASHBOARD_HANDLER
+  TEAM
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  permissions RolePermission[]
+  users       AppUser[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+/// One row per page a role has any access to — a page with no row for a
+/// role means no access at all. canView gates both nav visibility and
+/// whether the page itself renders for that role.
+model RolePermission {
+  id        String  @id @default(cuid())
+  roleId    String
+  role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  page      String
+  canView   Boolean @default(false)
+  canCreate Boolean @default(false)
+  canEdit   Boolean @default(false)
+  canDelete Boolean @default(false)
+
+  @@unique([roleId, page])
+}
+
+/// Our own record of an authenticated identity, keyed to Neon Auth's user
+/// id (authUserId). kind decides which half of the app they get:
+/// DASHBOARD_HANDLER (roleId required) or TEAM (teamMemberId required,
+/// linking to an existing TeamMember so a team login only ever sees their
+/// own data).
+model AppUser {
+  id           String      @id @default(cuid())
+  authUserId   String      @unique
+  email        String      @unique
+  name         String
+  kind         UserKind
+  roleId       String?
+  role         Role?       @relation(fields: [roleId], references: [id])
+  teamMemberId String?     @unique
+  teamMember   TeamMember? @relation(fields: [teamMemberId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
 model Earning {
   id                String           @id @default(cuid())
   date              DateTime         @db.Date
@@ -172,6 +221,7 @@ model TeamMember {
   contracts       Contract[]
   payslips        Payslip[]
   workDiaryEntries WorkDiaryEntry[]
+  appUser         AppUser?
 
   @@index([name])
 }

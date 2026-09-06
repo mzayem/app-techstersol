@@ -10,10 +10,12 @@ import {
   getDistributionBreakdown,
   getTotalNetEarnings,
 } from "@/actions/finance/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function DistributionsPage() {
+  await requirePagePermission("distributions");
   const [breakdown, { totalEarning, totalTeamPay, netEarning }] =
     await Promise.all([getDistributionBreakdown(), getTotalNetEarnings()]);
 

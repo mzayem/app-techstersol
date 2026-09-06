@@ -15,6 +15,7 @@ import {
   type SortOption,
 } from "@/actions/contracts/queries";
 import { listTeamMemberOptions } from "@/actions/team/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function ContractsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  await requirePagePermission("contracts");
   const params = await searchParams;
 
   const [contracts, clients, teamMembers] = await Promise.all([

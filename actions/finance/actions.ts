@@ -10,6 +10,7 @@ import {
   type ExpenseCategory,
   type ReferenceCurrency,
 } from "@/lib/finance/constants";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 async function requireUserId() {
   const { data } = await auth.getSession();
@@ -58,7 +59,8 @@ function earningLedgerEntries(
 }
 
 export async function createEarning(formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("earning", "create");
+  const createdByUserId = appUser.authUserId;
 
   const date = str(formData, "date");
   const name = str(formData, "name");
@@ -155,7 +157,8 @@ export async function deleteEarning(id: string) {
 }
 
 export async function createExpense(formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("expenses", "create");
+  const createdByUserId = appUser.authUserId;
 
   const date = str(formData, "date");
   const categoryRaw = str(formData, "category");
@@ -242,7 +245,8 @@ export async function deleteExpense(id: string) {
 }
 
 export async function createDonation(formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("donations", "create");
+  const createdByUserId = appUser.authUserId;
 
   const date = str(formData, "date");
   const name = str(formData, "name");

@@ -1,18 +1,29 @@
+import { redirect } from "next/navigation";
+
 import { AppSidebar } from "@/components/nav/app-sidebar";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { getCurrentAppUser, getVisiblePages } from "@/lib/rbac/permissions";
 
-export default function DashboardLayout({
+export const dynamic = "force-dynamic";
+
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const appUser = await getCurrentAppUser();
+  if (!appUser) redirect("/auth/sign-in");
+  if (appUser.kind === "TEAM") redirect("/portal");
+
+  const visiblePages = getVisiblePages(appUser);
+
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar visiblePages={visiblePages} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger />

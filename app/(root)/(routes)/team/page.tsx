@@ -16,10 +16,12 @@ import {
   type TeamMemberType,
 } from "@/lib/team/constants";
 import { listTeamMembers } from "@/actions/team/queries";
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function TeamPage() {
+  await requirePagePermission("team");
   const members = await listTeamMembers({});
 
   return (
