@@ -215,8 +215,10 @@ export function ContractTable({
 function StatusPill({ status }: { status: ContractStatus }) {
   const styles: Record<ContractStatus, string> = {
     PROPOSED: "bg-muted text-muted-foreground",
+    UPFRONT_PAYMENT: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
     ACTIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     PENDING_PAYMENT: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    PARTIALLY_PAID: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
     COMPLETED: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
   };
   return (

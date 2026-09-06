@@ -20,8 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { REFERENCE_CURRENCIES, type ReferenceCurrency } from "@/lib/finance/constants";
-import { createEarning, deleteEarning, updateEarning } from "@/actions/finance/actions";
+import {
+  REFERENCE_CURRENCIES,
+  type ReferenceCurrency,
+} from "@/lib/finance/constants";
+import {
+  createEarning,
+  deleteEarning,
+  updateEarning,
+} from "@/actions/finance/actions";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -77,7 +84,7 @@ export function EarningDialog({
           Add earning
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit earning" : "Add earning"}</DialogTitle>
         </DialogHeader>
@@ -173,7 +180,11 @@ export function EarningRowActions({ entry }: { entry: EarningEntry }) {
         onEdit={() => setEditOpen(true)}
         onDelete={() => setDeleteOpen(true)}
       />
-      <EarningDialog earning={entry} open={editOpen} onOpenChange={setEditOpen} />
+      <EarningDialog
+        earning={entry}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
@@ -184,7 +195,13 @@ export function EarningRowActions({ entry }: { entry: EarningEntry }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

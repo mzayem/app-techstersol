@@ -66,7 +66,7 @@ export function DonationDialog({
           Add donation
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit donation" : "Add donation"}</DialogTitle>
         </DialogHeader>

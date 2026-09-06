@@ -116,12 +116,18 @@ const styles = StyleSheet.create({
   },
   billToCol: { maxWidth: 240, gap: 4 },
   label: { fontSize: 8, fontWeight: 700, color: "#1f3864", marginBottom: 2 },
-  table: { marginTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb" },
+  table: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+  },
   tableHeaderRow: {
     flexDirection: "row",
     backgroundColor: "#f3f4f6",
     paddingVertical: 5,
     paddingHorizontal: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#d1d5db",
   },
   tableRow: {
     flexDirection: "row",
@@ -130,8 +136,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
   },
-  descCol: { flex: 1 },
-  totalCol: { width: 90, textAlign: "right" },
+  descCol: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: "#d1d5db",
+    paddingRight: 6,
+  },
+  totalCol: { width: 90, textAlign: "right", paddingLeft: 6 },
   totalsBlock: { marginTop: 10, alignItems: "flex-end" },
   totalsRow: {
     flexDirection: "row",
@@ -142,11 +153,11 @@ const styles = StyleSheet.create({
   balanceDue: { fontSize: 11, fontWeight: 700 },
   stampContainer: {
     position: "absolute",
-    top: 78,
+    top: 180,
     left: 222,
     alignItems: "center",
   },
-  stampImage: { width: 80, height: 80 },
+  stampImage: { width: 100, height: 100 },
   unpaidBadge: {
     borderWidth: 2,
     borderColor: "#dc2626",
@@ -299,12 +310,24 @@ function InvoiceDocument({
             <Text>{invoice.client.country}</Text>
           </View>
           <View style={{ maxWidth: 200, gap: 4 }}>
-            <Text>Invoice No: {formatInvoiceNumber(invoice.number)}</Text>
-            <Text>Invoice Date: {formatDate(invoice.issueDate)}</Text>
+            <Text>
+              <Text style={styles.bold}>Invoice No</Text>:{" "}
+              {formatInvoiceNumber(invoice.number)}
+            </Text>
+            <Text>
+              <Text style={styles.bold}>Invoice Date</Text>:{" "}
+              {formatDate(invoice.issueDate)}
+            </Text>
             {isPaid && invoice.paidOn ? (
-              <Text>Paid On: {formatDate(invoice.paidOn)}</Text>
+              <Text>
+                <Text style={styles.bold}>Paid On</Text>:{" "}
+                {formatDate(invoice.paidOn)}
+              </Text>
             ) : (
-              <Text>Due Date: {formatDate(invoice.dueDate)}</Text>
+              <Text>
+                <Text style={styles.bold}>Due Date</Text>:{" "}
+                {formatDate(invoice.dueDate)}
+              </Text>
             )}
           </View>
         </View>
@@ -326,13 +349,13 @@ function InvoiceDocument({
 
         <View style={styles.totalsBlock}>
           <View style={styles.totalsRow}>
-            <Text style={styles.bold}>TOTAL</Text>
+            <Text style={styles.bold}>Subtotal</Text>
             <Text>{formatMoney(total, invoice.currency)}</Text>
           </View>
           {invoice.discount > 0 && (
             <View style={styles.totalsRow}>
-              <Text style={styles.bold}>Total DISCOUNT</Text>
-              <Text>{formatMoney(invoice.discount, invoice.currency)}</Text>
+              <Text style={styles.bold}>Discount</Text>
+              <Text>-{formatMoney(invoice.discount, invoice.currency)}</Text>
             </View>
           )}
           <View

@@ -40,9 +40,37 @@ export async function listInvoices(filters: ListFilters) {
   });
 }
 
+/** Groups paid InvoiceItem amounts by their source contract/milestone, keyed
+ * the same way as remainingKey() below, so callers can subtract what's
+ * already been paid from a contract or milestone's face amount. */
+async function paidAmountsByLine(contractIds: string[]) {
+  if (contractIds.length === 0) return new Map<string, number>();
+
+  const paidItems = await prisma.invoiceItem.findMany({
+    where: {
+      contractId: { in: contractIds },
+      invoice: { status: "PAID" },
+    },
+    select: { contractId: true, milestoneId: true, amount: true },
+  });
+
+  const paid = new Map<string, number>();
+  for (const item of paidItems) {
+    const key = remainingKey(item.contractId!, item.milestoneId);
+    paid.set(key, (paid.get(key) ?? 0) + Number(item.amount));
+  }
+  return paid;
+}
+
+export function remainingKey(contractId: string, milestoneId: string | null) {
+  return `${contractId}:${milestoneId ?? "project"}`;
+}
+
 /** Data needed to populate the "add invoice" dialog: every client, every
- * contract (with its milestones, for line-item generation), and every bank
- * account (for the currency-matched default). */
+ * not-yet-fully-paid billable line (a project's remaining balance, or one
+ * milestone's remaining balance — milestones are listed individually so a
+ * milestone contract behaves like several selectable contracts), and every
+ * bank account (for the currency-matched default). */
 export async function listInvoiceSources() {
   const [clients, contracts, bankAccounts] = await Promise.all([
     prisma.client.findMany({
@@ -50,6 +78,7 @@ export async function listInvoiceSources() {
       orderBy: { name: "asc" },
     }),
     prisma.contract.findMany({
+      where: { status: { not: "COMPLETED" } },
       select: {
         id: true,
         clientId: true,
@@ -67,7 +96,42 @@ export async function listInvoiceSources() {
     }),
   ]);
 
-  return { clients, contracts, bankAccounts };
+  const paid = await paidAmountsByLine(contracts.map((c) => c.id));
+
+  const lineOptions = contracts.flatMap((contract) => {
+    if (contract.paymentType === "PROJECT") {
+      const total = contract.amount ? Number(contract.amount) : 0;
+      const remaining = total - (paid.get(remainingKey(contract.id, null)) ?? 0);
+      if (remaining <= 0.01) return [];
+      return [
+        {
+          contractId: contract.id,
+          milestoneId: null as string | null,
+          clientId: contract.clientId,
+          currency: contract.currency,
+          label: contract.projectName,
+          remainingAmount: remaining,
+        },
+      ];
+    }
+    return contract.milestones.flatMap((milestone) => {
+      const remaining =
+        Number(milestone.amount) - (paid.get(remainingKey(contract.id, milestone.id)) ?? 0);
+      if (remaining <= 0.01) return [];
+      return [
+        {
+          contractId: contract.id,
+          milestoneId: milestone.id as string | null,
+          clientId: contract.clientId,
+          currency: contract.currency,
+          label: `${contract.projectName} — ${milestone.name}`,
+          remainingAmount: remaining,
+        },
+      ];
+    });
+  });
+
+  return { clients, lineOptions, bankAccounts };
 }
 
 export async function getInvoiceForPdf(id: string) {

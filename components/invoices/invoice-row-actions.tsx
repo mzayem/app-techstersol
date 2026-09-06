@@ -67,8 +67,8 @@ export function InvoiceRowActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Mark {formatInvoiceNumber(number)} as unpaid?</AlertDialogTitle>
             <AlertDialogDescription>
-              This clears its transaction ID and paid date. It does not undo the contract
-              completion or the earning entry that were created when it was paid.
+              This clears its transaction ID and paid date, deletes the earning entry it created,
+              and moves its contract(s) back to pending payment.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

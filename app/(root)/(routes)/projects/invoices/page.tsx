@@ -41,18 +41,13 @@ export default async function InvoicesPage({
   ]);
 
   const clients = sources.clients;
-  const contracts = sources.contracts.map((c) => ({
-    id: c.id,
-    clientId: c.clientId,
-    projectName: c.projectName,
-    currency: c.currency as PaymentCurrency,
-    paymentType: c.paymentType as "PROJECT" | "MILESTONE",
-    amount: c.amount ? Number(c.amount) : null,
-    milestones: c.milestones.map((m) => ({
-      id: m.id,
-      name: m.name,
-      amount: Number(m.amount),
-    })),
+  const lineOptions = sources.lineOptions.map((o) => ({
+    contractId: o.contractId,
+    milestoneId: o.milestoneId,
+    clientId: o.clientId,
+    currency: o.currency as PaymentCurrency,
+    label: o.label,
+    remainingAmount: o.remainingAmount,
   }));
   const bankAccounts = sources.bankAccounts.map((b) => ({
     id: b.id,
@@ -65,7 +60,7 @@ export default async function InvoicesPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Invoices</h1>
-        <InvoiceDialog clients={clients} contracts={contracts} bankAccounts={bankAccounts} />
+        <InvoiceDialog clients={clients} lineOptions={lineOptions} bankAccounts={bankAccounts} />
       </div>
 
       <InvoiceFilterBar />

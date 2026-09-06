@@ -21,7 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import {
   CONTRACT_STATUSES,
   CONTRACT_STATUS_LABELS,
@@ -123,7 +126,9 @@ export function ContractDialog({
   }
 
   function updateMilestone(index: number, patch: Partial<MilestoneRow>) {
-    setMilestones((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+    setMilestones((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
   }
 
   function addMilestone() {
@@ -131,7 +136,9 @@ export function ContractDialog({
   }
 
   function removeMilestone(index: number) {
-    setMilestones((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+    setMilestones((rows) =>
+      rows.length > 1 ? rows.filter((_, i) => i !== index) : rows,
+    );
   }
 
   function onSubmit(formData: FormData) {
@@ -166,7 +173,7 @@ export function ContractDialog({
           Add contract
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit contract" : "Add contract"}</DialogTitle>
         </DialogHeader>
@@ -176,7 +183,11 @@ export function ContractDialog({
           className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1"
         >
           <Field label="Client">
-            <Select name="clientId" value={clientId} onValueChange={onClientChange}>
+            <Select
+              name="clientId"
+              value={clientId}
+              onValueChange={onClientChange}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select client" />
               </SelectTrigger>
@@ -205,7 +216,9 @@ export function ContractDialog({
                 type="date"
                 name="date"
                 required
-                defaultValue={contract ? toDateInputValue(contract.date) : todayInput()}
+                defaultValue={
+                  contract ? toDateInputValue(contract.date) : todayInput()
+                }
               />
             </Field>
             <Field label="Deadline">
@@ -213,7 +226,9 @@ export function ContractDialog({
                 type="date"
                 name="deadline"
                 required
-                defaultValue={contract ? toDateInputValue(contract.deadline) : undefined}
+                defaultValue={
+                  contract ? toDateInputValue(contract.deadline) : undefined
+                }
               />
             </Field>
           </div>
@@ -247,7 +262,10 @@ export function ContractDialog({
               </Select>
             </Field>
             <Field label="Status">
-              <Select name="status" defaultValue={contract?.status ?? "PROPOSED"}>
+              <Select
+                name="status"
+                defaultValue={contract?.status ?? "PROPOSED"}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -302,7 +320,9 @@ export function ContractDialog({
                     placeholder="Name"
                     className="flex-1"
                     value={row.name}
-                    onChange={(e) => updateMilestone(index, { name: e.target.value })}
+                    onChange={(e) =>
+                      updateMilestone(index, { name: e.target.value })
+                    }
                   />
                   <Input
                     type="number"
@@ -311,13 +331,17 @@ export function ContractDialog({
                     placeholder="Amount"
                     className="w-28"
                     value={row.amount}
-                    onChange={(e) => updateMilestone(index, { amount: e.target.value })}
+                    onChange={(e) =>
+                      updateMilestone(index, { amount: e.target.value })
+                    }
                   />
                   <Input
                     type="date"
                     className="w-40"
                     value={row.deadline}
-                    onChange={(e) => updateMilestone(index, { deadline: e.target.value })}
+                    onChange={(e) =>
+                      updateMilestone(index, { deadline: e.target.value })
+                    }
                   />
                   <Button
                     type="button"
@@ -331,7 +355,12 @@ export function ContractDialog({
                   </Button>
                 </div>
               ))}
-              <Button type="button" variant="outline" size="sm" onClick={addMilestone}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addMilestone}
+              >
                 <PlusIcon />
                 Add milestone
               </Button>
@@ -362,7 +391,10 @@ export function ContractRowActions({
 
   return (
     <>
-      <ContractActionsMenu onEdit={() => setEditOpen(true)} onDelete={() => setDeleteOpen(true)} />
+      <ContractActionsMenu
+        onEdit={() => setEditOpen(true)}
+        onDelete={() => setDeleteOpen(true)}
+      />
       <ContractDialog
         contract={entry}
         clients={clients}
@@ -379,7 +411,13 @@ export function ContractRowActions({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

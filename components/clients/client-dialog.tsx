@@ -28,7 +28,11 @@ import {
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import { COUNTRIES } from "@/lib/clients/countries";
-import { createClient, deleteClient, updateClient } from "@/actions/clients/actions";
+import {
+  createClient,
+  deleteClient,
+  updateClient,
+} from "@/actions/clients/actions";
 import { ClientActionsMenu } from "@/components/clients/client-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -84,7 +88,7 @@ export function ClientDialog({
           Add client
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit client" : "Add client"}</DialogTitle>
         </DialogHeader>
@@ -179,7 +183,10 @@ export function ClientRowActions({ entry }: { entry: ClientEntry }) {
 
   return (
     <>
-      <ClientActionsMenu onEdit={() => setEditOpen(true)} onDelete={() => setDeleteOpen(true)} />
+      <ClientActionsMenu
+        onEdit={() => setEditOpen(true)}
+        onDelete={() => setDeleteOpen(true)}
+      />
       <ClientDialog client={entry} open={editOpen} onOpenChange={setEditOpen} />
       <DeleteEntryDialog
         open={deleteOpen}
@@ -191,7 +198,13 @@ export function ClientRowActions({ entry }: { entry: ClientEntry }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

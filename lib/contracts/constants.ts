@@ -1,15 +1,19 @@
 export const CONTRACT_STATUSES = [
   "PROPOSED",
+  "UPFRONT_PAYMENT",
   "ACTIVE",
   "PENDING_PAYMENT",
+  "PARTIALLY_PAID",
   "COMPLETED",
 ] as const;
 export type ContractStatus = (typeof CONTRACT_STATUSES)[number];
 
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   PROPOSED: "Proposed",
+  UPFRONT_PAYMENT: "Upfront Recieved",
   ACTIVE: "Active",
   PENDING_PAYMENT: "Pending payment",
+  PARTIALLY_PAID: "Partially paid",
   COMPLETED: "Completed",
 };
 

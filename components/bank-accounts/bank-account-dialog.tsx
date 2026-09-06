@@ -20,7 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import {
   BANK_FIELD_LABELS,
   CURRENCY_FIELDS,
@@ -48,7 +51,10 @@ export type BankAccountEntry = {
   bsbCode: string | null;
 };
 
-const FIELD_VALUES: Record<BankFieldKey, (entry: BankAccountEntry) => string | null> = {
+const FIELD_VALUES: Record<
+  BankFieldKey,
+  (entry: BankAccountEntry) => string | null
+> = {
   accountType: (e) => e.accountType,
   routingNumber: (e) => e.routingNumber,
   accountNumber: (e) => e.accountNumber,
@@ -105,9 +111,11 @@ export function BankAccountDialog({
           Add bank account
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit bank account" : "Add bank account"}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Edit bank account" : "Add bank account"}
+          </DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <Field label="Currency">
@@ -154,7 +162,9 @@ export function BankAccountDialog({
                 placeholder={BANK_FIELD_LABELS[field]}
                 required
                 defaultValue={
-                  bankAccount ? (FIELD_VALUES[field](bankAccount) ?? undefined) : undefined
+                  bankAccount
+                    ? (FIELD_VALUES[field](bankAccount) ?? undefined)
+                    : undefined
                 }
               />
             </Field>
@@ -172,7 +182,11 @@ export function BankAccountDialog({
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Save bank account"}
+              {pending
+                ? "Saving…"
+                : isEdit
+                  ? "Save changes"
+                  : "Save bank account"}
             </Button>
           </DialogFooter>
         </form>
@@ -187,8 +201,15 @@ export function BankAccountRowActions({ entry }: { entry: BankAccountEntry }) {
 
   return (
     <>
-      <BankAccountActionsMenu onEdit={() => setEditOpen(true)} onDelete={() => setDeleteOpen(true)} />
-      <BankAccountDialog bankAccount={entry} open={editOpen} onOpenChange={setEditOpen} />
+      <BankAccountActionsMenu
+        onEdit={() => setEditOpen(true)}
+        onDelete={() => setDeleteOpen(true)}
+      />
+      <BankAccountDialog
+        bankAccount={entry}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
@@ -199,7 +220,13 @@ export function BankAccountRowActions({ entry }: { entry: BankAccountEntry }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

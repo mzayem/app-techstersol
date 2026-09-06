@@ -20,8 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EXPENSE_CATEGORIES, BUCKET_LABELS, type ExpenseCategory } from "@/lib/finance/constants";
-import { createExpense, deleteExpense, updateExpense } from "@/actions/finance/actions";
+import {
+  EXPENSE_CATEGORIES,
+  BUCKET_LABELS,
+  type ExpenseCategory,
+} from "@/lib/finance/constants";
+import {
+  createExpense,
+  deleteExpense,
+  updateExpense,
+} from "@/actions/finance/actions";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -75,7 +83,7 @@ export function ExpenseDialog({
           Add expense
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit expense" : "Add expense"}</DialogTitle>
         </DialogHeader>
@@ -86,11 +94,16 @@ export function ExpenseDialog({
                 type="date"
                 name="date"
                 required
-                defaultValue={expense ? toDateInputValue(expense.date) : today()}
+                defaultValue={
+                  expense ? toDateInputValue(expense.date) : today()
+                }
               />
             </Field>
             <Field label="Type">
-              <Select name="category" defaultValue={expense?.category ?? "EXPENSE"}>
+              <Select
+                name="category"
+                defaultValue={expense?.category ?? "EXPENSE"}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -146,7 +159,11 @@ export function ExpenseRowActions({ entry }: { entry: ExpenseEntry }) {
         onEdit={() => setEditOpen(true)}
         onDelete={() => setDeleteOpen(true)}
       />
-      <ExpenseDialog expense={entry} open={editOpen} onOpenChange={setEditOpen} />
+      <ExpenseDialog
+        expense={entry}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
@@ -157,7 +174,13 @@ export function ExpenseRowActions({ entry }: { entry: ExpenseEntry }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

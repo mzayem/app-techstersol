@@ -35,8 +35,10 @@ enum ContractPaymentType {
 
 enum ContractStatus {
   PROPOSED
+  UPFRONT_PAYMENT
   ACTIVE
   PENDING_PAYMENT
+  PARTIALLY_PAID
   COMPLETED
 }
 
@@ -50,16 +52,18 @@ enum InvoiceStatus {
 /// On creation, netEarning (amount - teamPay) is split across the
 /// distribution buckets per lib/finance/constants.ts.
 model Earning {
-  id                String             @id @default(cuid())
-  date              DateTime           @db.Date
+  id                String           @id @default(cuid())
+  date              DateTime         @db.Date
   name              String
-  amount            Decimal            @db.Decimal(14, 2)
-  teamPay           Decimal            @default(0) @db.Decimal(14, 2)
-  referenceAmount   Decimal?           @db.Decimal(14, 2)
+  amount            Decimal          @db.Decimal(14, 2)
+  teamPay           Decimal          @default(0) @db.Decimal(14, 2)
+  referenceAmount   Decimal?         @db.Decimal(14, 2)
   referenceCurrency PaymentCurrency?
+  invoiceId         String?          @unique
+  invoice           Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   createdByUserId   String
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([date])
 }
@@ -130,6 +134,7 @@ model Contract {
   updatedAt       DateTime            @updatedAt
   milestones      Milestone[]
   invoiceLinks    InvoiceContract[]
+  invoiceItems    InvoiceItem[]
 
   @@index([status])
   @@index([clientId])
@@ -137,14 +142,15 @@ model Contract {
 
 /// One installment of a milestone-billed contract.
 model Milestone {
-  id         String   @id @default(cuid())
-  contractId String
-  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  name       String
-  amount     Decimal  @db.Decimal(14, 2)
-  deadline   DateTime @db.Date
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String        @id @default(cuid())
+  contractId   String
+  contract     Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  name         String
+  amount       Decimal       @db.Decimal(14, 2)
+  deadline     DateTime      @db.Date
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  invoiceItems InvoiceItem[]
 
   @@index([contractId])
 }
@@ -191,6 +197,7 @@ model Invoice {
   createdByUserId String
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  earning         Earning?
   items           InvoiceItem[]
   contracts       InvoiceContract[]
 
@@ -199,16 +206,25 @@ model Invoice {
 }
 
 /// One billable line on an invoice — a project's full amount, or a single
-/// milestone installment — snapshotted at invoice-creation time.
+/// milestone installment — snapshotted at invoice-creation time. contractId/
+/// milestoneId trace the line back to its source so remaining balances (for
+/// partial payments and "already paid" filtering) can be computed later.
 model InvoiceItem {
-  id          String  @id @default(cuid())
+  id          String     @id @default(cuid())
   invoiceId   String
-  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice     Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  contractId  String?
+  contract    Contract?  @relation(fields: [contractId], references: [id])
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id])
   description String
-  amount      Decimal @db.Decimal(14, 2)
-  sortOrder   Int     @default(0)
+  amount      Decimal    @db.Decimal(14, 2)
+  isPartial   Boolean    @default(false)
+  sortOrder   Int        @default(0)
 
   @@index([invoiceId])
+  @@index([contractId])
+  @@index([milestoneId])
 }
 
 /// Links an invoice to the contract(s) it bills, so paying the invoice can

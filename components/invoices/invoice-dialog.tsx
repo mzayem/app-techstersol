@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
+import { DEFAULT_DUE_DAYS } from "@/lib/invoices/constants";
 import {
   createInvoice,
   type InvoiceItemInput,
@@ -30,14 +31,13 @@ import {
 
 export type ClientOption = { id: string; name: string };
 
-export type ContractOption = {
-  id: string;
+export type LineOption = {
+  contractId: string;
+  milestoneId: string | null;
   clientId: string;
-  projectName: string;
   currency: PaymentCurrency;
-  paymentType: "PROJECT" | "MILESTONE";
-  amount: number | null;
-  milestones: { id: string; name: string; amount: number }[];
+  label: string;
+  remainingAmount: number;
 };
 
 export type BankAccountOption = {
@@ -47,29 +47,29 @@ export type BankAccountOption = {
   accountHolderName: string;
 };
 
-function contractItems(contract: ContractOption): InvoiceItemInput[] {
-  if (contract.paymentType === "PROJECT") {
-    return [
-      { description: contract.projectName, amount: contract.amount ?? 0 },
-    ];
-  }
-  return contract.milestones.map((m) => ({
-    description: `${contract.projectName} — ${m.name}`,
-    amount: m.amount,
-  }));
+type PaymentMode = "FULL" | "PARTIAL";
+
+function lineKey(option: Pick<LineOption, "contractId" | "milestoneId">) {
+  return `${option.contractId}:${option.milestoneId ?? "project"}`;
 }
 
 function todayInput() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function addDaysInput(dateStr: string, days: number) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export function InvoiceDialog({
   clients,
-  contracts,
+  lineOptions,
   bankAccounts,
 }: {
   clients: ClientOption[];
-  contracts: ContractOption[];
+  lineOptions: LineOption[];
   bankAccounts: BankAccountOption[];
 }) {
   const [open, setOpen] = React.useState(false);
@@ -78,26 +78,48 @@ export function InvoiceDialog({
   const formRef = React.useRef<HTMLFormElement>(null);
 
   const [clientId, setClientId] = React.useState("");
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set());
+  const [mode, setMode] = React.useState<PaymentMode>("FULL");
+  const [partialAmounts, setPartialAmounts] = React.useState<Record<string, string>>({});
   const [bankAccountId, setBankAccountId] = React.useState("");
   const [discountInput, setDiscountInput] = React.useState("");
 
-  const clientContracts = React.useMemo(
-    () => contracts.filter((c) => c.clientId === clientId),
-    [contracts, clientId],
+  const [issueDateValue, setIssueDateValue] = React.useState(todayInput);
+  const [dueDateValue, setDueDateValue] = React.useState(() =>
+    addDaysInput(todayInput(), DEFAULT_DUE_DAYS),
+  );
+  const [dueDateTouched, setDueDateTouched] = React.useState(false);
+
+  const clientLineOptions = React.useMemo(
+    () => lineOptions.filter((o) => o.clientId === clientId),
+    [lineOptions, clientId],
   );
 
-  const selectedContracts = React.useMemo(
-    () => clientContracts.filter((c) => selectedIds.has(c.id)),
-    [clientContracts, selectedIds],
+  const selectedOptions = React.useMemo(
+    () => clientLineOptions.filter((o) => selectedKeys.has(lineKey(o))),
+    [clientLineOptions, selectedKeys],
   );
 
-  const currency = selectedContracts[0]?.currency ?? null;
+  const currency = selectedOptions[0]?.currency ?? null;
 
-  const items = React.useMemo(
-    () => selectedContracts.flatMap(contractItems),
-    [selectedContracts],
+  const items: InvoiceItemInput[] = React.useMemo(
+    () =>
+      selectedOptions.map((option) => {
+        const key = lineKey(option);
+        const amount =
+          mode === "FULL"
+            ? option.remainingAmount
+            : Math.min(Math.max(Number(partialAmounts[key]) || 0, 0), option.remainingAmount);
+        return {
+          contractId: option.contractId,
+          milestoneId: option.milestoneId,
+          description: option.label,
+          amount,
+        };
+      }),
+    [selectedOptions, mode, partialAmounts],
   );
+
   const total = items.reduce((sum, item) => sum + item.amount, 0);
   const discount = Math.min(Math.max(Number(discountInput) || 0, 0), total);
   const balanceDue = total - discount;
@@ -117,33 +139,49 @@ export function InvoiceDialog({
 
   function onClientChange(id: string | null) {
     setClientId(id ?? "");
-    setSelectedIds(new Set());
+    setSelectedKeys(new Set());
   }
 
-  function toggleContract(contract: ContractOption) {
-    setSelectedIds((prev) => {
+  function toggleLine(option: LineOption) {
+    const key = lineKey(option);
+    setSelectedKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(contract.id)) {
-        next.delete(contract.id);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(contract.id);
+        next.add(key);
+        setPartialAmounts((amounts) =>
+          amounts[key] !== undefined
+            ? amounts
+            : { ...amounts, [key]: String(option.remainingAmount) },
+        );
       }
       return next;
     });
   }
 
+  function onIssueDateChange(value: string) {
+    setIssueDateValue(value);
+    if (!dueDateTouched) setDueDateValue(addDaysInput(value, DEFAULT_DUE_DAYS));
+  }
+
   function resetForm() {
     setClientId("");
-    setSelectedIds(new Set());
+    setSelectedKeys(new Set());
+    setMode("FULL");
+    setPartialAmounts({});
     setBankAccountId("");
     setDiscountInput("");
+    setIssueDateValue(todayInput());
+    setDueDateValue(addDaysInput(todayInput(), DEFAULT_DUE_DAYS));
+    setDueDateTouched(false);
   }
 
   function onSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
       try {
-        await createInvoice(formData, [...selectedIds], items);
+        await createInvoice(formData, items);
         formRef.current?.reset();
         resetForm();
         setOpen(false);
@@ -186,22 +224,18 @@ export function InvoiceDialog({
 
           {clientId && (
             <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">Contracts</span>
-              {clientContracts.length === 0 && (
+              <span className="text-sm text-muted-foreground">Contracts & milestones</span>
+              {clientLineOptions.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  This client has no contracts yet.
+                  This client has nothing left to invoice.
                 </p>
               )}
-              {clientContracts.map((contract) => {
-                const disabled =
-                  currency !== null && contract.currency !== currency;
-                const contractTotal = contractItems(contract).reduce(
-                  (sum, item) => sum + item.amount,
-                  0,
-                );
+              {clientLineOptions.map((option) => {
+                const disabled = currency !== null && option.currency !== currency;
+                const key = lineKey(option);
                 return (
                   <label
-                    key={contract.id}
+                    key={key}
                     className={
                       "flex items-center justify-between gap-2 rounded-md border border-input px-2.5 py-2 text-sm " +
                       (disabled ? "opacity-50" : "")
@@ -209,16 +243,82 @@ export function InvoiceDialog({
                   >
                     <span className="flex items-center gap-2">
                       <Checkbox
-                        checked={selectedIds.has(contract.id)}
+                        checked={selectedKeys.has(key)}
                         disabled={disabled}
-                        onCheckedChange={() => toggleContract(contract)}
+                        onCheckedChange={() => toggleLine(option)}
                       />
-                      {contract.projectName}
+                      {option.label}
                     </span>
                     <span className="text-muted-foreground">
-                      {formatContractAmount(contractTotal, contract.currency)}
+                      {formatContractAmount(option.remainingAmount, option.currency)}
                     </span>
                   </label>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedOptions.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm text-muted-foreground">Payment</span>
+              <div className="inline-flex w-fit overflow-hidden rounded-md ring-1 ring-input">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={mode === "FULL" ? "default" : "ghost"}
+                  className="rounded-none"
+                  onClick={() => setMode("FULL")}
+                >
+                  Full payment
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={mode === "PARTIAL" ? "default" : "ghost"}
+                  className="rounded-none"
+                  onClick={() => setMode("PARTIAL")}
+                >
+                  Partial payment
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {mode === "PARTIAL" && selectedOptions.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {selectedOptions.map((option) => {
+                const key = lineKey(option);
+                const amountValue = partialAmounts[key] ?? String(option.remainingAmount);
+                const amount = Math.min(
+                  Math.max(Number(amountValue) || 0, 0),
+                  option.remainingAmount,
+                );
+                const remainingAfter = option.remainingAmount - amount;
+                return (
+                  <div key={key} className="flex flex-col gap-1 rounded-md bg-muted p-2.5">
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span>{option.label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        of {formatContractAmount(option.remainingAmount, option.currency)}
+                      </span>
+                    </div>
+                    <Input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      max={option.remainingAmount}
+                      value={amountValue}
+                      onChange={(e) =>
+                        setPartialAmounts((prev) => ({ ...prev, [key]: e.target.value }))
+                      }
+                    />
+                    {remainingAfter > 0.01 && (
+                      <span className="text-xs text-muted-foreground">
+                        Remaining after this payment:{" "}
+                        {formatContractAmount(remainingAfter, option.currency)}
+                      </span>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -311,17 +411,30 @@ export function InvoiceDialog({
                 type="date"
                 name="issueDate"
                 required
-                defaultValue={todayInput()}
+                value={issueDateValue}
+                onChange={(e) => onIssueDateChange(e.target.value)}
               />
             </Field>
             <Field label="Due date">
-              <Input type="date" name="dueDate" required />
+              <Input
+                type="date"
+                name="dueDate"
+                required
+                value={dueDateValue}
+                onChange={(e) => {
+                  setDueDateTouched(true);
+                  setDueDateValue(e.target.value);
+                }}
+              />
             </Field>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending || items.length === 0}>
+            <Button
+              type="submit"
+              disabled={pending || items.length === 0 || items.some((i) => !(i.amount > 0))}
+            >
               {pending ? "Saving…" : "Save invoice"}
             </Button>
           </DialogFooter>

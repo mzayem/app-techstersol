@@ -10,6 +10,9 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
  * from the highest existing number. */
 export const INVOICE_NUMBER_START = 300;
 
+/** Default gap between issue date and due date for a new invoice. */
+export const DEFAULT_DUE_DAYS = 3;
+
 export function formatInvoiceNumber(number: number) {
   return `#${String(number).padStart(5, "0")}`;
 }
