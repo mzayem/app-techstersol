@@ -116,7 +116,9 @@ model Client {
 }
 
 /// A project engagement with a client, billed either as one project amount
-/// or split across milestones (see Milestone).
+/// or split across milestones (see Milestone). If teamMemberId is set, the
+/// work is outsourced to that team member for teamPayAmount (PKR); if null,
+/// the work is handled in-house and no team cut is deducted from earning.
 model Contract {
   id              String              @id @default(cuid())
   clientId        String
@@ -129,15 +131,83 @@ model Contract {
   paymentType     ContractPaymentType
   amount          Decimal?            @db.Decimal(14, 2)
   status          ContractStatus      @default(PROPOSED)
+  teamMemberId    String?
+  teamMember      TeamMember?         @relation(fields: [teamMemberId], references: [id])
+  teamPayAmount   Decimal?            @db.Decimal(14, 2)
   createdByUserId String
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   milestones      Milestone[]
   invoiceLinks    InvoiceContract[]
   invoiceItems    InvoiceItem[]
+  payslips        Payslip[]
 
   @@index([status])
   @@index([clientId])
+  @@index([teamMemberId])
+}
+
+/// An outsourced contractor or team member who can be assigned to a
+/// contract's work and paid via a Payslip.
+model TeamMember {
+  id              String           @id @default(cuid())
+  name            String
+  phone           String?
+  email           String?
+  country         String?
+  currency        PaymentCurrency?
+  address         String?
+  createdByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  contracts       Contract[]
+  payslips        Payslip[]
+
+  @@index([name])
+}
+
+/// A generated payslip paying a team member for a period of work. contractId
+/// is an optional "assigned project" shown on the payslip so the team member
+/// knows what the payment is for; it carries no financial logic on its own.
+/// See lib/team/constants.ts for the numbering scheme.
+model Payslip {
+  id              String      @id @default(cuid())
+  number          Int         @unique
+  teamMemberId    String
+  teamMember      TeamMember  @relation(fields: [teamMemberId], references: [id])
+  contractId      String?
+  contract        Contract?   @relation(fields: [contractId], references: [id])
+  periodStart     DateTime    @db.Date
+  periodEnd       DateTime    @db.Date
+  issueDate       DateTime    @db.Date
+  amount          Decimal     @db.Decimal(14, 2)
+  note            String?
+  createdByUserId String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  teamPayment     TeamPayment?
+
+  @@index([teamMemberId])
+  @@index([contractId])
+}
+
+/// A team payment recorded in the finance ledger — created alongside a
+/// Payslip only when that payment isn't already reflected in an existing
+/// Earning.teamPay deduction (see actions/team/payslip-actions.ts), so
+/// money leaving the company for team pay is never counted twice but is
+/// always accounted for somewhere.
+model TeamPayment {
+  id              String   @id @default(cuid())
+  date            DateTime @db.Date
+  name            String
+  amount          Decimal  @db.Decimal(14, 2)
+  payslipId       String?  @unique
+  payslip         Payslip? @relation(fields: [payslipId], references: [id], onDelete: SetNull)
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([date])
 }
 
 /// One installment of a milestone-billed contract.

@@ -94,14 +94,20 @@ export type BucketBreakdown = {
 export async function getDistributionBreakdown(): Promise<
   Record<Bucket, BucketBreakdown>
 > {
-  const [earnings, expensesByCategory, donations] = await Promise.all([
+  const [earnings, expensesByCategory, donations, teamPayments] = await Promise.all([
     prisma.earning.aggregate({ _sum: { amount: true, teamPay: true } }),
     prisma.expense.groupBy({ by: ["category"], _sum: { amount: true } }),
     prisma.donation.aggregate({ _sum: { amount: true } }),
+    prisma.teamPayment.aggregate({ _sum: { amount: true } }),
   ]);
 
+  // Team pay comes out before anything else is distributed — whether it was
+  // deducted from a specific Earning (an outsourced contract's invoice) or
+  // recorded as its own TeamPayment (a payslip not tied to one).
   const netEarnings =
-    Number(earnings._sum.amount ?? 0) - Number(earnings._sum.teamPay ?? 0);
+    Number(earnings._sum.amount ?? 0) -
+    Number(earnings._sum.teamPay ?? 0) -
+    Number(teamPayments._sum.amount ?? 0);
 
   const spent: Record<string, number> = {};
   for (const row of expensesByCategory) {
@@ -133,8 +139,13 @@ export async function getBucketBalances(): Promise<Record<Bucket, number>> {
 }
 
 export async function getTotalNetEarnings() {
-  const sum = await prisma.earning.aggregate({
-    _sum: { amount: true, teamPay: true },
-  });
-  return Number(sum._sum.amount ?? 0) - Number(sum._sum.teamPay ?? 0);
+  const [sum, teamPayments] = await Promise.all([
+    prisma.earning.aggregate({ _sum: { amount: true, teamPay: true } }),
+    prisma.teamPayment.aggregate({ _sum: { amount: true } }),
+  ]);
+  return (
+    Number(sum._sum.amount ?? 0) -
+    Number(sum._sum.teamPay ?? 0) -
+    Number(teamPayments._sum.amount ?? 0)
+  );
 }

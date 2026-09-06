@@ -5,8 +5,10 @@ import {
   Landmark,
   LayoutDashboard,
   Receipt,
+  ReceiptText,
   Share2,
   TrendingUp,
+  UserCog,
   Users,
 } from "lucide-react";
 
@@ -36,6 +38,13 @@ export const navGroups = [
     items: [
       { title: "Contracts", url: "/projects/contracts", icon: FileSignature },
       { title: "Invoices", url: "/projects/invoices", icon: FileText },
+    ],
+  },
+  {
+    title: "Team",
+    items: [
+      { title: "Team Members", url: "/team", icon: UserCog },
+      { title: "Payslips", url: "/team/payslips", icon: ReceiptText },
     ],
   },
 ];

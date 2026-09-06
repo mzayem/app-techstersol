@@ -13,6 +13,9 @@ export type MonthlyPoint = {
   investment: number;
   emergencyFund: number;
   donation: number;
+  /** Standalone TeamPayment amounts only — team pay already netted out of
+   * `earning` via Earning.teamPay is not repeated here. */
+  teamPaid: number;
 };
 
 function monthKey(date: Date) {
@@ -26,10 +29,15 @@ function monthKey(date: Date) {
  * unscoped so the area chart can still zoom to any window locally; period
  * scoping for the KPI cards happens afterward, on this same array. */
 export async function getMonthlySeries(): Promise<MonthlyPoint[]> {
-  const [earnings, expenses, donations] = await Promise.all([
-    prisma.earning.findMany({ select: { date: true, amount: true, teamPay: true } }),
-    prisma.expense.findMany({ select: { date: true, amount: true, category: true } }),
+  const [earnings, expenses, donations, teamPayments] = await Promise.all([
+    prisma.earning.findMany({
+      select: { date: true, amount: true, teamPay: true },
+    }),
+    prisma.expense.findMany({
+      select: { date: true, amount: true, category: true },
+    }),
     prisma.donation.findMany({ select: { date: true, amount: true } }),
+    prisma.teamPayment.findMany({ select: { date: true, amount: true } }),
   ]);
 
   const map = new Map<string, MonthlyPoint>();
@@ -45,6 +53,7 @@ export async function getMonthlySeries(): Promise<MonthlyPoint[]> {
         investment: 0,
         emergencyFund: 0,
         donation: 0,
+        teamPaid: 0,
       };
       map.set(key, point);
     }
@@ -65,6 +74,9 @@ export async function getMonthlySeries(): Promise<MonthlyPoint[]> {
   for (const d of donations) {
     bucket(d.date).donation += Number(d.amount);
   }
+  for (const t of teamPayments) {
+    bucket(t.date).teamPaid += Number(t.amount);
+  }
 
   return [...map.values()].sort((a, b) => a.month.localeCompare(b.month));
 }
@@ -74,13 +86,14 @@ function withinPeriod(month: string, period: ResolvedPeriod) {
   return date >= monthFloor(period.from) && date <= period.to;
 }
 
-/** A month "counts" for a period if any part of it falls inside — compare
- * against the first of that month rather than the exact `from` day. */
 function monthFloor(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
-export function computeEarningKpis(series: MonthlyPoint[], period: ResolvedPeriod) {
+export function computeEarningKpis(
+  series: MonthlyPoint[],
+  period: ResolvedPeriod,
+) {
   const periodSeries = series.filter((p) => withinPeriod(p.month, period));
 
   const periodEarning = periodSeries.reduce((sum, p) => sum + p.earning, 0);
@@ -92,7 +105,11 @@ export function computeEarningKpis(series: MonthlyPoint[], period: ResolvedPerio
     0,
   );
   const totalDonations = periodSeries.reduce((sum, p) => sum + p.donation, 0);
-  const totalInvestment = periodSeries.reduce((sum, p) => sum + p.investment, 0);
+  const totalInvestment = periodSeries.reduce(
+    (sum, p) => sum + p.investment,
+    0,
+  );
+  const totalTeamPaid = periodSeries.reduce((sum, p) => sum + p.teamPaid, 0);
 
   return {
     /** Net earning across the selected period. */
@@ -102,6 +119,8 @@ export function computeEarningKpis(series: MonthlyPoint[], period: ResolvedPerio
     totalExpenses,
     totalDonations,
     totalInvestment,
+    /** Standalone team payments (not already netted via Earning.teamPay). */
+    totalTeamPaid,
     monthCount: periodSeries.length,
   };
 }
@@ -113,7 +132,11 @@ export type BucketAudit = {
   overFraction: number | null;
 };
 
-function auditBucket(spent: number, periodEarning: number, splitFractions: number[]): BucketAudit {
+function auditBucket(
+  spent: number,
+  periodEarning: number,
+  splitFractions: number[],
+): BucketAudit {
   const allocated = periodEarning * splitFractions.reduce((a, b) => a + b, 0);
   const overFraction = allocated > 0 ? (spent - allocated) / allocated : null;
   return { spent, allocated, overFraction };
@@ -123,7 +146,10 @@ function auditBucket(spent: number, periodEarning: number, splitFractions: numbe
  * earning (per lib/finance/constants' DISTRIBUTION_SPLIT) across the
  * selected period — powers the over/under-budget indicators on the
  * Expenses, Investment, and Donation KPI cards. */
-export function getDistributionAudit(series: MonthlyPoint[], period: ResolvedPeriod) {
+export function getDistributionAudit(
+  series: MonthlyPoint[],
+  period: ResolvedPeriod,
+) {
   const periodSeries = series.filter((p) => withinPeriod(p.month, period));
   const periodEarning = periodSeries.reduce((sum, p) => sum + p.earning, 0);
 
@@ -131,7 +157,10 @@ export function getDistributionAudit(series: MonthlyPoint[], period: ResolvedPer
     (sum, p) => sum + p.expense + p.lifestyle + p.investment + p.emergencyFund,
     0,
   );
-  const investmentSpent = periodSeries.reduce((sum, p) => sum + p.investment, 0);
+  const investmentSpent = periodSeries.reduce(
+    (sum, p) => sum + p.investment,
+    0,
+  );
   const donationSpent = periodSeries.reduce((sum, p) => sum + p.donation, 0);
 
   return {
@@ -141,8 +170,12 @@ export function getDistributionAudit(series: MonthlyPoint[], period: ResolvedPer
       DISTRIBUTION_SPLIT.INVESTMENT,
       DISTRIBUTION_SPLIT.EMERGENCY_FUND,
     ]),
-    investment: auditBucket(investmentSpent, periodEarning, [DISTRIBUTION_SPLIT.INVESTMENT]),
-    donation: auditBucket(donationSpent, periodEarning, [DISTRIBUTION_SPLIT.DONATION]),
+    investment: auditBucket(investmentSpent, periodEarning, [
+      DISTRIBUTION_SPLIT.INVESTMENT,
+    ]),
+    donation: auditBucket(donationSpent, periodEarning, [
+      DISTRIBUTION_SPLIT.DONATION,
+    ]),
   };
 }
 
@@ -167,7 +200,11 @@ export async function getPendingPayments(): Promise<{
   const [unpaidInvoices, openContracts, ratesToPkr] = await Promise.all([
     prisma.invoice.findMany({
       where: { status: "UNPAID" },
-      select: { currency: true, discount: true, items: { select: { amount: true } } },
+      select: {
+        currency: true,
+        discount: true,
+        items: { select: { amount: true } },
+      },
     }),
     prisma.contract.findMany({
       where: { status: { in: ["PENDING_PAYMENT", "PARTIALLY_PAID"] } },
@@ -176,14 +213,19 @@ export async function getPendingPayments(): Promise<{
         paymentType: true,
         amount: true,
         milestones: { select: { amount: true } },
-        invoiceItems: { select: { amount: true, invoice: { select: { status: true } } } },
+        invoiceItems: {
+          select: { amount: true, invoice: { select: { status: true } } },
+        },
       },
     }),
     getRatesToPkr(),
   ]);
 
   for (const invoice of unpaidInvoices) {
-    const total = invoice.items.reduce((sum, item) => sum + Number(item.amount), 0);
+    const total = invoice.items.reduce(
+      (sum, item) => sum + Number(item.amount),
+      0,
+    );
     add(invoice.currency as PaymentCurrency, total - Number(invoice.discount));
   }
 
@@ -199,15 +241,38 @@ export async function getPendingPayments(): Promise<{
       if (item.invoice.status === "PAID") paid += amount;
       else unpaidInvoiced += amount;
     }
-    add(contract.currency as PaymentCurrency, totalBillable - paid - unpaidInvoiced);
+    add(
+      contract.currency as PaymentCurrency,
+      totalBillable - paid - unpaidInvoiced,
+    );
   }
 
   const pendingTotalPkr = Object.entries(pendingByCurrency).reduce(
-    (sum, [currency, amount]) => sum + amount * ratesToPkr[currency as PaymentCurrency],
+    (sum, [currency, amount]) =>
+      sum + amount * ratesToPkr[currency as PaymentCurrency],
     0,
   );
 
-  return { unpaidInvoiceCount: unpaidInvoices.length, pendingByCurrency, pendingTotalPkr };
+  return {
+    unpaidInvoiceCount: unpaidInvoices.length,
+    pendingByCurrency,
+    pendingTotalPkr,
+  };
+}
+
+/** Team pay (PKR) sitting on outsourced contracts that haven't completed
+ * yet — money the company will owe a team member once the work is signed
+ * off, as opposed to client-side pending payments (money owed to the
+ * company). Always all-time, same reasoning as getPendingPayments. */
+export async function getTeamPendingPayments(): Promise<number> {
+  const openOutsourced = await prisma.contract.findMany({
+    where: { teamMemberId: { not: null }, status: { not: "COMPLETED" } },
+    select: { teamPayAmount: true },
+  });
+  return openOutsourced.reduce(
+    (sum, c) => sum + Number(c.teamPayAmount ?? 0),
+    0,
+  );
 }
 
 export type ClientRevenueSlice = {
@@ -226,16 +291,23 @@ export async function getClientRevenueBreakdown(
 ): Promise<ClientRevenueSlice[]> {
   const [earningsByClient, contractCounts] = await Promise.all([
     prisma.earning.findMany({
-      where: { invoiceId: { not: null }, date: { gte: period.from, lte: period.to } },
+      where: {
+        invoiceId: { not: null },
+        date: { gte: period.from, lte: period.to },
+      },
       select: {
         amount: true,
-        invoice: { select: { clientId: true, client: { select: { name: true } } } },
+        invoice: {
+          select: { clientId: true, client: { select: { name: true } } },
+        },
       },
     }),
     prisma.contract.groupBy({ by: ["clientId"], _count: { _all: true } }),
   ]);
 
-  const projectCountByClient = new Map(contractCounts.map((c) => [c.clientId, c._count._all]));
+  const projectCountByClient = new Map(
+    contractCounts.map((c) => [c.clientId, c._count._all]),
+  );
 
   const revenueByClient = new Map<string, ClientRevenueSlice>();
   for (const row of earningsByClient) {

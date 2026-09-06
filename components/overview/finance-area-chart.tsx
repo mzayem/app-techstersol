@@ -44,6 +44,7 @@ const chartConfig = {
   investment: { label: "Investment", color: "#0ea5e9" },
   emergencyFund: { label: "Emergency fund", color: "#f59e0b" },
   donation: { label: "Donation", color: "#ec4899" },
+  teamPaid: { label: "Team paid", color: "#64748b" },
 } satisfies ChartConfig;
 
 function monthKey(date: Date) {
@@ -105,7 +106,13 @@ export function FinanceAreaChart({
         (acc, p) => ({
           earning: acc.earning + p.earning,
           spent:
-            acc.spent + p.expense + p.lifestyle + p.investment + p.emergencyFund + p.donation,
+            acc.spent +
+            p.expense +
+            p.lifestyle +
+            p.investment +
+            p.emergencyFund +
+            p.donation +
+            p.teamPaid,
         }),
         { earning: 0, spent: 0 },
       ),
@@ -235,6 +242,13 @@ export function FinanceAreaChart({
                 stackId="spend"
                 fill="url(#fill-donation)"
                 stroke={chartConfig.donation.color}
+              />
+              <Area
+                dataKey="teamPaid"
+                type="monotone"
+                stackId="spend"
+                fill="url(#fill-teamPaid)"
+                stroke={chartConfig.teamPaid.color}
               />
             </AreaChart>
           </ChartContainer>

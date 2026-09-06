@@ -14,6 +14,7 @@ import {
   listContracts,
   type SortOption,
 } from "@/actions/contracts/queries";
+import { listTeamMemberOptions } from "@/actions/team/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -24,13 +25,14 @@ export default async function ContractsPage({
 }) {
   const params = await searchParams;
 
-  const [contracts, clients] = await Promise.all([
+  const [contracts, clients, teamMembers] = await Promise.all([
     listContracts({
       search: params.q,
       status: params.status as ContractStatus | undefined,
       sort: params.sort as SortOption | undefined,
     }),
     listClientOptions(),
+    listTeamMemberOptions(),
   ]);
 
   const clientOptions = clients.map((c) => ({
@@ -63,6 +65,8 @@ export default async function ContractsPage({
       paymentType: contract.paymentType as ContractPaymentType,
       amount,
       status: contract.status as ContractStatus,
+      teamMemberId: contract.teamMemberId,
+      teamPayAmount: contract.teamPayAmount ? Number(contract.teamPayAmount) : null,
       milestones,
       totalAmount,
       paidAmount: contract.paidAmount,
@@ -73,12 +77,12 @@ export default async function ContractsPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Contracts</h1>
-        <ContractDialog clients={clientOptions} />
+        <ContractDialog clients={clientOptions} teamMembers={teamMembers} />
       </div>
 
       <ContractFilterBar />
 
-      <ContractTable contracts={items} clients={clientOptions} />
+      <ContractTable contracts={items} clients={clientOptions} teamMembers={teamMembers} />
     </div>
   );
 }

@@ -55,6 +55,8 @@ function readContractFields(
   const paymentTypeRaw = str(formData, "paymentType");
   const statusRaw = str(formData, "status") || "PROPOSED";
   const amountRaw = str(formData, "amount");
+  const teamMemberId = str(formData, "teamMemberId");
+  const teamPayAmountRaw = str(formData, "teamPayAmount");
 
   if (!clientId || !date || !deadline || !projectName) {
     throw new Error("Client, dates, and project name are required");
@@ -89,6 +91,14 @@ function readContractFields(
     throw new Error("Enter a valid project amount");
   }
 
+  let teamPayAmount: number | null = null;
+  if (teamMemberId) {
+    teamPayAmount = Number(teamPayAmountRaw);
+    if (!teamPayAmountRaw || Number.isNaN(teamPayAmount) || teamPayAmount <= 0) {
+      throw new Error("Enter the team member's pay (PKR) for an outsourced contract");
+    }
+  }
+
   return {
     clientId,
     date: new Date(date),
@@ -99,6 +109,8 @@ function readContractFields(
     paymentType,
     amount: paymentType === "PROJECT" ? amount : null,
     status: statusRaw as ContractStatus,
+    teamMemberId: teamMemberId || null,
+    teamPayAmount,
     milestones: milestoneData,
   };
 }

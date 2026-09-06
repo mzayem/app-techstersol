@@ -11,6 +11,7 @@ import {
   getIncompleteContracts,
   getMonthlySeries,
   getPendingPayments,
+  getTeamPendingPayments,
 } from "@/actions/overview/queries";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +24,10 @@ export default async function OverviewPage({
   const params = await searchParams;
   const period = resolveOverviewPeriod(params.period, params.from, params.to);
 
-  const [series, pending, clients, contracts] = await Promise.all([
+  const [series, pending, teamPendingPkr, clients, contracts] = await Promise.all([
     getMonthlySeries(),
     getPendingPayments(),
+    getTeamPendingPayments(),
     getClientRevenueBreakdown(period),
     getIncompleteContracts(period),
   ]);
@@ -63,12 +65,14 @@ export default async function OverviewPage({
         totalExpenses={kpis.totalExpenses}
         totalDonations={kpis.totalDonations}
         totalInvestment={kpis.totalInvestment}
+        totalTeamPaid={kpis.totalTeamPaid}
         expensesAudit={audit.expenses}
         investmentAudit={audit.investment}
         donationAudit={audit.donation}
         unpaidInvoiceCount={pending.unpaidInvoiceCount}
         pendingByCurrency={pending.pendingByCurrency}
         pendingTotalPkr={pending.pendingTotalPkr}
+        teamPendingPkr={teamPendingPkr}
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

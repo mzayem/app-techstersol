@@ -50,6 +50,8 @@ export type ClientOption = {
   currency: PaymentCurrency;
 };
 
+export type TeamMemberOption = { id: string; name: string };
+
 export type ContractEntry = {
   id: string;
   clientId: string;
@@ -61,6 +63,8 @@ export type ContractEntry = {
   paymentType: ContractPaymentType;
   amount: number | null;
   status: ContractStatus;
+  teamMemberId: string | null;
+  teamPayAmount: number | null;
   milestones: { name: string; amount: number; deadline: Date }[];
 };
 
@@ -81,6 +85,7 @@ function emptyMilestoneRow(): MilestoneRow {
 export function ContractDialog({
   contract,
   clients,
+  teamMembers,
   open: openProp,
   onOpenChange: onOpenChangeProp,
   locked = false,
@@ -88,6 +93,7 @@ export function ContractDialog({
 }: {
   contract?: ContractEntry;
   clients: ClientOption[];
+  teamMembers: TeamMemberOption[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
@@ -117,12 +123,18 @@ export function ContractDialog({
         }))
       : [emptyMilestoneRow()],
   );
+  const [handledBy, setHandledBy] = React.useState<"company" | "outsourced">(
+    contract?.teamMemberId ? "outsourced" : "company",
+  );
+  const [teamMemberId, setTeamMemberId] = React.useState(contract?.teamMemberId ?? "");
 
   function resetForm() {
     setClientId("");
     setCurrency("");
     setPaymentType("PROJECT");
     setMilestones([emptyMilestoneRow()]);
+    setHandledBy("company");
+    setTeamMemberId("");
   }
 
   function onClientChange(id: string | null) {
@@ -384,6 +396,64 @@ export function ContractDialog({
                 />
               </Field>
             )}
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm text-muted-foreground">Handled by</span>
+              <div className="inline-flex w-fit overflow-hidden rounded-md ring-1 ring-input">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={handledBy === "company" ? "default" : "ghost"}
+                  className="rounded-none"
+                  disabled={locked}
+                  onClick={() => {
+                    setHandledBy("company");
+                    setTeamMemberId("");
+                  }}
+                >
+                  Company
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={handledBy === "outsourced" ? "default" : "ghost"}
+                  className="rounded-none"
+                  disabled={locked}
+                  onClick={() => setHandledBy("outsourced")}
+                >
+                  Outsourced
+                </Button>
+              </div>
+            </div>
+
+            {handledBy === "outsourced" && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Team member">
+                  <Combobox
+                    value={teamMemberId}
+                    onValueChange={setTeamMemberId}
+                    options={teamMembers.map((m) => ({ value: m.id, label: m.name }))}
+                    placeholder="Select team member"
+                    searchPlaceholder="Search team…"
+                    emptyText="No team members found."
+                    disabled={locked}
+                  />
+                  <input type="hidden" name="teamMemberId" value={teamMemberId} />
+                </Field>
+                <Field label="Team pay (PKR)">
+                  <Input
+                    type="number"
+                    name="teamPayAmount"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    required
+                    disabled={locked}
+                    defaultValue={contract?.teamPayAmount ?? undefined}
+                  />
+                </Field>
+              </div>
+            )}
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -414,12 +484,14 @@ export function ContractDialog({
 export function ContractRowActions({
   entry,
   clients,
+  teamMembers,
   children,
   selected,
   onRowClick,
 }: {
   entry: ContractEntry;
   clients: ClientOption[];
+  teamMembers: TeamMemberOption[];
   children: React.ReactNode;
   selected?: boolean;
   onRowClick?: (e: React.MouseEvent) => void;
@@ -466,6 +538,7 @@ export function ContractRowActions({
       <ContractDialog
         contract={entry}
         clients={clients}
+        teamMembers={teamMembers}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         locked={locked}

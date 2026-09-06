@@ -6,6 +6,8 @@ import {
   TrendingUpIcon,
   TrendingDownIcon,
   GiftIcon,
+  UsersIcon,
+  HourglassIcon,
 } from "lucide-react";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,24 +42,28 @@ export function KpiCards({
   totalExpenses,
   totalDonations,
   totalInvestment,
+  totalTeamPaid,
   expensesAudit,
   investmentAudit,
   donationAudit,
   unpaidInvoiceCount,
   pendingByCurrency,
   pendingTotalPkr,
+  teamPendingPkr,
 }: {
   periodEarning: number;
   avgMonthlyEarning: number;
   totalExpenses: number;
   totalDonations: number;
   totalInvestment: number;
+  totalTeamPaid: number;
   expensesAudit: BucketAudit;
   investmentAudit: BucketAudit;
   donationAudit: BucketAudit;
   unpaidInvoiceCount: number;
   pendingByCurrency: Partial<Record<PaymentCurrency, number>>;
   pendingTotalPkr: number;
+  teamPendingPkr: number;
 }) {
   const pendingEntries = Object.entries(pendingByCurrency) as [PaymentCurrency, number][];
 
@@ -129,6 +135,32 @@ export function KpiCards({
           <p className="text-xs text-muted-foreground">
             vs {formatPkr(donationAudit.allocated)} allocated
           </p>
+        </CardHeader>
+      </Card>
+
+      <Card>
+        <CardHeader className="gap-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <UsersIcon className="size-4" />
+            <CardDescription>Team paid</CardDescription>
+          </div>
+          <CardTitle className="text-2xl font-semibold tabular-nums">
+            {formatCompactPkr(totalTeamPaid)}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">This period, outside a booked earning</p>
+        </CardHeader>
+      </Card>
+
+      <Card>
+        <CardHeader className="gap-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <HourglassIcon className="size-4" />
+            <CardDescription>Pending payment for teams</CardDescription>
+          </div>
+          <CardTitle className="text-2xl font-semibold tabular-nums">
+            {formatCompactPkr(teamPendingPkr)}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Owed on unfinished outsourced work · all time</p>
         </CardHeader>
       </Card>
 

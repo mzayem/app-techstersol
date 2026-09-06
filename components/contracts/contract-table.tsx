@@ -31,6 +31,7 @@ import {
   ContractRowActions,
   type ClientOption,
   type ContractEntry,
+  type TeamMemberOption,
 } from "@/components/contracts/contract-dialog";
 
 export type ContractListItem = ContractEntry & {
@@ -42,9 +43,11 @@ export type ContractListItem = ContractEntry & {
 export function ContractTable({
   contracts,
   clients,
+  teamMembers,
 }: {
   contracts: ContractListItem[];
   clients: ClientOption[];
+  teamMembers: TeamMemberOption[];
 }) {
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [anchorIndex, setAnchorIndex] = React.useState<number | null>(null);
@@ -182,6 +185,7 @@ export function ContractTable({
                   key={contract.id}
                   entry={contract}
                   clients={clients}
+                  teamMembers={teamMembers}
                   selected={isSelected}
                   onRowClick={(e) => onRowClick(index, contract.id, e)}
                 >

@@ -90,3 +90,13 @@ export async function listClientOptions() {
     take: 100,
   });
 }
+
+/** Contracts that have a team member assigned — the candidates for a
+ * payslip's optional "assigned project" field. */
+export async function listOutsourcedContractOptions() {
+  return prisma.contract.findMany({
+    where: { teamMemberId: { not: null } },
+    select: { id: true, projectName: true, teamMemberId: true },
+    orderBy: { date: "desc" },
+  });
+}

@@ -240,6 +240,8 @@ export async function markInvoicePaid(id: string, formData: FormData) {
             status: true,
             paymentType: true,
             amount: true,
+            teamMemberId: true,
+            teamPayAmount: true,
             milestones: { select: { amount: true } },
           },
         })
@@ -287,6 +289,13 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     }
   }
 
+  // A contract's outsourced pay is credited to the team member once, when
+  // that contract is fully paid off — not per invoice, since a contract can
+  // span several partial invoices before it completes.
+  const teamPay = contracts
+    .filter((c) => completedIds.includes(c.id) && c.teamMemberId)
+    .reduce((sum, c) => sum + Number(c.teamPayAmount ?? 0), 0);
+
   await prisma.$transaction([
     prisma.invoice.update({
       where: { id },
@@ -313,6 +322,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
         date: paidOn,
         name: `${invoice.client.name} — Invoice ${formatInvoiceNumber(invoice.number)}`,
         amount: pkrAmount,
+        teamPay,
         referenceAmount: currency === "PKR" ? null : balanceDue,
         referenceCurrency: currency === "PKR" ? null : currency,
         invoiceId: id,
