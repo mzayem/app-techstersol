@@ -13,7 +13,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { PaymentCurrency } from "@/lib/clients/constants";
-import { formatInvoiceNumber, type InvoiceStatus } from "@/lib/invoices/constants";
+import {
+  formatInvoiceNumber,
+  type InvoiceStatus,
+} from "@/lib/invoices/constants";
 import { deleteInvoice, markInvoiceUnpaid } from "@/actions/invoices/actions";
 import { InvoiceActionsMenu } from "@/components/invoices/invoice-actions-menu";
 import { MarkPaidDialog } from "@/components/invoices/mark-paid-dialog";
@@ -65,17 +68,26 @@ export function InvoiceRowActions({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Mark {formatInvoiceNumber(number)} as unpaid?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Mark {formatInvoiceNumber(number)} as unpaid?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This clears its transaction ID and paid date, deletes the earning entry it created,
-              and moves its contract(s) back to pending payment.
+              This clears its transaction ID and paid date, deletes the earning
+              entry it created, and moves its contract(s) back to pending
+              payment.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" disabled={pending} />}>
+            <AlertDialogClose
+              render={<Button variant="outline" disabled={pending} />}
+            >
               Cancel
             </AlertDialogClose>
-            <Button variant="destructive" disabled={pending} onClick={confirmMarkUnpaid}>
+            <Button
+              variant="destructive"
+              disabled={pending}
+              onClick={confirmMarkUnpaid}
+            >
               {pending ? "Saving…" : "Mark as unpaid"}
             </Button>
           </AlertDialogFooter>

@@ -77,7 +77,7 @@ export default async function ClientsPage({
                 status: client.status as ClientStatus,
               };
               return (
-                <TableRow key={client.id}>
+                <ClientRowActions key={client.id} entry={entry}>
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.phone}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -88,12 +88,7 @@ export default async function ClientsPage({
                   <TableCell>
                     <StatusPill status={client.status as ClientStatus} />
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end">
-                      <ClientRowActions entry={entry} />
-                    </div>
-                  </TableCell>
-                </TableRow>
+                </ClientRowActions>
               );
             })}
           </TableBody>

@@ -1,7 +1,11 @@
 import type { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { BUCKETS, DISTRIBUTION_SPLIT, type Bucket } from "@/lib/finance/constants";
+import {
+  BUCKETS,
+  DISTRIBUTION_SPLIT,
+  type Bucket,
+} from "@/lib/finance/constants";
 import type { DateRange } from "@/lib/finance/date-range";
 
 export type SortOption =

@@ -100,9 +100,9 @@ export function ContractDialog({
   const [currency, setCurrency] = React.useState<PaymentCurrency | "">(
     contract?.currency ?? "",
   );
-  const [paymentType, setPaymentType] = React.useState<ContractPaymentType | "">(
-    contract?.paymentType ?? "PROJECT",
-  );
+  const [paymentType, setPaymentType] = React.useState<
+    ContractPaymentType | ""
+  >(contract?.paymentType ?? "PROJECT");
   const [milestones, setMilestones] = React.useState<MilestoneRow[]>(
     contract?.milestones.length
       ? contract.milestones.map((m) => ({
@@ -174,200 +174,206 @@ export function ContractDialog({
           Add contract
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit contract" : "Add contract"}</DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
-        <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
-          <Field label="Client">
-            <Combobox
-              value={clientId}
-              onValueChange={onClientChange}
-              options={clients.map((c) => ({ value: c.id, label: c.name }))}
-              placeholder="Select client"
-              searchPlaceholder="Search clients…"
-              emptyText="No clients found."
-            />
-            <input type="hidden" name="clientId" value={clientId} />
-          </Field>
+          <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
+            <Field label="Client">
+              <Combobox
+                value={clientId}
+                onValueChange={onClientChange}
+                options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="Select client"
+                searchPlaceholder="Search clients…"
+                emptyText="No clients found."
+              />
+              <input type="hidden" name="clientId" value={clientId} />
+            </Field>
 
-          <Field label="Project name">
-            <Input
-              name="projectName"
-              placeholder="Project name"
-              required
-              defaultValue={contract?.projectName}
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Start date">
+            <Field label="Project name">
               <Input
-                type="date"
-                name="date"
+                name="projectName"
+                placeholder="Project name"
                 required
-                defaultValue={
-                  contract ? toDateInputValue(contract.date) : todayInput()
-                }
+                defaultValue={contract?.projectName}
               />
             </Field>
-            <Field label="Deadline">
-              <Input
-                type="date"
-                name="deadline"
-                required
-                defaultValue={
-                  contract ? toDateInputValue(contract.deadline) : undefined
-                }
-              />
-            </Field>
-          </div>
 
-          <Field label="Description / note">
-            <Textarea
-              name="description"
-              placeholder="Optional"
-              rows={2}
-              defaultValue={contract?.description ?? undefined}
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Currency">
-              <Select
-                name="currency"
-                value={currency}
-                onValueChange={(v) => setCurrency((v ?? "") as PaymentCurrency | "")}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Currency</SelectItem>
-                  {PAYMENT_CURRENCIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Status">
-              <Select
-                name="status"
-                defaultValue={contract?.status ?? "PROPOSED"}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Status</SelectItem>
-                  {CONTRACT_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {CONTRACT_STATUS_LABELS[s]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-
-          <Field label="Payment structure">
-            <Select
-              name="paymentType"
-              value={paymentType}
-              onValueChange={(v) => setPaymentType((v ?? "") as ContractPaymentType | "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Payment structure</SelectItem>
-                {PAYMENT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {PAYMENT_TYPE_LABELS[t]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          {paymentType === "MILESTONE" ? (
-            <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">Milestones</span>
-              {milestones.map((row, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <Input
-                    placeholder="Name"
-                    className="flex-1"
-                    value={row.name}
-                    onChange={(e) =>
-                      updateMilestone(index, { name: e.target.value })
-                    }
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Amount"
-                    className="w-28"
-                    value={row.amount}
-                    onChange={(e) =>
-                      updateMilestone(index, { amount: e.target.value })
-                    }
-                  />
-                  <Input
-                    type="date"
-                    className="w-40"
-                    value={row.deadline}
-                    onChange={(e) =>
-                      updateMilestone(index, { deadline: e.target.value })
-                    }
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Remove milestone"
-                    disabled={milestones.length === 1}
-                    onClick={() => removeMilestone(index)}
-                  >
-                    <XIcon />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addMilestone}
-              >
-                <PlusIcon />
-                Add milestone
-              </Button>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Start date">
+                <Input
+                  type="date"
+                  name="date"
+                  required
+                  defaultValue={
+                    contract ? toDateInputValue(contract.date) : todayInput()
+                  }
+                />
+              </Field>
+              <Field label="Deadline">
+                <Input
+                  type="date"
+                  name="deadline"
+                  required
+                  defaultValue={
+                    contract ? toDateInputValue(contract.deadline) : undefined
+                  }
+                />
+              </Field>
             </div>
-          ) : (
-            <Field label="Amount">
-              <Input
-                type="number"
-                name="amount"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                required
-                defaultValue={contract?.amount ?? undefined}
+
+            <Field label="Description / note">
+              <Textarea
+                name="description"
+                placeholder="Optional"
+                rows={2}
+                defaultValue={contract?.description ?? undefined}
               />
             </Field>
-          )}
-        </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <DialogFooter>
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : isEdit ? "Save changes" : "Save contract"}
-          </Button>
-        </DialogFooter>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Currency">
+                <Select
+                  name="currency"
+                  value={currency}
+                  onValueChange={(v) =>
+                    setCurrency((v ?? "") as PaymentCurrency | "")
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Currency</SelectItem>
+                    {PAYMENT_CURRENCIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Status">
+                <Select
+                  name="status"
+                  defaultValue={contract?.status ?? "PROPOSED"}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Status</SelectItem>
+                    {CONTRACT_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {CONTRACT_STATUS_LABELS[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+
+            <Field label="Payment structure">
+              <Select
+                name="paymentType"
+                value={paymentType}
+                onValueChange={(v) =>
+                  setPaymentType((v ?? "") as ContractPaymentType | "")
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Payment structure</SelectItem>
+                  {PAYMENT_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {PAYMENT_TYPE_LABELS[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            {paymentType === "MILESTONE" ? (
+              <div className="flex flex-col gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Milestones
+                </span>
+                {milestones.map((row, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <Input
+                      placeholder="Name"
+                      className="flex-1"
+                      value={row.name}
+                      onChange={(e) =>
+                        updateMilestone(index, { name: e.target.value })
+                      }
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Amount"
+                      className="w-28"
+                      value={row.amount}
+                      onChange={(e) =>
+                        updateMilestone(index, { amount: e.target.value })
+                      }
+                    />
+                    <Input
+                      type="date"
+                      className="w-40"
+                      value={row.deadline}
+                      onChange={(e) =>
+                        updateMilestone(index, { deadline: e.target.value })
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Remove milestone"
+                      disabled={milestones.length === 1}
+                      onClick={() => removeMilestone(index)}
+                    >
+                      <XIcon />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addMilestone}
+                >
+                  <PlusIcon />
+                  Add milestone
+                </Button>
+              </div>
+            ) : (
+              <Field label="Amount">
+                <Input
+                  type="number"
+                  name="amount"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  required
+                  defaultValue={contract?.amount ?? undefined}
+                />
+              </Field>
+            )}
+          </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="submit" disabled={pending}>
+              {pending ? "Saving…" : isEdit ? "Save changes" : "Save contract"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

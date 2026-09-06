@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import {
   BANK_FIELD_LABELS,
   CURRENCY_FIELDS,
@@ -50,7 +53,9 @@ function readBankAccountFields(formData: FormData) {
   for (const field of CURRENCY_FIELDS[currency]) {
     if (optionalFields?.includes(field)) continue;
     if (!values[field]) {
-      throw new Error(`${BANK_FIELD_LABELS[field]} is required for ${currency} accounts`);
+      throw new Error(
+        `${BANK_FIELD_LABELS[field]} is required for ${currency} accounts`,
+      );
     }
   }
 

@@ -12,8 +12,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { PaymentCurrency } from "@/lib/clients/constants";
-import { BANK_FIELD_LABELS, CURRENCY_FIELDS } from "@/lib/bank-accounts/constants";
-import { listBankAccounts, type SortOption } from "@/actions/bank-accounts/queries";
+import {
+  BANK_FIELD_LABELS,
+  CURRENCY_FIELDS,
+} from "@/lib/bank-accounts/constants";
+import {
+  listBankAccounts,
+  type SortOption,
+} from "@/actions/bank-accounts/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +60,10 @@ export default async function BankDetailsPage({
           <TableBody>
             {bankAccounts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No bank accounts found.
                 </TableCell>
               </TableRow>

@@ -83,7 +83,7 @@ export function ExpenseDialog({
           Add expense
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit expense" : "Add expense"}</DialogTitle>
         </DialogHeader>

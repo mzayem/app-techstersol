@@ -34,6 +34,7 @@ import {
   deleteClient,
   updateClient,
 } from "@/actions/clients/actions";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { ClientActionsMenu } from "@/components/clients/client-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -53,10 +54,14 @@ export function ClientDialog({
   client,
   open: openProp,
   onOpenChange: onOpenChangeProp,
+  locked = false,
+  onUnlock,
 }: {
   client?: ClientEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  locked?: boolean;
+  onUnlock?: () => void;
 }) {
   const isEdit = !!client;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -93,7 +98,7 @@ export function ClientDialog({
           Add client
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit client" : "Add client"}</DialogTitle>
         </DialogHeader>
@@ -103,6 +108,7 @@ export function ClientDialog({
               name="name"
               placeholder="Client name"
               required
+              disabled={locked}
               defaultValue={client?.name}
             />
           </Field>
@@ -113,6 +119,7 @@ export function ClientDialog({
                 name="phone"
                 placeholder="+92 300 1234567"
                 required
+                disabled={locked}
                 defaultValue={client?.phone}
               />
             </Field>
@@ -122,6 +129,7 @@ export function ClientDialog({
                 name="email"
                 placeholder="client@example.com"
                 required
+                disabled={locked}
                 defaultValue={client?.email}
               />
             </Field>
@@ -134,12 +142,17 @@ export function ClientDialog({
               placeholder="Select country"
               searchPlaceholder="Search countries…"
               emptyText="No countries found."
+              disabled={locked}
             />
             <input type="hidden" name="country" value={country} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Payment currency">
-              <Select name="currency" defaultValue={client?.currency}>
+              <Select
+                name="currency"
+                defaultValue={client?.currency}
+                disabled={locked}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Currency" />
                 </SelectTrigger>
@@ -154,7 +167,11 @@ export function ClientDialog({
               </Select>
             </Field>
             <Field label="Status">
-              <Select name="status" defaultValue={client?.status ?? "ACTIVE"}>
+              <Select
+                name="status"
+                defaultValue={client?.status ?? "ACTIVE"}
+                disabled={locked}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -171,9 +188,15 @@ export function ClientDialog({
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Save client"}
-            </Button>
+            {locked ? (
+              <Button type="button" onClick={onUnlock}>
+                Update
+              </Button>
+            ) : (
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : isEdit ? "Save changes" : "Save client"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
@@ -181,17 +204,47 @@ export function ClientDialog({
   );
 }
 
-export function ClientRowActions({ entry }: { entry: ClientEntry }) {
-  const [editOpen, setEditOpen] = React.useState(false);
+export function ClientRowActions({
+  entry,
+  children,
+}: {
+  entry: ClientEntry;
+  children: React.ReactNode;
+}) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  function openView() {
+    setLocked(true);
+    setDialogOpen(true);
+  }
+
+  function openEdit() {
+    setLocked(false);
+    setDialogOpen(true);
+  }
 
   return (
     <>
-      <ClientActionsMenu
-        onEdit={() => setEditOpen(true)}
-        onDelete={() => setDeleteOpen(true)}
+      <TableRow className="cursor-pointer" onClick={openView}>
+        {children}
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end">
+            <ClientActionsMenu
+              onEdit={openEdit}
+              onDelete={() => setDeleteOpen(true)}
+            />
+          </div>
+        </TableCell>
+      </TableRow>
+      <ClientDialog
+        client={entry}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        locked={locked}
+        onUnlock={() => setLocked(false)}
       />
-      <ClientDialog client={entry} open={editOpen} onOpenChange={setEditOpen} />
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}

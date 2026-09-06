@@ -79,9 +79,13 @@ export function InvoiceDialog({
   const formRef = React.useRef<HTMLFormElement>(null);
 
   const [clientId, setClientId] = React.useState("");
-  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set());
+  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(
+    new Set(),
+  );
   const [mode, setMode] = React.useState<PaymentMode>("FULL");
-  const [partialAmounts, setPartialAmounts] = React.useState<Record<string, string>>({});
+  const [partialAmounts, setPartialAmounts] = React.useState<
+    Record<string, string>
+  >({});
   const [bankAccountId, setBankAccountId] = React.useState("");
   const [discountInput, setDiscountInput] = React.useState("");
 
@@ -110,7 +114,10 @@ export function InvoiceDialog({
         const amount =
           mode === "FULL"
             ? option.remainingAmount
-            : Math.min(Math.max(Number(partialAmounts[key]) || 0, 0), option.remainingAmount);
+            : Math.min(
+                Math.max(Number(partialAmounts[key]) || 0, 0),
+                option.remainingAmount,
+              );
         return {
           contractId: option.contractId,
           milestoneId: option.milestoneId,
@@ -198,241 +205,266 @@ export function InvoiceDialog({
         <PlusIcon />
         Add invoice
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Add invoice</DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
-        <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
-          <Field label="Client">
-            <Combobox
-              value={clientId}
-              onValueChange={onClientChange}
-              options={clients.map((c) => ({ value: c.id, label: c.name }))}
-              placeholder="Select client"
-              searchPlaceholder="Search clients…"
-              emptyText="No clients found."
-            />
-            <input type="hidden" name="clientId" value={clientId} />
-          </Field>
+          <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
+            <Field label="Client">
+              <Combobox
+                value={clientId}
+                onValueChange={onClientChange}
+                options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="Select client"
+                searchPlaceholder="Search clients…"
+                emptyText="No clients found."
+              />
+              <input type="hidden" name="clientId" value={clientId} />
+            </Field>
 
-          {clientId && (
-            <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">Contracts & milestones</span>
-              {clientLineOptions.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  This client has nothing left to invoice.
-                </p>
-              )}
-              {clientLineOptions.map((option) => {
-                const disabled = currency !== null && option.currency !== currency;
-                const key = lineKey(option);
-                return (
-                  <label
-                    key={key}
-                    className={
-                      "flex items-center justify-between gap-2 rounded-md border border-input px-2.5 py-2 text-sm " +
-                      (disabled ? "opacity-50" : "")
-                    }
-                  >
-                    <span className="flex items-center gap-2">
-                      <Checkbox
-                        checked={selectedKeys.has(key)}
-                        disabled={disabled}
-                        onCheckedChange={() => toggleLine(option)}
-                      />
-                      {option.label}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {formatContractAmount(option.remainingAmount, option.currency)}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-
-          {selectedOptions.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm text-muted-foreground">Payment</span>
-              <div className="inline-flex w-fit overflow-hidden rounded-md ring-1 ring-input">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={mode === "FULL" ? "default" : "ghost"}
-                  className="rounded-none"
-                  onClick={() => setMode("FULL")}
-                >
-                  Full payment
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={mode === "PARTIAL" ? "default" : "ghost"}
-                  className="rounded-none"
-                  onClick={() => setMode("PARTIAL")}
-                >
-                  Partial payment
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {mode === "PARTIAL" && selectedOptions.length > 0 && (
-            <div className="flex flex-col gap-2">
-              {selectedOptions.map((option) => {
-                const key = lineKey(option);
-                const amountValue = partialAmounts[key] ?? String(option.remainingAmount);
-                const amount = Math.min(
-                  Math.max(Number(amountValue) || 0, 0),
-                  option.remainingAmount,
-                );
-                const remainingAfter = option.remainingAmount - amount;
-                return (
-                  <div key={key} className="flex flex-col gap-1 rounded-md bg-muted p-2.5">
-                    <div className="flex items-center justify-between gap-2 text-sm">
-                      <span>{option.label}</span>
-                      <span className="text-xs text-muted-foreground">
-                        of {formatContractAmount(option.remainingAmount, option.currency)}
-                      </span>
-                    </div>
-                    <Input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      max={option.remainingAmount}
-                      value={amountValue}
-                      onChange={(e) =>
-                        setPartialAmounts((prev) => ({ ...prev, [key]: e.target.value }))
+            {clientId && (
+              <div className="flex flex-col gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Contracts & milestones
+                </span>
+                {clientLineOptions.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    This client has nothing left to invoice.
+                  </p>
+                )}
+                {clientLineOptions.map((option) => {
+                  const disabled =
+                    currency !== null && option.currency !== currency;
+                  const key = lineKey(option);
+                  return (
+                    <label
+                      key={key}
+                      className={
+                        "flex items-center justify-between gap-2 rounded-md border border-input px-2.5 py-2 text-sm " +
+                        (disabled ? "opacity-50" : "")
                       }
-                    />
-                    {remainingAfter > 0.01 && (
-                      <span className="text-xs text-muted-foreground">
-                        Remaining after this payment:{" "}
-                        {formatContractAmount(remainingAfter, option.currency)}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedKeys.has(key)}
+                          disabled={disabled}
+                          onCheckedChange={() => toggleLine(option)}
+                        />
+                        {option.label}
                       </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {items.length > 0 && (
-            <div className="flex flex-col gap-1 rounded-md bg-muted p-3 text-sm">
-              {items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span>{item.description}</span>
-                  <span className="tabular-nums">
-                    {currency && formatContractAmount(item.amount, currency)}
-                  </span>
-                </div>
-              ))}
-              <div className="mt-1 flex items-center justify-between gap-2 border-t border-border pt-1">
-                <span>Total</span>
-                <span className="tabular-nums">
-                  {currency && formatContractAmount(total, currency)}
-                </span>
+                      <span className="text-muted-foreground">
+                        {formatContractAmount(
+                          option.remainingAmount,
+                          option.currency,
+                        )}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
-              {discount > 0 && (
-                <div className="flex items-center justify-between gap-2 text-muted-foreground">
-                  <span>Discount</span>
-                  <span className="tabular-nums">
-                    -{currency && formatContractAmount(discount, currency)}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center justify-between gap-2 font-medium">
-                <span>Balance due</span>
-                <span className="tabular-nums">
-                  {currency && formatContractAmount(balanceDue, currency)}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {items.length > 0 && (
-            <Field label="Discount (optional)">
-              <Input
-                type="number"
-                name="discount"
-                min="0"
-                step="0.01"
-                max={total}
-                placeholder="0.00"
-                value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
-              />
-            </Field>
-          )}
-
-          <input type="hidden" name="currency" value={currency ?? ""} />
-
-          <Field label="Bank account">
-            <Select
-              value={effectiveBankAccountId}
-              onValueChange={(v) => setBankAccountId(v ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a currency first" />
-              </SelectTrigger>
-              <SelectContent>
-                {matchingBankAccounts.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.bankName} — {b.accountHolderName} ({b.currency})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <input
-              type="hidden"
-              name="bankAccountId"
-              value={effectiveBankAccountId}
-            />
-            {currency && matchingBankAccounts.length === 0 && (
-              <span className="text-xs text-destructive">
-                No {currency} bank account on file — add one under Bank Details.
-              </span>
             )}
-          </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Issue date">
-              <Input
-                type="date"
-                name="issueDate"
-                required
-                value={issueDateValue}
-                onChange={(e) => onIssueDateChange(e.target.value)}
+            {selectedOptions.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm text-muted-foreground">Payment</span>
+                <div className="inline-flex w-fit overflow-hidden rounded-md ring-1 ring-input">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={mode === "FULL" ? "default" : "ghost"}
+                    className="rounded-none"
+                    onClick={() => setMode("FULL")}
+                  >
+                    Full payment
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={mode === "PARTIAL" ? "default" : "ghost"}
+                    className="rounded-none"
+                    onClick={() => setMode("PARTIAL")}
+                  >
+                    Partial payment
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {mode === "PARTIAL" && selectedOptions.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {selectedOptions.map((option) => {
+                  const key = lineKey(option);
+                  const amountValue =
+                    partialAmounts[key] ?? String(option.remainingAmount);
+                  const amount = Math.min(
+                    Math.max(Number(amountValue) || 0, 0),
+                    option.remainingAmount,
+                  );
+                  const remainingAfter = option.remainingAmount - amount;
+                  return (
+                    <div
+                      key={key}
+                      className="flex flex-col gap-1 rounded-md bg-muted p-2.5"
+                    >
+                      <div className="flex items-center justify-between gap-2 text-sm">
+                        <span>{option.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          of{" "}
+                          {formatContractAmount(
+                            option.remainingAmount,
+                            option.currency,
+                          )}
+                        </span>
+                      </div>
+                      <Input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        max={option.remainingAmount}
+                        value={amountValue}
+                        onChange={(e) =>
+                          setPartialAmounts((prev) => ({
+                            ...prev,
+                            [key]: e.target.value,
+                          }))
+                        }
+                      />
+                      {remainingAfter > 0.01 && (
+                        <span className="text-xs text-muted-foreground">
+                          Remaining after this payment:{" "}
+                          {formatContractAmount(
+                            remainingAfter,
+                            option.currency,
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {items.length > 0 && (
+              <div className="flex flex-col gap-1 rounded-md bg-muted p-3 text-sm">
+                {items.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span>{item.description}</span>
+                    <span className="tabular-nums">
+                      {currency && formatContractAmount(item.amount, currency)}
+                    </span>
+                  </div>
+                ))}
+                <div className="mt-1 flex items-center justify-between gap-2 border-t border-border pt-1">
+                  <span>Total</span>
+                  <span className="tabular-nums">
+                    {currency && formatContractAmount(total, currency)}
+                  </span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                    <span>Discount</span>
+                    <span className="tabular-nums">
+                      -{currency && formatContractAmount(discount, currency)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-2 font-medium">
+                  <span>Balance due</span>
+                  <span className="tabular-nums">
+                    {currency && formatContractAmount(balanceDue, currency)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {items.length > 0 && (
+              <Field label="Discount (optional)">
+                <Input
+                  type="number"
+                  name="discount"
+                  min="0"
+                  step="0.01"
+                  max={total}
+                  placeholder="0.00"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                />
+              </Field>
+            )}
+
+            <input type="hidden" name="currency" value={currency ?? ""} />
+
+            <Field label="Bank account">
+              <Select
+                value={effectiveBankAccountId}
+                onValueChange={(v) => setBankAccountId(v ?? "")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a currency first" />
+                </SelectTrigger>
+                <SelectContent>
+                  {matchingBankAccounts.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.bankName} — {b.accountHolderName} ({b.currency})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                type="hidden"
+                name="bankAccountId"
+                value={effectiveBankAccountId}
               />
+              {currency && matchingBankAccounts.length === 0 && (
+                <span className="text-xs text-destructive">
+                  No {currency} bank account on file — add one under Bank
+                  Details.
+                </span>
+              )}
             </Field>
-            <Field label="Due date">
-              <Input
-                type="date"
-                name="dueDate"
-                required
-                value={dueDateValue}
-                onChange={(e) => {
-                  setDueDateTouched(true);
-                  setDueDateValue(e.target.value);
-                }}
-              />
-            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Issue date">
+                <Input
+                  type="date"
+                  name="issueDate"
+                  required
+                  value={issueDateValue}
+                  onChange={(e) => onIssueDateChange(e.target.value)}
+                />
+              </Field>
+              <Field label="Due date">
+                <Input
+                  type="date"
+                  name="dueDate"
+                  required
+                  value={dueDateValue}
+                  onChange={(e) => {
+                    setDueDateTouched(true);
+                    setDueDateValue(e.target.value);
+                  }}
+                />
+              </Field>
+            </div>
           </div>
-        </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <DialogFooter>
-          <Button
-            type="submit"
-            disabled={pending || items.length === 0 || items.some((i) => !(i.amount > 0))}
-          >
-            {pending ? "Saving…" : "Save invoice"}
-          </Button>
-        </DialogFooter>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button
+              type="submit"
+              disabled={
+                pending ||
+                items.length === 0 ||
+                items.some((i) => !(i.amount > 0))
+              }
+            >
+              {pending ? "Saving…" : "Save invoice"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -40,7 +40,11 @@ export async function listContracts(filters: ListFilters) {
       OR: filters.search
         ? [
             { projectName: { contains: filters.search, mode: "insensitive" } },
-            { client: { name: { contains: filters.search, mode: "insensitive" } } },
+            {
+              client: {
+                name: { contains: filters.search, mode: "insensitive" },
+              },
+            },
           ]
         : undefined,
     },
@@ -71,7 +75,10 @@ async function paidAmountsByContract(contractIds: string[]) {
     select: { contractId: true, amount: true },
   });
   for (const item of items) {
-    paid.set(item.contractId!, (paid.get(item.contractId!) ?? 0) + Number(item.amount));
+    paid.set(
+      item.contractId!,
+      (paid.get(item.contractId!) ?? 0) + Number(item.amount),
+    );
   }
   return paid;
 }

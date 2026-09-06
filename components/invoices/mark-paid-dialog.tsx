@@ -87,7 +87,13 @@ export function MarkPaidDialog({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

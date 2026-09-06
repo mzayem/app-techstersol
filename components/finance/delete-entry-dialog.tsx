@@ -55,10 +55,16 @@ export function DeleteEntryDialog({
         </AlertDialogHeader>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" disabled={pending} />}>
+          <AlertDialogClose
+            render={<Button variant="outline" disabled={pending} />}
+          >
             Cancel
           </AlertDialogClose>
-          <Button variant="destructive" disabled={pending} onClick={handleDelete}>
+          <Button
+            variant="destructive"
+            disabled={pending}
+            onClick={handleDelete}
+          >
             {pending ? "Deleting…" : "Delete"}
           </Button>
         </AlertDialogFooter>

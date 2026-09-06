@@ -54,7 +54,9 @@ export function ClientFilterBar() {
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <Select
         value={status}
-        onValueChange={(value) => updateParams({ status: value === "all" ? null : value })}
+        onValueChange={(value) =>
+          updateParams({ status: value === "all" ? null : value })
+        }
       >
         <SelectTrigger className="w-full sm:w-36">
           <SelectValue />
@@ -79,7 +81,10 @@ export function ClientFilterBar() {
         />
       </div>
 
-      <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
+      <Select
+        value={sort}
+        onValueChange={(value) => updateParams({ sort: value })}
+      >
         <SelectTrigger className="w-full sm:w-40">
           <SelectValue />
         </SelectTrigger>

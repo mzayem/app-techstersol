@@ -37,7 +37,11 @@ export function InvoiceActionsMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label="Open actions menu" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Open actions menu"
+          />
         }
       >
         <MoreHorizontalIcon />
@@ -45,7 +49,9 @@ export function InvoiceActionsMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem render={<a href={pdfHref} target="_blank" rel="noreferrer" />}>
+          <DropdownMenuItem
+            render={<a href={pdfHref} target="_blank" rel="noreferrer" />}
+          >
             <DownloadIcon />
             Download PDF
           </DropdownMenuItem>

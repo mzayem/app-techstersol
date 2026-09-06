@@ -60,7 +60,11 @@ export default async function InvoicesPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Invoices</h1>
-        <InvoiceDialog clients={clients} lineOptions={lineOptions} bankAccounts={bankAccounts} />
+        <InvoiceDialog
+          clients={clients}
+          lineOptions={lineOptions}
+          bankAccounts={bankAccounts}
+        />
       </div>
 
       <InvoiceFilterBar />
@@ -82,7 +86,10 @@ export default async function InvoicesPage({
           <TableBody>
             {invoices.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={8}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No invoices found.
                 </TableCell>
               </TableRow>
@@ -90,7 +97,10 @@ export default async function InvoicesPage({
             {invoices.map((invoice) => {
               const currency = invoice.currency as PaymentCurrency;
               const status = invoice.status as InvoiceStatus;
-              const total = invoice.items.reduce((sum, item) => sum + Number(item.amount), 0);
+              const total = invoice.items.reduce(
+                (sum, item) => sum + Number(item.amount),
+                0,
+              );
               const balanceDue = total - Number(invoice.discount);
               return (
                 <TableRow key={invoice.id}>

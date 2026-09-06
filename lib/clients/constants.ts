@@ -1,4 +1,11 @@
-export const PAYMENT_CURRENCIES = ["PKR", "USD", "GBP", "EUR", "AUD", "AED"] as const;
+export const PAYMENT_CURRENCIES = [
+  "PKR",
+  "USD",
+  "GBP",
+  "EUR",
+  "AUD",
+  "AED",
+] as const;
 export type PaymentCurrency = (typeof PAYMENT_CURRENCIES)[number];
 
 export const CLIENT_STATUSES = ["ACTIVE", "DEAD"] as const;

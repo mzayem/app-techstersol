@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 
-export type SortOption = "bank-asc" | "bank-desc" | "currency-asc" | "newest" | "oldest";
+export type SortOption =
+  "bank-asc" | "bank-desc" | "currency-asc" | "newest" | "oldest";
 
 export type ListFilters = {
   search?: string;
@@ -32,7 +33,12 @@ export async function listBankAccounts(filters: ListFilters) {
       OR: filters.search
         ? [
             { bankName: { contains: filters.search, mode: "insensitive" } },
-            { accountHolderName: { contains: filters.search, mode: "insensitive" } },
+            {
+              accountHolderName: {
+                contains: filters.search,
+                mode: "insensitive",
+              },
+            },
           ]
         : undefined,
     },

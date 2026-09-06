@@ -13,7 +13,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { createDonation, deleteDonation, updateDonation } from "@/actions/finance/actions";
+import {
+  createDonation,
+  deleteDonation,
+  updateDonation,
+} from "@/actions/finance/actions";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -66,7 +70,7 @@ export function DonationDialog({
           Add donation
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit donation" : "Add donation"}</DialogTitle>
         </DialogHeader>
@@ -76,7 +80,9 @@ export function DonationDialog({
               type="date"
               name="date"
               required
-              defaultValue={donation ? toDateInputValue(donation.date) : today()}
+              defaultValue={
+                donation ? toDateInputValue(donation.date) : today()
+              }
             />
           </Field>
           <Field label="Name">
@@ -121,7 +127,11 @@ export function DonationRowActions({ entry }: { entry: DonationEntry }) {
         onEdit={() => setEditOpen(true)}
         onDelete={() => setDeleteOpen(true)}
       />
-      <DonationDialog donation={entry} open={editOpen} onOpenChange={setEditOpen} />
+      <DonationDialog
+        donation={entry}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
@@ -132,7 +142,13 @@ export function DonationRowActions({ entry }: { entry: DonationEntry }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

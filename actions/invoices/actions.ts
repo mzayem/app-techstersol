@@ -5,9 +5,15 @@ import { Prisma } from "@/generated/prisma/client";
 
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
-import { INVOICE_NUMBER_START, formatInvoiceNumber } from "@/lib/invoices/constants";
+import {
+  INVOICE_NUMBER_START,
+  formatInvoiceNumber,
+} from "@/lib/invoices/constants";
 import { remainingKey } from "@/actions/invoices/queries";
 
 async function requireUserId() {
@@ -33,7 +39,10 @@ export type InvoiceItemInput = {
   amount: number;
 };
 
-export async function createInvoice(formData: FormData, items: InvoiceItemInput[]) {
+export async function createInvoice(
+  formData: FormData,
+  items: InvoiceItemInput[],
+) {
   const createdByUserId = await requireUserId();
 
   const clientId = str(formData, "clientId");
@@ -54,7 +63,9 @@ export async function createInvoice(formData: FormData, items: InvoiceItemInput[
   }
   for (const item of items) {
     if (!item.contractId || !item.description.trim() || !(item.amount > 0)) {
-      throw new Error("Each line item needs a source, a description, and a positive amount");
+      throw new Error(
+        "Each line item needs a source, a description, and a positive amount",
+      );
     }
   }
 
@@ -77,7 +88,9 @@ export async function createInvoice(formData: FormData, items: InvoiceItemInput[
   }
   for (const contract of contracts) {
     if (contract.clientId !== clientId) {
-      throw new Error("Selected contracts must all belong to the selected client");
+      throw new Error(
+        "Selected contracts must all belong to the selected client",
+      );
     }
     if (contract.currency !== currency) {
       throw new Error("Selected contracts must all share the same currency");
@@ -98,16 +111,24 @@ export async function createInvoice(formData: FormData, items: InvoiceItemInput[
   const preparedItems = items.map((item, index) => {
     const contract = contractsById.get(item.contractId)!;
     const faceAmount = item.milestoneId
-      ? Number(contract.milestones.find((m) => m.id === item.milestoneId)?.amount ?? 0)
+      ? Number(
+          contract.milestones.find((m) => m.id === item.milestoneId)?.amount ??
+            0,
+        )
       : Number(contract.amount ?? 0);
-    const alreadyPaid = paid.get(remainingKey(item.contractId, item.milestoneId)) ?? 0;
+    const alreadyPaid =
+      paid.get(remainingKey(item.contractId, item.milestoneId)) ?? 0;
     const remaining = faceAmount - alreadyPaid;
 
     if (remaining <= 0.01) {
-      throw new Error("One of the selected lines has already been paid in full");
+      throw new Error(
+        "One of the selected lines has already been paid in full",
+      );
     }
     if (item.amount > remaining + 0.01) {
-      throw new Error("A line item's amount can't exceed its remaining balance");
+      throw new Error(
+        "A line item's amount can't exceed its remaining balance",
+      );
     }
 
     const isPartial = item.amount < remaining - 0.01;
@@ -192,7 +213,10 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   });
   if (!invoice) throw new Error("Invoice not found");
 
-  const total = invoice.items.reduce((sum, item) => sum + Number(item.amount), 0);
+  const total = invoice.items.reduce(
+    (sum, item) => sum + Number(item.amount),
+    0,
+  );
   const balanceDue = total - Number(invoice.discount);
   const currency = invoice.currency as PaymentCurrency;
 
@@ -249,7 +273,8 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     const thisInvoiceSum = invoice.items
       .filter((item) => item.contractId === contract.id)
       .reduce((sum, item) => sum + Number(item.amount), 0);
-    const totalPaid = (alreadyPaidByContract.get(contract.id) ?? 0) + thisInvoiceSum;
+    const totalPaid =
+      (alreadyPaidByContract.get(contract.id) ?? 0) + thisInvoiceSum;
     const remaining = totalBillable - totalPaid;
     const hasPartialItem = invoice.items.some(
       (item) => item.contractId === contract.id && item.isPartial,
@@ -320,7 +345,10 @@ export async function markInvoiceUnpaid(id: string) {
       data: { status: "UNPAID", paidOn: null, transactionId: null },
     }),
     prisma.contract.updateMany({
-      where: { id: { in: contractIds }, status: { in: [...PAID_CONTRACT_STATUSES] } },
+      where: {
+        id: { in: contractIds },
+        status: { in: [...PAID_CONTRACT_STATUSES] },
+      },
       data: { status: "PENDING_PAYMENT" },
     }),
     prisma.earning.deleteMany({ where: { invoiceId: id } }),
@@ -345,7 +373,10 @@ export async function deleteInvoice(id: string) {
     const contractIds = invoice.contracts.map((c) => c.contractId);
     await prisma.$transaction([
       prisma.contract.updateMany({
-        where: { id: { in: contractIds }, status: { in: [...PAID_CONTRACT_STATUSES] } },
+        where: {
+          id: { in: contractIds },
+          status: { in: [...PAID_CONTRACT_STATUSES] },
+        },
         data: { status: "PENDING_PAYMENT" },
       }),
       prisma.invoice.delete({ where: { id } }),

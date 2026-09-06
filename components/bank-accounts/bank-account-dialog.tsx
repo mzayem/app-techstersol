@@ -72,7 +72,10 @@ function formatBankDetails(entry: BankAccountEntry) {
     `Bank: ${entry.bankName}`,
     `Account holder: ${entry.accountHolderName}`,
     ...CURRENCY_FIELDS[entry.currency]
-      .map((field) => [BANK_FIELD_LABELS[field], FIELD_VALUES[field](entry)] as const)
+      .map(
+        (field) =>
+          [BANK_FIELD_LABELS[field], FIELD_VALUES[field](entry)] as const,
+      )
       .filter(([, value]) => value)
       .map(([label, value]) => `${label}: ${value}`),
     `SWIFT: ${entry.swift}`,
@@ -131,7 +134,7 @@ export function BankAccountDialog({
           Add bank account
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Edit bank account" : "Add bank account"}

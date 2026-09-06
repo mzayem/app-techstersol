@@ -31,6 +31,8 @@ export const CURRENCY_FIELDS: Record<PaymentCurrency, BankFieldKey[]> = {
 /** Fields that, for a given currency, are optional rather than required —
  * e.g. Pakistani banks are always identified by account number; IBAN is a
  * nice-to-have extra, not mandatory. */
-export const CURRENCY_OPTIONAL_FIELDS: Partial<Record<PaymentCurrency, BankFieldKey[]>> = {
+export const CURRENCY_OPTIONAL_FIELDS: Partial<
+  Record<PaymentCurrency, BankFieldKey[]>
+> = {
   PKR: ["iban"],
 };

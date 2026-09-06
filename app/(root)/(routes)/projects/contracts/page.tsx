@@ -1,9 +1,19 @@
 import { ContractDialog } from "@/components/contracts/contract-dialog";
 import { ContractFilterBar } from "@/components/contracts/contract-filter-bar";
-import { ContractTable, type ContractListItem } from "@/components/contracts/contract-table";
+import {
+  ContractTable,
+  type ContractListItem,
+} from "@/components/contracts/contract-table";
 import type { PaymentCurrency } from "@/lib/clients/constants";
-import type { ContractPaymentType, ContractStatus } from "@/lib/contracts/constants";
-import { listClientOptions, listContracts, type SortOption } from "@/actions/contracts/queries";
+import type {
+  ContractPaymentType,
+  ContractStatus,
+} from "@/lib/contracts/constants";
+import {
+  listClientOptions,
+  listContracts,
+  type SortOption,
+} from "@/actions/contracts/queries";
 
 export const dynamic = "force-dynamic";
 

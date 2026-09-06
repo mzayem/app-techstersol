@@ -21,7 +21,11 @@ export function NavUser() {
           className="w-full"
           trigger={
             <SidebarMenuButton size="lg">
-              <UserAvatar user={user} isPending={isPending} className="size-8 rounded-lg" />
+              <UserAvatar
+                user={user}
+                isPending={isPending}
+                className="size-8 rounded-lg"
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
                   {user?.name ?? "Profile"}

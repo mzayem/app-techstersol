@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import {
   CONTRACT_STATUSES,
   PAYMENT_TYPES,
@@ -39,7 +42,10 @@ function validateMilestones(milestones: MilestoneInput[]) {
   }
 }
 
-function readContractFields(formData: FormData, milestonesInput: MilestoneInput[]) {
+function readContractFields(
+  formData: FormData,
+  milestonesInput: MilestoneInput[],
+) {
   const clientId = str(formData, "clientId");
   const date = str(formData, "date");
   const deadline = str(formData, "deadline");
@@ -76,7 +82,10 @@ function readContractFields(formData: FormData, milestonesInput: MilestoneInput[
   }));
 
   const amount = paymentType === "PROJECT" ? Number(amountRaw) : undefined;
-  if (paymentType === "PROJECT" && (!amountRaw || Number.isNaN(amount) || amount! <= 0)) {
+  if (
+    paymentType === "PROJECT" &&
+    (!amountRaw || Number.isNaN(amount) || amount! <= 0)
+  ) {
     throw new Error("Enter a valid project amount");
   }
 
@@ -94,9 +103,15 @@ function readContractFields(formData: FormData, milestonesInput: MilestoneInput[
   };
 }
 
-export async function createContract(formData: FormData, milestones: MilestoneInput[]) {
+export async function createContract(
+  formData: FormData,
+  milestones: MilestoneInput[],
+) {
   const createdByUserId = await requireUserId();
-  const { milestones: validMilestones, ...fields } = readContractFields(formData, milestones);
+  const { milestones: validMilestones, ...fields } = readContractFields(
+    formData,
+    milestones,
+  );
 
   await prisma.contract.create({
     data: {
@@ -115,7 +130,10 @@ export async function updateContract(
   milestones: MilestoneInput[],
 ) {
   await requireUserId();
-  const { milestones: validMilestones, ...fields } = readContractFields(formData, milestones);
+  const { milestones: validMilestones, ...fields } = readContractFields(
+    formData,
+    milestones,
+  );
 
   await prisma.contract.update({
     where: { id },
@@ -139,7 +157,10 @@ export async function deleteContract(id: string) {
   revalidatePath("/projects/contracts");
 }
 
-export async function bulkUpdateContractStatus(ids: string[], status: ContractStatus) {
+export async function bulkUpdateContractStatus(
+  ids: string[],
+  status: ContractStatus,
+) {
   await requireUserId();
 
   if (ids.length === 0) return;

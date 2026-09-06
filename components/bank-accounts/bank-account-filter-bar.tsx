@@ -55,7 +55,9 @@ export function BankAccountFilterBar() {
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <Select
         value={currency}
-        onValueChange={(value) => updateParams({ currency: value === "all" ? null : value })}
+        onValueChange={(value) =>
+          updateParams({ currency: value === "all" ? null : value })
+        }
       >
         <SelectTrigger className="w-full sm:w-36">
           <SelectValue />
@@ -80,7 +82,10 @@ export function BankAccountFilterBar() {
         />
       </div>
 
-      <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
+      <Select
+        value={sort}
+        onValueChange={(value) => updateParams({ sort: value })}
+      >
         <SelectTrigger className="w-full sm:w-44">
           <SelectValue />
         </SelectTrigger>

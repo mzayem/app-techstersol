@@ -24,7 +24,11 @@ export function ContractActionsMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label="Open actions menu" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Open actions menu"
+          />
         }
       >
         <MoreHorizontalIcon />

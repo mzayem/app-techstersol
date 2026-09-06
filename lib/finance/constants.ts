@@ -7,7 +7,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 
 export const REFERENCE_CURRENCIES = PAYMENT_CURRENCIES;
 export type ReferenceCurrency = PaymentCurrency;

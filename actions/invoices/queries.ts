@@ -92,7 +92,12 @@ export async function listInvoiceSources() {
       orderBy: { date: "desc" },
     }),
     prisma.bankAccount.findMany({
-      select: { id: true, currency: true, bankName: true, accountHolderName: true },
+      select: {
+        id: true,
+        currency: true,
+        bankName: true,
+        accountHolderName: true,
+      },
       orderBy: { bankName: "asc" },
     }),
   ]);
@@ -102,7 +107,8 @@ export async function listInvoiceSources() {
   const lineOptions = contracts.flatMap((contract) => {
     if (contract.paymentType === "PROJECT") {
       const total = contract.amount ? Number(contract.amount) : 0;
-      const remaining = total - (paid.get(remainingKey(contract.id, null)) ?? 0);
+      const remaining =
+        total - (paid.get(remainingKey(contract.id, null)) ?? 0);
       if (remaining <= 0.01) return [];
       return [
         {
@@ -117,7 +123,8 @@ export async function listInvoiceSources() {
     }
     return contract.milestones.flatMap((milestone) => {
       const remaining =
-        Number(milestone.amount) - (paid.get(remainingKey(contract.id, milestone.id)) ?? 0);
+        Number(milestone.amount) -
+        (paid.get(remainingKey(contract.id, milestone.id)) ?? 0);
       if (remaining <= 0.01) return [];
       return [
         {

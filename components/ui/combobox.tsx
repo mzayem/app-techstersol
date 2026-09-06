@@ -4,7 +4,11 @@ import * as React from "react";
 import { ChevronDownIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -27,6 +31,7 @@ export function Combobox({
   placeholder = "Select…",
   searchPlaceholder = "Search…",
   emptyText = "No results found.",
+  disabled = false,
   className,
 }: {
   options: ComboboxOption[];
@@ -35,6 +40,7 @@ export function Combobox({
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
+  disabled?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -50,7 +56,7 @@ export function Combobox({
 
   return (
     <Popover
-      open={open}
+      open={open && !disabled}
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) setSearch("");
@@ -60,6 +66,7 @@ export function Combobox({
         render={
           <button
             type="button"
+            disabled={disabled}
             className={cn(
               "flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 dark:hover:bg-input/50",
               className,
@@ -77,10 +84,7 @@ export function Combobox({
         </span>
         <ChevronDownIcon className="pointer-events-none size-4 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-(--anchor-width) min-w-36 p-0"
-      >
+      <PopoverContent align="start" className="w-(--anchor-width) min-w-36 p-0">
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}

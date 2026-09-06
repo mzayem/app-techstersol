@@ -9,7 +9,10 @@ import { getInvoiceForPdf } from "@/actions/invoices/queries";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { data } = await auth.getSession();
   if (!data?.user) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });

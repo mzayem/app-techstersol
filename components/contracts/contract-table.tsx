@@ -66,7 +66,8 @@ export function ContractTable({
   function toggleRow(index: number, id: string) {
     const { shift } = modifierRef.current;
     if (shift && anchorIndex !== null) {
-      const [lo, hi] = anchorIndex < index ? [anchorIndex, index] : [index, anchorIndex];
+      const [lo, hi] =
+        anchorIndex < index ? [anchorIndex, index] : [index, anchorIndex];
       const rangeIds = contracts.slice(lo, hi + 1).map((c) => c.id);
       setSelected((prev) => new Set([...prev, ...rangeIds]));
     } else {
@@ -88,7 +89,9 @@ export function ContractTable({
 
   function toggleAll() {
     setSelected((prev) =>
-      prev.size === contracts.length ? new Set() : new Set(contracts.map((c) => c.id)),
+      prev.size === contracts.length
+        ? new Set()
+        : new Set(contracts.map((c) => c.id)),
     );
   }
 
@@ -103,15 +106,21 @@ export function ContractTable({
     });
   }
 
-  const allSelected = contracts.length > 0 && visibleSelectedIds.length === contracts.length;
+  const allSelected =
+    contracts.length > 0 && visibleSelectedIds.length === contracts.length;
   const someSelected = visibleSelectedIds.length > 0 && !allSelected;
 
   return (
     <div className="flex flex-col gap-3">
       {visibleSelectedIds.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-md bg-muted p-3">
-          <span className="text-sm font-medium">{visibleSelectedIds.length} selected</span>
-          <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as ContractStatus)}>
+          <span className="text-sm font-medium">
+            {visibleSelectedIds.length} selected
+          </span>
+          <Select
+            value={bulkStatus}
+            onValueChange={(v) => setBulkStatus(v as ContractStatus)}
+          >
             <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
@@ -158,7 +167,10 @@ export function ContractTable({
           <TableBody>
             {contracts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={9}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No contracts found.
                 </TableCell>
               </TableRow>
@@ -180,7 +192,9 @@ export function ContractTable({
                     />
                   </TableCell>
                   <TableCell>{contract.clientName}</TableCell>
-                  <TableCell className="font-medium">{contract.projectName}</TableCell>
+                  <TableCell className="font-medium">
+                    {contract.projectName}
+                  </TableCell>
                   <TableCell>{formatDate(contract.date)}</TableCell>
                   <TableCell>{formatDate(contract.deadline)}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -193,12 +207,19 @@ export function ContractTable({
                     )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatContractAmount(contract.totalAmount, contract.currency)}
+                    {formatContractAmount(
+                      contract.totalAmount,
+                      contract.currency,
+                    )}
                     {(contract.status === "PARTIALLY_PAID" ||
                       contract.status === "UPFRONT_PAYMENT") && (
                       <span className="block text-xs font-normal text-muted-foreground">
-                        Received {formatContractAmount(contract.paidAmount, contract.currency)} ·
-                        Pending{" "}
+                        Received{" "}
+                        {formatContractAmount(
+                          contract.paidAmount,
+                          contract.currency,
+                        )}{" "}
+                        · Pending{" "}
                         {formatContractAmount(
                           contract.totalAmount - contract.paidAmount,
                           contract.currency,
@@ -236,7 +257,8 @@ function StatusPill({ status }: { status: ContractStatus }) {
   return (
     <span
       className={
-        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium " + styles[status]
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium " +
+        styles[status]
       }
     >
       {CONTRACT_STATUS_LABELS[status]}

@@ -1,6 +1,11 @@
 "use client";
 
-import { CopyIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import {
+  CopyIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +31,11 @@ export function EntryActionsMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label="Open actions menu" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Open actions menu"
+          />
         }
       >
         <MoreHorizontalIcon />

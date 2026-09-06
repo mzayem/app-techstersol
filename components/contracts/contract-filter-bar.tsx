@@ -12,7 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CONTRACT_STATUSES, CONTRACT_STATUS_LABELS } from "@/lib/contracts/constants";
+import {
+  CONTRACT_STATUSES,
+  CONTRACT_STATUS_LABELS,
+} from "@/lib/contracts/constants";
 import type { SortOption } from "@/actions/contracts/queries";
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -56,7 +59,9 @@ export function ContractFilterBar() {
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <Select
         value={status}
-        onValueChange={(value) => updateParams({ status: value === "all" ? null : value })}
+        onValueChange={(value) =>
+          updateParams({ status: value === "all" ? null : value })
+        }
       >
         <SelectTrigger className="w-full sm:w-40">
           <SelectValue />
@@ -81,7 +86,10 @@ export function ContractFilterBar() {
         />
       </div>
 
-      <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
+      <Select
+        value={sort}
+        onValueChange={(value) => updateParams({ sort: value })}
+      >
         <SelectTrigger className="w-full sm:w-48">
           <SelectValue />
         </SelectTrigger>

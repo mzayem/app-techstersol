@@ -84,7 +84,7 @@ export function EarningDialog({
           Add earning
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit earning" : "Add earning"}</DialogTitle>
         </DialogHeader>
