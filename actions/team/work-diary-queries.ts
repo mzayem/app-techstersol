@@ -1,26 +1,27 @@
 import { prisma } from "@/lib/prisma";
+import { resolveWorkDiaryPeriod } from "@/lib/team/work-diary";
 
 export type SortOption = "week-desc" | "week-asc";
 
 export type ListFilters = {
   teamMemberId?: string;
-  /** "YYYY-MM" — matches entries whose week starts in that calendar month. */
-  month?: string;
+  /** "all" | "year" | "custom" | "YYYY-MM" — see resolveWorkDiaryPeriod. */
+  period?: string;
+  from?: string;
+  to?: string;
   sort?: SortOption;
 };
 
-function monthRange(month: string) {
-  const [year, monthNum] = month.split("-").map(Number);
-  const from = new Date(year, monthNum - 1, 1);
-  const to = new Date(year, monthNum, 0); // last day of the month
-  return { gte: from, lte: to };
-}
-
 export async function listWorkDiaryEntries(filters: ListFilters) {
+  const { gte, lte } = resolveWorkDiaryPeriod(filters.period, filters.from, filters.to);
+
   return prisma.workDiaryEntry.findMany({
     where: {
       teamMemberId: filters.teamMemberId || undefined,
-      weekStart: filters.month ? monthRange(filters.month) : undefined,
+      weekStart:
+        gte || lte
+          ? { ...(gte ? { gte } : {}), ...(lte ? { lte } : {}) }
+          : undefined,
     },
     include: {
       teamMember: { select: { id: true, name: true } },

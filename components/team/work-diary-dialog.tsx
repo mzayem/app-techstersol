@@ -19,6 +19,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { formatPkr } from "@/lib/finance/constants";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import type { TeamMemberType } from "@/lib/team/constants";
+import { mondayOf } from "@/lib/team/work-diary";
 import {
   createWorkDiaryEntry,
   deleteWorkDiaryEntry,
@@ -26,6 +27,7 @@ import {
 } from "@/actions/team/work-diary-actions";
 import { TeamActionsMenu } from "@/components/team/team-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { WeekPicker } from "@/components/team/week-picker";
 
 export type TeamMemberOption = {
   id: string;
@@ -71,6 +73,9 @@ export function WorkDiaryDialog({
   const formRef = React.useRef<HTMLFormElement>(null);
   const [teamMemberId, setTeamMemberId] = React.useState(entry?.teamMemberId ?? "");
   const [hoursInput, setHoursInput] = React.useState(entry?.hours.toString() ?? "");
+  const [weekStart, setWeekStart] = React.useState(
+    entry?.weekStart ?? mondayOf(new Date()),
+  );
 
   const selectedMember = teamMembers.find((m) => m.id === teamMemberId);
   const previewHours = Number(hoursInput);
@@ -94,6 +99,7 @@ export function WorkDiaryDialog({
           formRef.current?.reset();
           setTeamMemberId("");
           setHoursInput("");
+          setWeekStart(mondayOf(new Date()));
         }
         setOpen(false);
       } catch (e) {
@@ -129,14 +135,9 @@ export function WorkDiaryDialog({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Week (any day in it)">
-              <Input
-                type="date"
-                name="week"
-                required
-                disabled={locked}
-                defaultValue={entry ? toDateInputValue(entry.weekStart) : today()}
-              />
+            <Field label="Week">
+              <WeekPicker value={weekStart} onChange={setWeekStart} disabled={locked} />
+              <input type="hidden" name="week" value={toDateInputValue(weekStart)} />
             </Field>
             <Field label="Hours">
               <Input
@@ -265,10 +266,6 @@ function Field({
       {children}
     </label>
   );
-}
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function toDateInputValue(date: Date) {

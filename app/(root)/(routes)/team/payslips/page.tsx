@@ -12,21 +12,36 @@ import { formatPayslipNumber } from "@/lib/team/constants";
 import { listPayslips } from "@/actions/team/payslip-queries";
 import { listTeamMemberOptions } from "@/actions/team/queries";
 import { listOutsourcedContractOptions } from "@/actions/contracts/queries";
+import { listWorkDiaryEntries } from "@/actions/team/work-diary-queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function PayslipsPage() {
-  const [payslips, teamMembers, contracts] = await Promise.all([
+  const [payslips, teamMembers, contracts, diaryEntries] = await Promise.all([
     listPayslips({}),
     listTeamMemberOptions(),
     listOutsourcedContractOptions(),
+    listWorkDiaryEntries({ period: "year" }),
   ]);
+
+  const workDiaryOptions = diaryEntries.map((e) => ({
+    id: e.id,
+    teamMemberId: e.teamMemberId,
+    weekStart: e.weekStart,
+    weekEnd: e.weekEnd,
+    hours: Number(e.hours),
+    amount: e.amount ? Number(e.amount) : null,
+  }));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Payslips</h1>
-        <PayslipDialog teamMembers={teamMembers} contracts={contracts} />
+        <PayslipDialog
+          teamMembers={teamMembers}
+          contracts={contracts}
+          workDiaryEntries={workDiaryOptions}
+        />
       </div>
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">

@@ -15,11 +15,7 @@ import {
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatPkr } from "@/lib/finance/constants";
 import type { TeamMemberType } from "@/lib/team/constants";
-import {
-  currentMonthValue,
-  formatWeekRange,
-  recentMonthOptions,
-} from "@/lib/team/work-diary";
+import { formatWeekRange, resolveWorkDiaryPeriod } from "@/lib/team/work-diary";
 import { getRatesToPkr } from "@/lib/fx/rates";
 import { listTeamMemberOptions } from "@/actions/team/queries";
 import { listWorkDiaryEntries } from "@/actions/team/work-diary-queries";
@@ -33,10 +29,10 @@ export default async function WorkDiaryPage({
 }) {
   const params = await searchParams;
   const teamMemberId = params.teamMemberId ?? "";
-  const month = params.month ?? currentMonthValue();
+  const period = params.period ?? "year";
 
   const [entries, teamMemberOptions, ratesToPkr] = await Promise.all([
-    listWorkDiaryEntries({ teamMemberId, month }),
+    listWorkDiaryEntries({ teamMemberId, period, from: params.from, to: params.to }),
     listTeamMemberOptions(),
     getRatesToPkr(),
   ]);
@@ -48,26 +44,30 @@ export default async function WorkDiaryPage({
     hourlyRate: m.hourlyRate ? Number(m.hourlyRate) : null,
     currency: m.currency as PaymentCurrency,
   }));
+  // Work diary logs hours against an hourly rate, so only hourly members
+  // are offered when picking who to log for — project-based members have
+  // no rate and would just show "—" for amount anyway. Historical entries
+  // for any member type still display normally in the table below.
+  const hourlyTeamMembers = teamMembers.filter((m) => m.type === "HOURLY");
 
   const totalHours = entries.reduce((sum, e) => sum + Number(e.hours), 0);
   const totalAmount = entries.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
-  const monthLabel =
-    recentMonthOptions(24).find((m) => m.value === month)?.label ?? "this month";
+  const periodLabel = resolveWorkDiaryPeriod(period, params.from, params.to).label;
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Work Diary</h1>
         <div className="flex items-center gap-2">
-          <WorkDiaryImportDialog teamMembers={teamMembers} />
-          <WorkDiaryDialog teamMembers={teamMembers} ratesToPkr={ratesToPkr} />
+          <WorkDiaryImportDialog teamMembers={hourlyTeamMembers} />
+          <WorkDiaryDialog teamMembers={hourlyTeamMembers} ratesToPkr={ratesToPkr} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2 rounded-md bg-card p-4 ring-1 ring-foreground/10">
           <span className="text-xs font-medium text-muted-foreground">
-            Amount to pay — {monthLabel}
+            Amount to pay — {periodLabel}
             {teamMemberId
               ? ` · ${teamMembers.find((m) => m.id === teamMemberId)?.name ?? ""}`
               : ""}
@@ -84,7 +84,7 @@ export default async function WorkDiaryPage({
         </div>
       </div>
 
-      <WorkDiaryFilterBar teamMembers={teamMembers} monthOptions={recentMonthOptions()} />
+      <WorkDiaryFilterBar teamMembers={hourlyTeamMembers} />
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">
         <Table>

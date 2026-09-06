@@ -38,13 +38,19 @@ export async function listTeamMembers(filters: ListFilters) {
 
 /** Lightweight options list for the contract, payslip, and work diary
  * dialogs' team member pickers. type/hourlyRate/currency ride along so the
- * work diary dialog can preview an entry's amount without a second query. */
+ * work diary dialog can preview an entry's amount without a second query.
+ * hourlyRate is converted to a plain number here — a Prisma Decimal can't
+ * cross the Server → Client Component boundary as-is. */
 export async function listTeamMemberOptions() {
-  return prisma.teamMember.findMany({
+  const members = await prisma.teamMember.findMany({
     select: { id: true, name: true, type: true, hourlyRate: true, currency: true },
     orderBy: { name: "asc" },
     take: 100,
   });
+  return members.map((m) => ({
+    ...m,
+    hourlyRate: m.hourlyRate ? Number(m.hourlyRate) : null,
+  }));
 }
 
 /** Every TeamPayment — money that actually left the company for a team
