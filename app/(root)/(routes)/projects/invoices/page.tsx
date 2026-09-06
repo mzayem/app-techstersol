@@ -16,6 +16,7 @@ import {
   INVOICE_STATUS_LABELS,
   type InvoiceStatus,
 } from "@/lib/invoices/constants";
+import { getRatesToPkr } from "@/lib/fx/rates";
 import {
   listInvoices,
   listInvoiceSources,
@@ -31,13 +32,14 @@ export default async function InvoicesPage({
 }) {
   const params = await searchParams;
 
-  const [invoices, sources] = await Promise.all([
+  const [invoices, sources, ratesToPkr] = await Promise.all([
     listInvoices({
       search: params.q,
       status: params.status as InvoiceStatus | undefined,
       sort: params.sort as SortOption | undefined,
     }),
     listInvoiceSources(),
+    getRatesToPkr(),
   ]);
 
   const clients = sources.clients;
@@ -102,6 +104,10 @@ export default async function InvoicesPage({
                 0,
               );
               const balanceDue = total - Number(invoice.discount);
+              const suggestedPkrAmount =
+                currency === "PKR"
+                  ? undefined
+                  : Math.round(balanceDue * ratesToPkr[currency] * 100) / 100;
               return (
                 <TableRow key={invoice.id}>
                   <TableCell className="font-medium">
@@ -131,6 +137,7 @@ export default async function InvoicesPage({
                         number={invoice.number}
                         status={status}
                         currency={currency}
+                        suggestedPkrAmount={suggestedPkrAmount}
                       />
                     </div>
                   </TableCell>

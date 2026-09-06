@@ -8,10 +8,12 @@ import {
   GiftIcon,
   UsersIcon,
   HourglassIcon,
+  type LucideIcon,
 } from "lucide-react";
 
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -55,6 +57,29 @@ function BudgetBadge({
   );
 }
 
+function StatStrip({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1 py-1 sm:px-4 sm:py-0 sm:first:pl-0 sm:last:pr-0">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        <Icon className="size-3.5" />
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <span className="text-lg font-semibold tabular-nums">{value}</span>
+      <span className="text-xs text-muted-foreground">{hint}</span>
+    </div>
+  );
+}
+
 export function KpiCards({
   periodEarning,
   avgMonthlyEarning,
@@ -90,140 +115,113 @@ export function KpiCards({
   ][];
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <TrendingUpIcon className="size-4" />
-            <CardDescription>Earning</CardDescription>
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatCompactPkr(periodEarning)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Avg {formatPkr(avgMonthlyEarning)}/mo for this period
-          </p>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardHeader className="gap-3">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <ReceiptIcon className="size-4" />
-              <CardDescription>Total expenses</CardDescription>
+              <TrendingUpIcon className="size-4" />
+              <CardDescription>Earning</CardDescription>
             </div>
-            <BudgetBadge audit={expensesAudit} />
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatCompactPkr(totalExpenses)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            vs {formatPkr(expensesAudit.allocated)} allocated
-          </p>
-        </CardHeader>
-      </Card>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
+              {formatCompactPkr(periodEarning)}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Avg {formatPkr(avgMonthlyEarning)}/mo for this period
+            </p>
+          </CardHeader>
+        </Card>
 
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <PiggyBankIcon className="size-4" />
-              <CardDescription>Total investment</CardDescription>
+        <Card>
+          <CardHeader className="gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <ReceiptIcon className="size-4" />
+                <CardDescription>Total expenses</CardDescription>
+              </div>
+              <BudgetBadge audit={expensesAudit} />
             </div>
-            <BudgetBadge audit={investmentAudit} />
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatCompactPkr(totalInvestment)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            vs {formatPkr(investmentAudit.allocated)} allocated
-          </p>
-        </CardHeader>
-      </Card>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
+              {formatCompactPkr(totalExpenses)}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              vs {formatPkr(expensesAudit.allocated)} allocated
+            </p>
+          </CardHeader>
+        </Card>
 
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <GiftIcon className="size-4" />
-              <CardDescription>Total donations</CardDescription>
+        <Card>
+          <CardHeader className="gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <PiggyBankIcon className="size-4" />
+                <CardDescription>Total investment</CardDescription>
+              </div>
+              <BudgetBadge audit={investmentAudit} />
             </div>
-            <BudgetBadge audit={donationAudit} variant="obligation" />
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatCompactPkr(totalDonations)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            vs {formatPkr(donationAudit.allocated)} allocated
-          </p>
-        </CardHeader>
-      </Card>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
+              {formatCompactPkr(totalInvestment)}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              vs {formatPkr(investmentAudit.allocated)} allocated
+            </p>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader className="gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <GiftIcon className="size-4" />
+                <CardDescription>Total donations</CardDescription>
+              </div>
+              <BudgetBadge audit={donationAudit} variant="obligation" />
+            </div>
+            <CardTitle className="text-2xl font-semibold tabular-nums">
+              {formatCompactPkr(totalDonations)}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              vs {formatPkr(donationAudit.allocated)} allocated
+            </p>
+          </CardHeader>
+        </Card>
+      </div>
 
       <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <UsersIcon className="size-4" />
-            <CardDescription>Team paid</CardDescription>
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatCompactPkr(totalTeamPaid)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            This period, outside a booked earning
-          </p>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <HourglassIcon className="size-4" />
-            <CardDescription>Pending payment for teams</CardDescription>
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatCompactPkr(teamPendingPkr)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Owed on unfinished outsourced work · all time
-          </p>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <FileWarningIcon className="size-4" />
-            <CardDescription>Unpaid invoices</CardDescription>
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {unpaidInvoiceCount}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Awaiting payment · all time
-          </p>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardHeader className="gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <HandCoinsIcon className="size-4" />
-            <CardDescription>Pending payments</CardDescription>
-          </div>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatCompactPkr(pendingTotalPkr)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            {pendingEntries.length > 0
-              ? pendingEntries
-                  .map(([currency, amount]) =>
-                    formatCompactContractAmount(amount, currency),
-                  )
-                  .join(" · ") + " · all time"
-              : "All time"}
-          </p>
-        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 divide-y divide-border sm:grid-cols-4 sm:gap-0 sm:divide-y-0 sm:divide-x">
+          <StatStrip
+            icon={UsersIcon}
+            label="Team paid"
+            value={formatCompactPkr(totalTeamPaid)}
+            hint="This period, outside a booked earning"
+          />
+          <StatStrip
+            icon={HourglassIcon}
+            label="Pending payment for teams"
+            value={formatCompactPkr(teamPendingPkr)}
+            hint="Owed on unfinished outsourced work · all time"
+          />
+          <StatStrip
+            icon={FileWarningIcon}
+            label="Unpaid invoices"
+            value={String(unpaidInvoiceCount)}
+            hint="Awaiting payment · all time"
+          />
+          <StatStrip
+            icon={HandCoinsIcon}
+            label="Pending payments"
+            value={formatCompactPkr(pendingTotalPkr)}
+            hint={
+              pendingEntries.length > 0
+                ? pendingEntries
+                    .map(([currency, amount]) =>
+                      formatCompactContractAmount(amount, currency),
+                    )
+                    .join(" · ") + " · all time"
+                : "All time"
+            }
+          />
+        </CardContent>
       </Card>
     </div>
   );

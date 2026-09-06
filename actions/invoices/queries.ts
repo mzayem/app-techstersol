@@ -40,26 +40,28 @@ export async function listInvoices(filters: ListFilters) {
   });
 }
 
-/** Groups paid InvoiceItem amounts by their source contract/milestone, keyed
- * the same way as remainingKey() below, so callers can subtract what's
- * already been paid from a contract or milestone's face amount. */
-async function paidAmountsByLine(contractIds: string[]) {
+/** Groups InvoiceItem amounts by their source contract/milestone, keyed the
+ * same way as remainingKey() below, so callers can subtract what's already
+ * been invoiced from a contract or milestone's face amount. Counts every
+ * existing invoice regardless of paid/unpaid status — an outstanding unpaid
+ * invoice is still a claim on that balance, so a second invoice can't be
+ * raised against the same amount while it's outstanding. Only deleting an
+ * invoice (which cascades its items) frees the balance back up; marking one
+ * unpaid does not. */
+export async function invoicedAmountsByLine(contractIds: string[]) {
   if (contractIds.length === 0) return new Map<string, number>();
 
-  const paidItems = await prisma.invoiceItem.findMany({
-    where: {
-      contractId: { in: contractIds },
-      invoice: { status: "PAID" },
-    },
+  const invoicedItems = await prisma.invoiceItem.findMany({
+    where: { contractId: { in: contractIds } },
     select: { contractId: true, milestoneId: true, amount: true },
   });
 
-  const paid = new Map<string, number>();
-  for (const item of paidItems) {
+  const invoiced = new Map<string, number>();
+  for (const item of invoicedItems) {
     const key = remainingKey(item.contractId!, item.milestoneId);
-    paid.set(key, (paid.get(key) ?? 0) + Number(item.amount));
+    invoiced.set(key, (invoiced.get(key) ?? 0) + Number(item.amount));
   }
-  return paid;
+  return invoiced;
 }
 
 export function remainingKey(contractId: string, milestoneId: string | null) {
@@ -67,10 +69,12 @@ export function remainingKey(contractId: string, milestoneId: string | null) {
 }
 
 /** Data needed to populate the "add invoice" dialog: every client, every
- * not-yet-fully-paid billable line (a project's remaining balance, or one
- * milestone's remaining balance — milestones are listed individually so a
+ * not-yet-fully-invoiced billable line (a project's remaining balance, or
+ * one milestone's remaining balance, net of every existing invoice against
+ * it whether paid or not — milestones are listed individually so a
  * milestone contract behaves like several selectable contracts), and every
- * bank account (for the currency-matched default). */
+ * bank account (for the currency-matched default). A line with nothing left
+ * to invoice is omitted entirely rather than offered at Rs 0. */
 export async function listInvoiceSources() {
   const [clients, contracts, bankAccounts] = await Promise.all([
     prisma.client.findMany({
@@ -102,13 +106,13 @@ export async function listInvoiceSources() {
     }),
   ]);
 
-  const paid = await paidAmountsByLine(contracts.map((c) => c.id));
+  const invoiced = await invoicedAmountsByLine(contracts.map((c) => c.id));
 
   const lineOptions = contracts.flatMap((contract) => {
     if (contract.paymentType === "PROJECT") {
       const total = contract.amount ? Number(contract.amount) : 0;
       const remaining =
-        total - (paid.get(remainingKey(contract.id, null)) ?? 0);
+        total - (invoiced.get(remainingKey(contract.id, null)) ?? 0);
       if (remaining <= 0.01) return [];
       return [
         {
@@ -124,7 +128,7 @@ export async function listInvoiceSources() {
     return contract.milestones.flatMap((milestone) => {
       const remaining =
         Number(milestone.amount) -
-        (paid.get(remainingKey(contract.id, milestone.id)) ?? 0);
+        (invoiced.get(remainingKey(contract.id, milestone.id)) ?? 0);
       if (remaining <= 0.01) return [];
       return [
         {

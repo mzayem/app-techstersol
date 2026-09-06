@@ -19,11 +19,13 @@ export function MarkPaidDialog({
   onOpenChange,
   invoiceId,
   currency,
+  suggestedPkrAmount,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   invoiceId: string;
   currency: PaymentCurrency;
+  suggestedPkrAmount?: number;
 }) {
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
@@ -71,8 +73,15 @@ export function MarkPaidDialog({
                 min="0"
                 step="0.01"
                 placeholder="0.00"
+                defaultValue={suggestedPkrAmount?.toFixed(2)}
                 required
               />
+              {suggestedPkrAmount !== undefined && (
+                <span className="text-xs text-muted-foreground">
+                  Estimated at today&apos;s FX rate — adjust if the actual
+                  amount received differs.
+                </span>
+              )}
             </Field>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}

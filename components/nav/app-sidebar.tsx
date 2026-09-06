@@ -33,7 +33,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 src="/images/icon.webp"
                 alt=""
                 width={121}
-                height={92}
+                height={80}
                 className="size-6 w-auto"
               />
               <span className="truncate uppercase font-medium text-lg">
@@ -42,8 +42,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <Separator />
       </SidebarHeader>
-      <Separator />
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>

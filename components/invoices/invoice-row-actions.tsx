@@ -27,11 +27,16 @@ export function InvoiceRowActions({
   number,
   status,
   currency,
+  suggestedPkrAmount,
 }: {
   id: string;
   number: number;
   status: InvoiceStatus;
   currency: PaymentCurrency;
+  /** Balance due converted to PKR at the current FX rate — prefilled as a
+   * default in the mark-paid dialog's PKR amount field, since the actual
+   * amount received can differ (bank fees, rate at time of transfer). */
+  suggestedPkrAmount?: number;
 }) {
   const [markPaidOpen, setMarkPaidOpen] = React.useState(false);
   const [markUnpaidOpen, setMarkUnpaidOpen] = React.useState(false);
@@ -59,6 +64,7 @@ export function InvoiceRowActions({
         onOpenChange={setMarkPaidOpen}
         invoiceId={id}
         currency={currency}
+        suggestedPkrAmount={suggestedPkrAmount}
       />
       <AlertDialog
         open={markUnpaidOpen}

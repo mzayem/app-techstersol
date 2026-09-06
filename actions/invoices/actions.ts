@@ -14,7 +14,7 @@ import {
   INVOICE_NUMBER_START,
   formatInvoiceNumber,
 } from "@/lib/invoices/constants";
-import { remainingKey } from "@/actions/invoices/queries";
+import { invoicedAmountsByLine, remainingKey } from "@/actions/invoices/queries";
 
 async function requireUserId() {
   const { data } = await auth.getSession();
@@ -97,15 +97,11 @@ export async function createInvoice(
     }
   }
 
-  const paidItems = await prisma.invoiceItem.findMany({
-    where: { contractId: { in: contractIds }, invoice: { status: "PAID" } },
-    select: { contractId: true, milestoneId: true, amount: true },
-  });
-  const paid = new Map<string, number>();
-  for (const paidItem of paidItems) {
-    const key = remainingKey(paidItem.contractId!, paidItem.milestoneId);
-    paid.set(key, (paid.get(key) ?? 0) + Number(paidItem.amount));
-  }
+  // Nets out every existing invoice against a line (paid or not) so the
+  // same balance can't be invoiced twice while a prior invoice is still
+  // outstanding — mirrors listInvoiceSources' option list, which already
+  // hides a line here entirely once nothing is left to invoice.
+  const invoiced = await invoicedAmountsByLine(contractIds);
 
   const contractsById = new Map(contracts.map((c) => [c.id, c]));
   const preparedItems = items.map((item, index) => {
@@ -116,13 +112,13 @@ export async function createInvoice(
             0,
         )
       : Number(contract.amount ?? 0);
-    const alreadyPaid =
-      paid.get(remainingKey(item.contractId, item.milestoneId)) ?? 0;
-    const remaining = faceAmount - alreadyPaid;
+    const alreadyInvoiced =
+      invoiced.get(remainingKey(item.contractId, item.milestoneId)) ?? 0;
+    const remaining = faceAmount - alreadyInvoiced;
 
     if (remaining <= 0.01) {
       throw new Error(
-        "One of the selected lines has already been paid in full",
+        "One of the selected lines has already been fully invoiced",
       );
     }
     if (item.amount > remaining + 0.01) {
