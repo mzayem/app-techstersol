@@ -220,11 +220,13 @@ function BankBlock({
         <Text style={styles.bold}>{currency} Account</Text>:{" "}
         {bankAccount.accountHolderName}
       </Text>
-      {fields.map((field) => (
-        <Text key={field}>
-          {BANK_FIELD_LABELS[field]}: {values[field]}
-        </Text>
-      ))}
+      {fields
+        .filter((field) => values[field])
+        .map((field) => (
+          <Text key={field}>
+            {BANK_FIELD_LABELS[field]}: {values[field]}
+          </Text>
+        ))}
       <Text>SWIFT: {bankAccount.swift}</Text>
     </View>
   );

@@ -34,7 +34,7 @@ function orderBy(sort: SortOption | undefined) {
 }
 
 export async function listContracts(filters: ListFilters) {
-  return prisma.contract.findMany({
+  const contracts = await prisma.contract.findMany({
     where: {
       status: filters.status,
       OR: filters.search
@@ -50,11 +50,36 @@ export async function listContracts(filters: ListFilters) {
     },
     orderBy: orderBy(filters.sort),
   });
+
+  const paidAmounts = await paidAmountsByContract(contracts.map((c) => c.id));
+
+  return contracts.map((contract) => ({
+    ...contract,
+    paidAmount: paidAmounts.get(contract.id) ?? 0,
+  }));
+}
+
+/** Sum of PAID invoice items billed against each contract, regardless of
+ * which milestone (if any) they came from — used to show how much of a
+ * partially/upfront-paid contract has actually been received. */
+async function paidAmountsByContract(contractIds: string[]) {
+  const paid = new Map<string, number>();
+  if (contractIds.length === 0) return paid;
+
+  const items = await prisma.invoiceItem.findMany({
+    where: { contractId: { in: contractIds }, invoice: { status: "PAID" } },
+    select: { contractId: true, amount: true },
+  });
+  for (const item of items) {
+    paid.set(item.contractId!, (paid.get(item.contractId!) ?? 0) + Number(item.amount));
+  }
+  return paid;
 }
 
 export async function listClientOptions() {
   return prisma.client.findMany({
     select: { id: true, name: true, currency: true },
     orderBy: { name: "asc" },
+    take: 100,
   });
 }

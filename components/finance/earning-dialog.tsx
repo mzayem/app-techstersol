@@ -148,6 +148,7 @@ export function EarningDialog({
                   <SelectValue placeholder="Currency" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Currency</SelectItem>
                   {REFERENCE_CURRENCIES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}

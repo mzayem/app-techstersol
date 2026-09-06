@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -99,7 +100,7 @@ export function ContractDialog({
   const [currency, setCurrency] = React.useState<PaymentCurrency | "">(
     contract?.currency ?? "",
   );
-  const [paymentType, setPaymentType] = React.useState<ContractPaymentType>(
+  const [paymentType, setPaymentType] = React.useState<ContractPaymentType | "">(
     contract?.paymentType ?? "PROJECT",
   );
   const [milestones, setMilestones] = React.useState<MilestoneRow[]>(
@@ -177,28 +178,18 @@ export function ContractDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit contract" : "Add contract"}</DialogTitle>
         </DialogHeader>
-        <form
-          ref={formRef}
-          action={onSubmit}
-          className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1"
-        >
+        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
           <Field label="Client">
-            <Select
-              name="clientId"
+            <Combobox
               value={clientId}
               onValueChange={onClientChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={clients.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="Select client"
+              searchPlaceholder="Search clients…"
+              emptyText="No clients found."
+            />
+            <input type="hidden" name="clientId" value={clientId} />
           </Field>
 
           <Field label="Project name">
@@ -247,12 +238,13 @@ export function ContractDialog({
               <Select
                 name="currency"
                 value={currency}
-                onValueChange={(v) => setCurrency(v as PaymentCurrency)}
+                onValueChange={(v) => setCurrency((v ?? "") as PaymentCurrency | "")}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Currency" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Currency</SelectItem>
                   {PAYMENT_CURRENCIES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
@@ -270,6 +262,7 @@ export function ContractDialog({
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Status</SelectItem>
                   {CONTRACT_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {CONTRACT_STATUS_LABELS[s]}
@@ -284,12 +277,13 @@ export function ContractDialog({
             <Select
               name="paymentType"
               value={paymentType}
-              onValueChange={(v) => setPaymentType(v as ContractPaymentType)}
+              onValueChange={(v) => setPaymentType((v ?? "") as ContractPaymentType | "")}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">Payment structure</SelectItem>
                 {PAYMENT_TYPES.map((t) => (
                   <SelectItem key={t} value={t}>
                     {PAYMENT_TYPE_LABELS[t]}
@@ -299,19 +293,7 @@ export function ContractDialog({
             </Select>
           </Field>
 
-          {paymentType === "PROJECT" ? (
-            <Field label="Amount">
-              <Input
-                type="number"
-                name="amount"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                required
-                defaultValue={contract?.amount ?? undefined}
-              />
-            </Field>
-          ) : (
+          {paymentType === "MILESTONE" ? (
             <div className="flex flex-col gap-2">
               <span className="text-sm text-muted-foreground">Milestones</span>
               {milestones.map((row, index) => (
@@ -365,14 +347,27 @@ export function ContractDialog({
                 Add milestone
               </Button>
             </div>
+          ) : (
+            <Field label="Amount">
+              <Input
+                type="number"
+                name="amount"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                required
+                defaultValue={contract?.amount ?? undefined}
+              />
+            </Field>
           )}
+        </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Save contract"}
-            </Button>
-          </DialogFooter>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <DialogFooter>
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : isEdit ? "Save changes" : "Save contract"}
+          </Button>
+        </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

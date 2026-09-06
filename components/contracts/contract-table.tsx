@@ -36,6 +36,7 @@ import {
 export type ContractListItem = ContractEntry & {
   clientName: string;
   totalAmount: number;
+  paidAmount: number;
 };
 
 export function ContractTable({
@@ -193,6 +194,17 @@ export function ContractTable({
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatContractAmount(contract.totalAmount, contract.currency)}
+                    {(contract.status === "PARTIALLY_PAID" ||
+                      contract.status === "UPFRONT_PAYMENT") && (
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        Received {formatContractAmount(contract.paidAmount, contract.currency)} ·
+                        Pending{" "}
+                        {formatContractAmount(
+                          contract.totalAmount - contract.paidAmount,
+                          contract.currency,
+                        )}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <StatusPill status={contract.status} />

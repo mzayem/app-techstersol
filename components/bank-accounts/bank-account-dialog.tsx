@@ -27,6 +27,7 @@ import {
 import {
   BANK_FIELD_LABELS,
   CURRENCY_FIELDS,
+  CURRENCY_OPTIONAL_FIELDS,
   type BankFieldKey,
 } from "@/lib/bank-accounts/constants";
 import {
@@ -79,7 +80,7 @@ export function BankAccountDialog({
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
-  const [currency, setCurrency] = React.useState<PaymentCurrency>(
+  const [currency, setCurrency] = React.useState<PaymentCurrency | "">(
     bankAccount?.currency ?? "USD",
   );
 
@@ -101,7 +102,10 @@ export function BankAccountDialog({
     });
   }
 
-  const fields = CURRENCY_FIELDS[currency];
+  const fields = currency ? CURRENCY_FIELDS[currency] : [];
+  const optionalFields = currency
+    ? CURRENCY_OPTIONAL_FIELDS[currency]
+    : undefined;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -122,12 +126,15 @@ export function BankAccountDialog({
             <Select
               name="currency"
               value={currency}
-              onValueChange={(v) => setCurrency(v as PaymentCurrency)}
+              onValueChange={(v) =>
+                setCurrency((v ?? "") as PaymentCurrency | "")
+              }
             >
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue placeholder="Currency" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">Currency</SelectItem>
                 {PAYMENT_CURRENCIES.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c}
@@ -155,20 +162,23 @@ export function BankAccountDialog({
             />
           </Field>
 
-          {fields.map((field) => (
-            <Field key={field} label={BANK_FIELD_LABELS[field]}>
-              <Input
-                name={field}
-                placeholder={BANK_FIELD_LABELS[field]}
-                required
-                defaultValue={
-                  bankAccount
-                    ? (FIELD_VALUES[field](bankAccount) ?? undefined)
-                    : undefined
-                }
-              />
-            </Field>
-          ))}
+          {fields.map((field) => {
+            const isOptional = optionalFields?.includes(field);
+            return (
+              <Field key={field} label={BANK_FIELD_LABELS[field]}>
+                <Input
+                  name={field}
+                  placeholder={BANK_FIELD_LABELS[field]}
+                  required={!isOptional}
+                  defaultValue={
+                    bankAccount
+                      ? (FIELD_VALUES[field](bankAccount) ?? undefined)
+                      : undefined
+                  }
+                />
+              </Field>
+            );
+          })}
 
           <Field label="SWIFT / BIC">
             <Input

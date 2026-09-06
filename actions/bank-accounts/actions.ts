@@ -8,6 +8,7 @@ import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constant
 import {
   BANK_FIELD_LABELS,
   CURRENCY_FIELDS,
+  CURRENCY_OPTIONAL_FIELDS,
   type BankFieldKey,
 } from "@/lib/bank-accounts/constants";
 
@@ -45,7 +46,9 @@ function readBankAccountFields(formData: FormData) {
     bsbCode: str(formData, "bsbCode"),
   };
 
+  const optionalFields = CURRENCY_OPTIONAL_FIELDS[currency];
   for (const field of CURRENCY_FIELDS[currency]) {
+    if (optionalFields?.includes(field)) continue;
     if (!values[field]) {
       throw new Error(`${BANK_FIELD_LABELS[field]} is required for ${currency} accounts`);
     }

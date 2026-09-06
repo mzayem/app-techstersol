@@ -105,9 +105,10 @@ export function ExpenseDialog({
                 defaultValue={expense?.category ?? "EXPENSE"}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Type</SelectItem>
                   {EXPENSE_CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {BUCKET_LABELS[c]}

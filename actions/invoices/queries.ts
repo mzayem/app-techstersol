@@ -76,6 +76,7 @@ export async function listInvoiceSources() {
     prisma.client.findMany({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
+      take: 100,
     }),
     prisma.contract.findMany({
       where: { status: { not: "COMPLETED" } },

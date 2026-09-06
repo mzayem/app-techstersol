@@ -55,6 +55,7 @@ export default async function ContractsPage({
       status: contract.status as ContractStatus,
       milestones,
       totalAmount,
+      paidAmount: contract.paidAmount,
     };
   });
 

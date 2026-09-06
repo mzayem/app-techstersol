@@ -4,6 +4,7 @@ import * as React from "react";
 import { PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,8 @@ import {
 import { ClientActionsMenu } from "@/components/clients/client-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
+const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: c }));
+
 export type ClientEntry = {
   id: string;
   name: string;
@@ -62,6 +65,7 @@ export function ClientDialog({
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
+  const [country, setCountry] = React.useState(client?.country ?? "");
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -72,6 +76,7 @@ export function ClientDialog({
         } else {
           await createClient(formData);
           formRef.current?.reset();
+          setCountry("");
         }
         setOpen(false);
       } catch (e) {
@@ -122,18 +127,15 @@ export function ClientDialog({
             </Field>
           </div>
           <Field label="Country">
-            <Select name="country" defaultValue={client?.country}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent>
-                {COUNTRIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              value={country}
+              onValueChange={setCountry}
+              options={COUNTRY_OPTIONS}
+              placeholder="Select country"
+              searchPlaceholder="Search countries…"
+              emptyText="No countries found."
+            />
+            <input type="hidden" name="country" value={country} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Payment currency">
@@ -142,6 +144,7 @@ export function ClientDialog({
                   <SelectValue placeholder="Currency" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Currency</SelectItem>
                   {PAYMENT_CURRENCIES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
@@ -156,6 +159,7 @@ export function ClientDialog({
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Status</SelectItem>
                   {CLIENT_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {CLIENT_STATUS_LABELS[s]}

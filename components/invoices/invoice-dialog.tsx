@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -201,24 +202,17 @@ export function InvoiceDialog({
         <DialogHeader>
           <DialogTitle>Add invoice</DialogTitle>
         </DialogHeader>
-        <form
-          ref={formRef}
-          action={onSubmit}
-          className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1"
-        >
+        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
           <Field label="Client">
-            <Select value={clientId} onValueChange={onClientChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              value={clientId}
+              onValueChange={onClientChange}
+              options={clients.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="Select client"
+              searchPlaceholder="Search clients…"
+              emptyText="No clients found."
+            />
             <input type="hidden" name="clientId" value={clientId} />
           </Field>
 
@@ -428,16 +422,17 @@ export function InvoiceDialog({
               />
             </Field>
           </div>
+        </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            <Button
-              type="submit"
-              disabled={pending || items.length === 0 || items.some((i) => !(i.amount > 0))}
-            >
-              {pending ? "Saving…" : "Save invoice"}
-            </Button>
-          </DialogFooter>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <DialogFooter>
+          <Button
+            type="submit"
+            disabled={pending || items.length === 0 || items.some((i) => !(i.amount > 0))}
+          >
+            {pending ? "Saving…" : "Save invoice"}
+          </Button>
+        </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

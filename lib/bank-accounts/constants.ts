@@ -22,8 +22,15 @@ export const BANK_FIELD_LABELS: Record<BankFieldKey, string> = {
 export const CURRENCY_FIELDS: Record<PaymentCurrency, BankFieldKey[]> = {
   USD: ["accountType", "routingNumber", "accountNumber"],
   EUR: ["iban"],
-  PKR: ["iban"],
+  PKR: ["accountNumber", "iban"],
   AED: ["iban"],
   GBP: ["accountNumber", "sortCode", "iban"],
   AUD: ["bsbCode", "accountNumber"],
+};
+
+/** Fields that, for a given currency, are optional rather than required —
+ * e.g. Pakistani banks are always identified by account number; IBAN is a
+ * nice-to-have extra, not mandatory. */
+export const CURRENCY_OPTIONAL_FIELDS: Partial<Record<PaymentCurrency, BankFieldKey[]>> = {
+  PKR: ["iban"],
 };
