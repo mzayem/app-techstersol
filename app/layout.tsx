@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Techstersol",
   description: "Techstersol — technology solutions.",
+  appleWebApp: {
+    capable: true,
+    title: "Techstersol",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0a09" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
