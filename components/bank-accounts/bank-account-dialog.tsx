@@ -30,6 +30,7 @@ import {
   CURRENCY_OPTIONAL_FIELDS,
   type BankFieldKey,
 } from "@/lib/bank-accounts/constants";
+import { toast } from "@/components/ui/toast";
 import {
   createBankAccount,
   deleteBankAccount,
@@ -63,6 +64,21 @@ const FIELD_VALUES: Record<
   sortCode: (e) => e.sortCode,
   bsbCode: (e) => e.bsbCode,
 };
+
+function formatBankDetails(entry: BankAccountEntry) {
+  const lines = [
+    `Here is my ${entry.currency} bank details:`,
+    "",
+    `Bank: ${entry.bankName}`,
+    `Account holder: ${entry.accountHolderName}`,
+    ...CURRENCY_FIELDS[entry.currency]
+      .map((field) => [BANK_FIELD_LABELS[field], FIELD_VALUES[field](entry)] as const)
+      .filter(([, value]) => value)
+      .map(([label, value]) => `${label}: ${value}`),
+    `SWIFT: ${entry.swift}`,
+  ];
+  return lines.join("\n");
+}
 
 export function BankAccountDialog({
   bankAccount,
@@ -209,9 +225,19 @@ export function BankAccountRowActions({ entry }: { entry: BankAccountEntry }) {
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(formatBankDetails(entry));
+      toast.add({ title: "Copied to clipboard", type: "success" });
+    } catch {
+      toast.add({ title: "Couldn't copy to clipboard", type: "error" });
+    }
+  }
+
   return (
     <>
       <BankAccountActionsMenu
+        onCopy={handleCopy}
         onEdit={() => setEditOpen(true)}
         onDelete={() => setDeleteOpen(true)}
       />

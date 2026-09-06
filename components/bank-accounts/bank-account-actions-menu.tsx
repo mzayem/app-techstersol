@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { CopyIcon, MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function BankAccountActionsMenu({
+  onCopy,
   onEdit,
   onDelete,
 }: {
+  onCopy: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -32,6 +34,10 @@ export function BankAccountActionsMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuItem onClick={onCopy}>
+            <CopyIcon />
+            Copy bank details
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={onEdit}>
             <PencilIcon />
             Update
