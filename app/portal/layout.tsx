@@ -13,11 +13,11 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireTeamUser();
+  const appUser = await requireTeamUser();
 
   return (
     <SidebarProvider>
-      <PortalSidebar />
+      <PortalSidebar showWorkDiary={appUser.teamMember!.type === "HOURLY"} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger />

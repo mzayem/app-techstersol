@@ -26,6 +26,9 @@ async function requireWorkDiaryWriteAccess(
     if (appUser.teamMember?.id !== ownerTeamMemberId) {
       throw new Error("You can only manage your own work diary");
     }
+    if (appUser.teamMember.type !== "HOURLY") {
+      throw new Error("Work diary is only available to hourly team members");
+    }
     return appUser.authUserId;
   }
 

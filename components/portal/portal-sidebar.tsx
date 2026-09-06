@@ -28,13 +28,17 @@ import { Separator } from "@/components/ui/separator";
 const PORTAL_NAV = [
   { title: "Overview", url: "/portal", icon: LayoutDashboard },
   { title: "My Projects", url: "/portal/projects", icon: FolderKanban },
-  { title: "Work Diary", url: "/portal/work-diary", icon: CalendarDays },
+  { title: "Work Diary", url: "/portal/work-diary", icon: CalendarDays, hourlyOnly: true },
   { title: "Payslips", url: "/portal/payslips", icon: ReceiptText },
   { title: "Profile", url: "/portal/profile/settings", icon: UserCircle },
 ];
 
-export function PortalSidebar(props: React.ComponentProps<typeof Sidebar>) {
+export function PortalSidebar({
+  showWorkDiary,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { showWorkDiary: boolean }) {
   const pathname = usePathname();
+  const navItems = PORTAL_NAV.filter((item) => !item.hourlyOnly || showWorkDiary);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -61,7 +65,7 @@ export function PortalSidebar(props: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {PORTAL_NAV.map((item) => (
+              {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={

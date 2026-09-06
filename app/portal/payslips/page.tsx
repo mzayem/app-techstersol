@@ -1,3 +1,6 @@
+import { DownloadIcon } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -35,12 +38,13 @@ export default async function PortalPayslipsPage() {
               <TableHead>Period</TableHead>
               <TableHead>Issue date</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {payslips.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No payslips issued yet.
                 </TableCell>
               </TableRow>
@@ -59,6 +63,22 @@ export default async function PortalPayslipsPage() {
                 <TableCell>{formatDate(payslip.issueDate)}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPkr(Number(payslip.amount))}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Download payslip PDF"
+                    render={
+                      <a
+                        href={`/api/payslips/${payslip.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                      />
+                    }
+                  >
+                    <DownloadIcon />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

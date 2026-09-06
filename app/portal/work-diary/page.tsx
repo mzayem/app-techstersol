@@ -15,6 +15,8 @@ import { formatPkr } from "@/lib/finance/constants";
 import type { TeamMemberType } from "@/lib/team/constants";
 import { formatWeekRange } from "@/lib/team/work-diary";
 import { getRatesToPkr } from "@/lib/fx/rates";
+import { redirect } from "next/navigation";
+
 import { requireTeamUser } from "@/lib/rbac/permissions";
 import { prisma } from "@/lib/prisma";
 import { listWorkDiaryEntries } from "@/actions/team/work-diary-queries";
@@ -23,6 +25,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PortalWorkDiaryPage() {
   const appUser = await requireTeamUser();
+  if (appUser.teamMember!.type !== "HOURLY") redirect("/portal");
   const teamMemberId = appUser.teamMember!.id;
 
   const [member, entries, ratesToPkr] = await Promise.all([

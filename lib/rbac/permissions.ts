@@ -32,7 +32,7 @@ export async function getCurrentAppUser() {
     where: { authUserId: data.user.id },
     include: {
       role: { include: { permissions: true } },
-      teamMember: { select: { id: true, name: true } },
+      teamMember: { select: { id: true, name: true, type: true } },
     },
   });
 }

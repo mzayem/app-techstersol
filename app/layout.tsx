@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toast";
 import { Providers } from "@/app/providers";
+import NextTopLoader from "nextjs-toploader";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -50,7 +51,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>
-          <main>{children}</main>
+          <main>
+            <NextTopLoader color="#F87929" showSpinner={false} />
+            {children}
+          </main>
           <Toaster />
         </Providers>
       </body>

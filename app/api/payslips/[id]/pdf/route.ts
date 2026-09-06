@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { auth } from "@/lib/auth/server";
+import { getCurrentAppUser } from "@/lib/rbac/permissions";
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { renderPayslipPdf } from "@/lib/team/payslip-pdf";
 import { getPayslipForPdf } from "@/actions/team/payslip-queries";
@@ -12,8 +12,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { data } = await auth.getSession();
-  if (!data?.user) {
+  const appUser = await getCurrentAppUser();
+  if (!appUser) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -21,6 +21,10 @@ export async function GET(
   const payslip = await getPayslipForPdf(id);
   if (!payslip) {
     return NextResponse.json({ error: "Payslip not found" }, { status: 404 });
+  }
+
+  if (appUser.kind === "TEAM" && payslip.teamMemberId !== appUser.teamMember?.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const origin = new URL(request.url).origin;
