@@ -25,11 +25,16 @@ function validateBasics(name: string, email: string, password: string) {
   }
 }
 
-/** Creates the Neon Auth account directly, server-side — this is the only
- * way a new account gets created once sign-up is locked down, since it
- * never goes through the public /auth/sign-up page or its API route. */
-async function createAuthAccount(name: string, email: string, password: string) {
-  const { data, error } = await auth.signUp.email({ email, password, name });
+async function createAuthAccount(
+  name: string,
+  email: string,
+  password: string,
+) {
+  const { data, error } = await auth.admin.createUser({
+    email,
+    password,
+    name,
+  });
   if (error || !data?.user) {
     throw new Error(error?.message ?? "Could not create the account");
   }
