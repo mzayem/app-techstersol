@@ -26,7 +26,7 @@ export default async function ClientsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  await requirePagePermission("clients");
+  const { permission } = await requirePagePermission("clients");
   const params = await searchParams;
 
   const clients = await listClients({
@@ -39,7 +39,7 @@ export default async function ClientsPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Clients</h1>
-        <ClientDialog />
+        {permission.canCreate && <ClientDialog />}
       </div>
 
       <ClientFilterBar />

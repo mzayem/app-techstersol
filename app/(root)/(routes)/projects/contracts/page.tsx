@@ -24,7 +24,7 @@ export default async function ContractsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  await requirePagePermission("contracts");
+  const { permission } = await requirePagePermission("contracts");
   const params = await searchParams;
 
   const [contracts, clients, teamMembers] = await Promise.all([
@@ -79,7 +79,9 @@ export default async function ContractsPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Contracts</h1>
-        <ContractDialog clients={clientOptions} teamMembers={teamMembers} />
+        {permission.canCreate && (
+          <ContractDialog clients={clientOptions} teamMembers={teamMembers} />
+        )}
       </div>
 
       <ContractFilterBar />

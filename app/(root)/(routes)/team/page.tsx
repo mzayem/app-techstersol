@@ -21,14 +21,14 @@ import { requirePagePermission } from "@/lib/rbac/permissions";
 export const dynamic = "force-dynamic";
 
 export default async function TeamPage() {
-  await requirePagePermission("team");
+  const { permission } = await requirePagePermission("team");
   const members = await listTeamMembers({});
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Team members</h1>
-        <TeamMemberDialog />
+        {permission.canCreate && <TeamMemberDialog />}
       </div>
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import {
   PAYMENT_CURRENCIES,
@@ -14,12 +13,7 @@ import {
   CURRENCY_OPTIONAL_FIELDS,
   type BankFieldKey,
 } from "@/lib/bank-accounts/constants";
-
-async function requireUserId() {
-  const { data } = await auth.getSession();
-  if (!data?.user) throw new Error("Not signed in");
-  return data.user.id;
-}
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -74,7 +68,8 @@ function readBankAccountFields(formData: FormData) {
 }
 
 export async function createBankAccount(formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("bank-details", "create");
+  const createdByUserId = appUser.authUserId;
   const fields = readBankAccountFields(formData);
 
   await prisma.bankAccount.create({
@@ -85,7 +80,7 @@ export async function createBankAccount(formData: FormData) {
 }
 
 export async function updateBankAccount(id: string, formData: FormData) {
-  await requireUserId();
+  await requirePagePermission("bank-details", "edit");
   const fields = readBankAccountFields(formData);
 
   await prisma.bankAccount.update({
@@ -97,7 +92,7 @@ export async function updateBankAccount(id: string, formData: FormData) {
 }
 
 export async function deleteBankAccount(id: string) {
-  await requireUserId();
+  await requirePagePermission("bank-details", "delete");
 
   await prisma.bankAccount.delete({ where: { id } });
 

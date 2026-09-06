@@ -29,7 +29,7 @@ export default async function BankDetailsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  await requirePagePermission("bank-details");
+  const { permission } = await requirePagePermission("bank-details");
   const params = await searchParams;
 
   const bankAccounts = await listBankAccounts({
@@ -42,7 +42,7 @@ export default async function BankDetailsPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Bank details</h1>
-        <BankAccountDialog />
+        {permission.canCreate && <BankAccountDialog />}
       </div>
 
       <BankAccountFilterBar />

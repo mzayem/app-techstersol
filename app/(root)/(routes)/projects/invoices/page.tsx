@@ -31,7 +31,7 @@ export default async function InvoicesPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  await requirePagePermission("invoices");
+  const { permission } = await requirePagePermission("invoices");
   const params = await searchParams;
 
   const [invoices, sources, ratesToPkr] = await Promise.all([
@@ -64,11 +64,13 @@ export default async function InvoicesPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Invoices</h1>
-        <InvoiceDialog
-          clients={clients}
-          lineOptions={lineOptions}
-          bankAccounts={bankAccounts}
-        />
+        {permission.canCreate && (
+          <InvoiceDialog
+            clients={clients}
+            lineOptions={lineOptions}
+            bankAccounts={bankAccounts}
+          />
+        )}
       </div>
 
       <InvoiceFilterBar />

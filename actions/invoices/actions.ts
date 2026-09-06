@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
-import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import {
   PAYMENT_CURRENCIES,
@@ -15,12 +14,7 @@ import {
   formatInvoiceNumber,
 } from "@/lib/invoices/constants";
 import { invoicedAmountsByLine, remainingKey } from "@/actions/invoices/queries";
-
-async function requireUserId() {
-  const { data } = await auth.getSession();
-  if (!data?.user) throw new Error("Not signed in");
-  return data.user.id;
-}
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -43,7 +37,8 @@ export async function createInvoice(
   formData: FormData,
   items: InvoiceItemInput[],
 ) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("invoices", "create");
+  const createdByUserId = appUser.authUserId;
 
   const clientId = str(formData, "clientId");
   const bankAccountId = str(formData, "bankAccountId");
@@ -189,7 +184,8 @@ export async function createInvoice(
 }
 
 export async function markInvoicePaid(id: string, formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("invoices", "edit");
+  const createdByUserId = appUser.authUserId;
 
   const transactionId = str(formData, "transactionId");
   const paidOnRaw = str(formData, "paidOn");
@@ -348,7 +344,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
 }
 
 export async function markInvoiceUnpaid(id: string) {
-  await requireUserId();
+  await requirePagePermission("invoices", "edit");
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
@@ -382,7 +378,7 @@ export async function markInvoiceUnpaid(id: string) {
 }
 
 export async function deleteInvoice(id: string) {
-  await requireUserId();
+  await requirePagePermission("invoices", "delete");
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },

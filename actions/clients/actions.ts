@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import {
   CLIENT_STATUSES,
@@ -10,12 +9,7 @@ import {
   type ClientStatus,
   type PaymentCurrency,
 } from "@/lib/clients/constants";
-
-async function requireUserId() {
-  const { data } = await auth.getSession();
-  if (!data?.user) throw new Error("Not signed in");
-  return data.user.id;
-}
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -56,7 +50,8 @@ function readClientFields(formData: FormData) {
 }
 
 export async function createClient(formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("clients", "create");
+  const createdByUserId = appUser.authUserId;
   const fields = readClientFields(formData);
 
   await prisma.client.create({
@@ -67,7 +62,7 @@ export async function createClient(formData: FormData) {
 }
 
 export async function updateClient(id: string, formData: FormData) {
-  await requireUserId();
+  await requirePagePermission("clients", "edit");
   const fields = readClientFields(formData);
 
   await prisma.client.update({
@@ -79,7 +74,7 @@ export async function updateClient(id: string, formData: FormData) {
 }
 
 export async function deleteClient(id: string) {
-  await requireUserId();
+  await requirePagePermission("clients", "delete");
 
   await prisma.client.delete({ where: { id } });
 

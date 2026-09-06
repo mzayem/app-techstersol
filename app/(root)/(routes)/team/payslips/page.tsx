@@ -18,7 +18,7 @@ import { requirePagePermission } from "@/lib/rbac/permissions";
 export const dynamic = "force-dynamic";
 
 export default async function PayslipsPage() {
-  await requirePagePermission("payslips");
+  const { permission } = await requirePagePermission("payslips");
   const [payslips, teamMembers, contracts, diaryEntries] = await Promise.all([
     listPayslips({}),
     listTeamMemberOptions(),
@@ -39,11 +39,13 @@ export default async function PayslipsPage() {
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Payslips</h1>
-        <PayslipDialog
-          teamMembers={teamMembers}
-          contracts={contracts}
-          workDiaryEntries={workDiaryOptions}
-        />
+        {permission.canCreate && (
+          <PayslipDialog
+            teamMembers={teamMembers}
+            contracts={contracts}
+            workDiaryEntries={workDiaryOptions}
+          />
+        )}
       </div>
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">

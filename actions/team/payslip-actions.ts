@@ -3,15 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
-import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { PAYSLIP_NUMBER_START } from "@/lib/team/constants";
-
-async function requireUserId() {
-  const { data } = await auth.getSession();
-  if (!data?.user) throw new Error("Not signed in");
-  return data.user.id;
-}
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -19,7 +13,8 @@ function str(formData: FormData, key: string) {
 }
 
 export async function createPayslip(formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("payslips", "create");
+  const createdByUserId = appUser.authUserId;
 
   const teamMemberId = str(formData, "teamMemberId");
   const contractId = str(formData, "contractId");
@@ -118,7 +113,7 @@ export async function createPayslip(formData: FormData) {
 }
 
 export async function deletePayslip(id: string) {
-  await requireUserId();
+  await requirePagePermission("payslips", "delete");
 
   // The linked TeamPayment (if any) is deleted explicitly rather than left
   // to dangle via its onDelete: SetNull — deleting a payslip should remove

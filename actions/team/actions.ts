@@ -3,16 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
-import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
 import { TEAM_MEMBER_TYPES, type TeamMemberType } from "@/lib/team/constants";
-
-async function requireUserId() {
-  const { data } = await auth.getSession();
-  if (!data?.user) throw new Error("Not signed in");
-  return data.user.id;
-}
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -66,7 +60,8 @@ function readTeamMemberFields(formData: FormData) {
 }
 
 export async function createTeamMember(formData: FormData) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("team", "create");
+  const createdByUserId = appUser.authUserId;
   const fields = readTeamMemberFields(formData);
 
   await prisma.teamMember.create({
@@ -77,7 +72,7 @@ export async function createTeamMember(formData: FormData) {
 }
 
 export async function updateTeamMember(id: string, formData: FormData) {
-  await requireUserId();
+  await requirePagePermission("team", "edit");
   const fields = readTeamMemberFields(formData);
 
   await prisma.teamMember.update({
@@ -89,7 +84,7 @@ export async function updateTeamMember(id: string, formData: FormData) {
 }
 
 export async function deleteTeamMember(id: string) {
-  await requireUserId();
+  await requirePagePermission("team", "delete");
 
   try {
     await prisma.teamMember.delete({ where: { id } });

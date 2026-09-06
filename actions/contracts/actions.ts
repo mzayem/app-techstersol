@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import {
   PAYMENT_CURRENCIES,
@@ -15,12 +14,7 @@ import {
   type ContractStatus,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
-
-async function requireUserId() {
-  const { data } = await auth.getSession();
-  if (!data?.user) throw new Error("Not signed in");
-  return data.user.id;
-}
+import { requirePagePermission } from "@/lib/rbac/permissions";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -119,7 +113,8 @@ export async function createContract(
   formData: FormData,
   milestones: MilestoneInput[],
 ) {
-  const createdByUserId = await requireUserId();
+  const { appUser } = await requirePagePermission("contracts", "create");
+  const createdByUserId = appUser.authUserId;
   const { milestones: validMilestones, ...fields } = readContractFields(
     formData,
     milestones,
@@ -141,7 +136,7 @@ export async function updateContract(
   formData: FormData,
   milestones: MilestoneInput[],
 ) {
-  await requireUserId();
+  await requirePagePermission("contracts", "edit");
   const { milestones: validMilestones, ...fields } = readContractFields(
     formData,
     milestones,
@@ -162,7 +157,7 @@ export async function updateContract(
 }
 
 export async function deleteContract(id: string) {
-  await requireUserId();
+  await requirePagePermission("contracts", "delete");
 
   await prisma.contract.delete({ where: { id } });
 
@@ -173,7 +168,7 @@ export async function bulkUpdateContractStatus(
   ids: string[],
   status: ContractStatus,
 ) {
-  await requireUserId();
+  await requirePagePermission("contracts", "edit");
 
   if (ids.length === 0) return;
   if (!CONTRACT_STATUSES.includes(status)) {
