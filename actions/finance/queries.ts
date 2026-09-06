@@ -138,14 +138,27 @@ export async function getBucketBalances(): Promise<Record<Bucket, number>> {
   return balances;
 }
 
-export async function getTotalNetEarnings() {
+export type NetEarningsBreakdown = {
+  totalEarning: number;
+  totalTeamPay: number;
+  netEarning: number;
+};
+
+/** All-time gross earning, total team pay (both the teamPay netted directly
+ * on an Earning and any standalone TeamPayment), and the net that's left to
+ * distribute — the same three numbers the Distributions page's summary line
+ * is built from. */
+export async function getTotalNetEarnings(): Promise<NetEarningsBreakdown> {
   const [sum, teamPayments] = await Promise.all([
     prisma.earning.aggregate({ _sum: { amount: true, teamPay: true } }),
     prisma.teamPayment.aggregate({ _sum: { amount: true } }),
   ]);
-  return (
-    Number(sum._sum.amount ?? 0) -
-    Number(sum._sum.teamPay ?? 0) -
-    Number(teamPayments._sum.amount ?? 0)
-  );
+  const totalEarning = Number(sum._sum.amount ?? 0);
+  const totalTeamPay =
+    Number(sum._sum.teamPay ?? 0) + Number(teamPayments._sum.amount ?? 0);
+  return {
+    totalEarning,
+    totalTeamPay,
+    netEarning: totalEarning - totalTeamPay,
+  };
 }

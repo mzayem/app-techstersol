@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Receipt,
   ReceiptText,
+  ScrollText,
   Share2,
   TrendingUp,
   UserCog,
@@ -31,6 +32,11 @@ export const navGroups = [
       { title: "Distributions", url: "/account/distributions", icon: Share2 },
       { title: "Donations", url: "/account/donations", icon: Gift },
       { title: "Bank Details", url: "/account/bank-details", icon: Landmark },
+      {
+        title: "Balance Sheet",
+        url: "/account/balance-sheet",
+        icon: ScrollText,
+      },
     ],
   },
   {

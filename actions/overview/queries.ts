@@ -90,18 +90,30 @@ function monthFloor(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
+/** p.earning is already net of each Earning row's own teamPay; subtracting
+ * teamPaid nets out the standalone TeamPayment rows too (payslips not tied
+ * to a specific earning), so the result is fully net — the same "net
+ * earning" the Distributions page and Balance Sheet report. */
+function netPeriodEarning(periodSeries: MonthlyPoint[]) {
+  const grossEarning = periodSeries.reduce((sum, p) => sum + p.earning, 0);
+  const teamPaid = periodSeries.reduce((sum, p) => sum + p.teamPaid, 0);
+  return { teamPaid, netEarning: grossEarning - teamPaid };
+}
+
 export function computeEarningKpis(
   series: MonthlyPoint[],
   period: ResolvedPeriod,
 ) {
   const periodSeries = series.filter((p) => withinPeriod(p.month, period));
 
-  const periodEarning = periodSeries.reduce((sum, p) => sum + p.earning, 0);
+  const { teamPaid, netEarning: periodEarning } = netPeriodEarning(periodSeries);
   const activeMonths = periodSeries.filter((p) => p.earning !== 0).length;
   const avgMonthlyEarning = activeMonths > 0 ? periodEarning / activeMonths : 0;
 
+  // Investment gets its own KPI card and audit, so it's excluded here to
+  // avoid double-counting it under "Total expenses" too.
   const totalExpenses = periodSeries.reduce(
-    (sum, p) => sum + p.expense + p.lifestyle + p.investment + p.emergencyFund,
+    (sum, p) => sum + p.expense + p.lifestyle + p.emergencyFund,
     0,
   );
   const totalDonations = periodSeries.reduce((sum, p) => sum + p.donation, 0);
@@ -109,7 +121,6 @@ export function computeEarningKpis(
     (sum, p) => sum + p.investment,
     0,
   );
-  const totalTeamPaid = periodSeries.reduce((sum, p) => sum + p.teamPaid, 0);
 
   return {
     /** Net earning across the selected period. */
@@ -120,7 +131,7 @@ export function computeEarningKpis(
     totalDonations,
     totalInvestment,
     /** Standalone team payments (not already netted via Earning.teamPay). */
-    totalTeamPaid,
+    totalTeamPaid: teamPaid,
     monthCount: periodSeries.length,
   };
 }
@@ -151,10 +162,10 @@ export function getDistributionAudit(
   period: ResolvedPeriod,
 ) {
   const periodSeries = series.filter((p) => withinPeriod(p.month, period));
-  const periodEarning = periodSeries.reduce((sum, p) => sum + p.earning, 0);
+  const { netEarning: periodEarning } = netPeriodEarning(periodSeries);
 
   const expenseSpent = periodSeries.reduce(
-    (sum, p) => sum + p.expense + p.lifestyle + p.investment + p.emergencyFund,
+    (sum, p) => sum + p.expense + p.lifestyle + p.emergencyFund,
     0,
   );
   const investmentSpent = periodSeries.reduce(
@@ -167,7 +178,6 @@ export function getDistributionAudit(
     expenses: auditBucket(expenseSpent, periodEarning, [
       DISTRIBUTION_SPLIT.EXPENSE,
       DISTRIBUTION_SPLIT.LIFESTYLE,
-      DISTRIBUTION_SPLIT.INVESTMENT,
       DISTRIBUTION_SPLIT.EMERGENCY_FUND,
     ]),
     investment: auditBucket(investmentSpent, periodEarning, [

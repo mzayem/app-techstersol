@@ -47,10 +47,13 @@ enum InvoiceStatus {
   PAID
 }
 
-/// An incoming payment. Recorded in PKR; the original foreign-currency
-/// amount is kept only for reference and never used in calculations.
-/// On creation, netEarning (amount - teamPay) is split across the
-/// distribution buckets per lib/finance/constants.ts.
+enum LedgerEntryType {
+  EARNING
+  EXPENSE
+  DONATION
+  TEAM_PAYMENT
+}
+
 model Earning {
   id                String           @id @default(cuid())
   date              DateTime         @db.Date
@@ -64,6 +67,7 @@ model Earning {
   createdByUserId   String
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  ledgerEntries     LedgerEntry[]
 
   @@index([date])
 }
@@ -78,6 +82,7 @@ model Expense {
   createdByUserId String
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  ledgerEntries   LedgerEntry[]
 
   @@index([date])
   @@index([category])
@@ -85,13 +90,14 @@ model Expense {
 
 /// A payment out of the donation bucket.
 model Donation {
-  id              String   @id @default(cuid())
-  date            DateTime @db.Date
+  id              String        @id @default(cuid())
+  date            DateTime      @db.Date
   name            String
-  amount          Decimal  @db.Decimal(14, 2)
+  amount          Decimal       @db.Decimal(14, 2)
   createdByUserId String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  ledgerEntries   LedgerEntry[]
 
   @@index([date])
 }
@@ -197,17 +203,40 @@ model Payslip {
 /// money leaving the company for team pay is never counted twice but is
 /// always accounted for somewhere.
 model TeamPayment {
-  id              String   @id @default(cuid())
-  date            DateTime @db.Date
+  id              String        @id @default(cuid())
+  date            DateTime      @db.Date
   name            String
-  amount          Decimal  @db.Decimal(14, 2)
-  payslipId       String?  @unique
-  payslip         Payslip? @relation(fields: [payslipId], references: [id], onDelete: SetNull)
+  amount          Decimal       @db.Decimal(14, 2)
+  payslipId       String?       @unique
+  payslip         Payslip?      @relation(fields: [payslipId], references: [id], onDelete: SetNull)
   createdByUserId String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  ledgerEntries   LedgerEntry[]
 
   @@index([date])
+}
+
+model LedgerEntry {
+  id            String          @id @default(cuid())
+  type          LedgerEntryType
+  name          String
+  date          DateTime        @db.Date
+  debit         Decimal         @default(0) @db.Decimal(14, 2)
+  credit        Decimal         @default(0) @db.Decimal(14, 2)
+  earningId     String?
+  earning       Earning?        @relation(fields: [earningId], references: [id], onDelete: Cascade)
+  expenseId     String?
+  expense       Expense?        @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  donationId    String?
+  donation      Donation?       @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  teamPaymentId String?
+  teamPayment   TeamPayment?    @relation(fields: [teamPaymentId], references: [id], onDelete: Cascade)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([date])
+  @@index([type])
 }
 
 /// One installment of a milestone-billed contract.

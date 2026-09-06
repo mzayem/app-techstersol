@@ -91,12 +91,22 @@ export async function createPayslip(formData: FormData) {
                     name: `${teamMember.name} — Payslip PS-${String(number).padStart(5, "0")}`,
                     amount,
                     createdByUserId,
+                    ledgerEntries: {
+                      create: {
+                        type: "TEAM_PAYMENT",
+                        name: `${teamMember.name} — Payslip PS-${String(number).padStart(5, "0")}`,
+                        date: issueDateObj,
+                        debit: amount,
+                      },
+                    },
                   },
                 },
               }),
         },
       });
       revalidatePath("/team/payslips");
+      revalidatePath("/team/payments");
+      revalidatePath("/account/balance-sheet");
       revalidatePath("/");
       return;
     } catch (e) {
@@ -110,8 +120,16 @@ export async function createPayslip(formData: FormData) {
 export async function deletePayslip(id: string) {
   await requireUserId();
 
-  await prisma.payslip.delete({ where: { id } });
+  // The linked TeamPayment (if any) is deleted explicitly rather than left
+  // to dangle via its onDelete: SetNull — deleting a payslip should remove
+  // its outgoing payment and ledger entry too, not just the paperwork.
+  await prisma.$transaction([
+    prisma.teamPayment.deleteMany({ where: { payslipId: id } }),
+    prisma.payslip.delete({ where: { id } }),
+  ]);
 
   revalidatePath("/team/payslips");
+  revalidatePath("/team/payments");
+  revalidatePath("/account/balance-sheet");
   revalidatePath("/");
 }

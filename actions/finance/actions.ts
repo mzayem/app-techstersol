@@ -26,6 +26,37 @@ function decimalOrUndefined(value: string) {
   return value === "" ? undefined : value;
 }
 
+type LedgerEntryInput = {
+  type: "EARNING" | "EXPENSE" | "DONATION" | "TEAM_PAYMENT";
+  name: string;
+  date: Date;
+  debit?: string;
+  credit?: string;
+};
+
+/** An earning always credits the ledger for its full (gross) amount; a
+ * teamPay cut is a separate debit, since that money actually left the
+ * company for the team member rather than never having arrived. */
+function earningLedgerEntries(
+  name: string,
+  date: Date,
+  amount: string,
+  teamPay: string,
+): LedgerEntryInput[] {
+  const entries: LedgerEntryInput[] = [
+    { type: "EARNING", name, date, credit: amount },
+  ];
+  if (Number(teamPay) > 0) {
+    entries.push({
+      type: "TEAM_PAYMENT",
+      name: `Team pay — ${name}`,
+      date,
+      debit: teamPay,
+    });
+  }
+  return entries;
+}
+
 export async function createEarning(formData: FormData) {
   const createdByUserId = await requireUserId();
 
@@ -45,15 +76,18 @@ export async function createEarning(formData: FormData) {
     throw new Error("Date, name, and amount are required");
   }
 
+  const dateObj = new Date(date);
+
   await prisma.earning.create({
     data: {
-      date: new Date(date),
+      date: dateObj,
       name,
       amount,
       teamPay,
       referenceAmount,
       referenceCurrency,
       createdByUserId,
+      ledgerEntries: { create: earningLedgerEntries(name, dateObj, amount, teamPay) },
     },
   });
 
@@ -61,6 +95,7 @@ export async function createEarning(formData: FormData) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/expenses");
   revalidatePath("/account/donations");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function updateEarning(id: string, formData: FormData) {
@@ -82,15 +117,21 @@ export async function updateEarning(id: string, formData: FormData) {
     throw new Error("Date, name, and amount are required");
   }
 
+  const dateObj = new Date(date);
+
   await prisma.earning.update({
     where: { id },
     data: {
-      date: new Date(date),
+      date: dateObj,
       name,
       amount,
       teamPay,
       referenceAmount: referenceAmount ?? null,
       referenceCurrency: referenceCurrency ?? null,
+      ledgerEntries: {
+        deleteMany: {},
+        create: earningLedgerEntries(name, dateObj, amount, teamPay),
+      },
     },
   });
 
@@ -98,6 +139,7 @@ export async function updateEarning(id: string, formData: FormData) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/expenses");
   revalidatePath("/account/donations");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function deleteEarning(id: string) {
@@ -109,6 +151,7 @@ export async function deleteEarning(id: string) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/expenses");
   revalidatePath("/account/donations");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function createExpense(formData: FormData) {
@@ -126,13 +169,18 @@ export async function createExpense(formData: FormData) {
     throw new Error("Invalid expense category");
   }
 
+  const dateObj = new Date(date);
+
   await prisma.expense.create({
     data: {
-      date: new Date(date),
+      date: dateObj,
       category: categoryRaw as ExpenseCategory,
       name,
       amount,
       createdByUserId,
+      ledgerEntries: {
+        create: { type: "EXPENSE", name, date: dateObj, debit: amount },
+      },
     },
   });
 
@@ -140,6 +188,7 @@ export async function createExpense(formData: FormData) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
   revalidatePath("/account/donations");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function updateExpense(id: string, formData: FormData) {
@@ -157,13 +206,19 @@ export async function updateExpense(id: string, formData: FormData) {
     throw new Error("Invalid expense category");
   }
 
+  const dateObj = new Date(date);
+
   await prisma.expense.update({
     where: { id },
     data: {
-      date: new Date(date),
+      date: dateObj,
       category: categoryRaw as ExpenseCategory,
       name,
       amount,
+      ledgerEntries: {
+        deleteMany: {},
+        create: { type: "EXPENSE", name, date: dateObj, debit: amount },
+      },
     },
   });
 
@@ -171,6 +226,7 @@ export async function updateExpense(id: string, formData: FormData) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
   revalidatePath("/account/donations");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function deleteExpense(id: string) {
@@ -182,6 +238,7 @@ export async function deleteExpense(id: string) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
   revalidatePath("/account/donations");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function createDonation(formData: FormData) {
@@ -195,12 +252,17 @@ export async function createDonation(formData: FormData) {
     throw new Error("Date, name, and amount are required");
   }
 
+  const dateObj = new Date(date);
+
   await prisma.donation.create({
     data: {
-      date: new Date(date),
+      date: dateObj,
       name,
       amount,
       createdByUserId,
+      ledgerEntries: {
+        create: { type: "DONATION", name, date: dateObj, debit: amount },
+      },
     },
   });
 
@@ -208,6 +270,7 @@ export async function createDonation(formData: FormData) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
   revalidatePath("/account/expenses");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function updateDonation(id: string, formData: FormData) {
@@ -221,12 +284,18 @@ export async function updateDonation(id: string, formData: FormData) {
     throw new Error("Date, name, and amount are required");
   }
 
+  const dateObj = new Date(date);
+
   await prisma.donation.update({
     where: { id },
     data: {
-      date: new Date(date),
+      date: dateObj,
       name,
       amount,
+      ledgerEntries: {
+        deleteMany: {},
+        create: { type: "DONATION", name, date: dateObj, debit: amount },
+      },
     },
   });
 
@@ -234,6 +303,7 @@ export async function updateDonation(id: string, formData: FormData) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
   revalidatePath("/account/expenses");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function deleteDonation(id: string) {
@@ -245,4 +315,5 @@ export async function deleteDonation(id: string) {
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
   revalidatePath("/account/expenses");
+  revalidatePath("/account/balance-sheet");
 }

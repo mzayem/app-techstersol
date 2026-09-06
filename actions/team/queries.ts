@@ -45,3 +45,18 @@ export async function listTeamMemberOptions() {
     take: 100,
   });
 }
+
+/** Every TeamPayment — money that actually left the company for a team
+ * member — with the payslip that generated it, if any. Read-only view; a
+ * TeamPayment is only ever created as a side effect of issuing a payslip
+ * (see actions/team/payslip-actions.ts). */
+export async function listTeamPayments() {
+  return prisma.teamPayment.findMany({
+    include: {
+      payslip: {
+        select: { number: true, teamMember: { select: { name: true } } },
+      },
+    },
+    orderBy: { date: "desc" },
+  });
+}

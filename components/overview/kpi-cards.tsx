@@ -10,28 +10,47 @@ import {
   HourglassIcon,
 } from "lucide-react";
 
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatCompactPkr, formatPkr } from "@/lib/finance/constants";
 import { formatCompactContractAmount } from "@/lib/contracts/constants";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import type { BucketAudit } from "@/actions/overview/queries";
 
-function BudgetBadge({ audit }: { audit: BucketAudit }) {
+function BudgetBadge({
+  audit,
+  variant = "spend",
+}: {
+  audit: BucketAudit;
+  /** "spend" (Expenses/Investment): spending less than allocated is good.
+   * "obligation" (Donation): it's a compulsory payable amount, so falling
+   * short of it is the bad case, not the good one. */
+  variant?: "spend" | "obligation";
+}) {
   if (audit.overFraction === null) return null;
   const isOver = audit.overFraction > 0;
   const percent = Math.round(Math.abs(audit.overFraction) * 100);
+  const isBad = variant === "obligation" ? !isOver : isOver;
   const Icon = isOver ? TrendingUpIcon : TrendingDownIcon;
+  const label =
+    variant === "obligation" && !isOver
+      ? `${percent}% remains`
+      : `${percent}% ${isOver ? "over" : "under"}`;
   return (
     <span
       className={
         "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium " +
-        (isOver
+        (isBad
           ? "bg-destructive/10 text-destructive"
           : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400")
       }
     >
       <Icon className="size-3" />
-      {percent}% {isOver ? "over" : "under"}
+      {label}
     </span>
   );
 }
@@ -65,7 +84,10 @@ export function KpiCards({
   pendingTotalPkr: number;
   teamPendingPkr: number;
 }) {
-  const pendingEntries = Object.entries(pendingByCurrency) as [PaymentCurrency, number][];
+  const pendingEntries = Object.entries(pendingByCurrency) as [
+    PaymentCurrency,
+    number,
+  ][];
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -127,7 +149,7 @@ export function KpiCards({
               <GiftIcon className="size-4" />
               <CardDescription>Total donations</CardDescription>
             </div>
-            <BudgetBadge audit={donationAudit} />
+            <BudgetBadge audit={donationAudit} variant="obligation" />
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatCompactPkr(totalDonations)}
@@ -147,7 +169,9 @@ export function KpiCards({
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatCompactPkr(totalTeamPaid)}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">This period, outside a booked earning</p>
+          <p className="text-xs text-muted-foreground">
+            This period, outside a booked earning
+          </p>
         </CardHeader>
       </Card>
 
@@ -160,7 +184,9 @@ export function KpiCards({
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatCompactPkr(teamPendingPkr)}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Owed on unfinished outsourced work · all time</p>
+          <p className="text-xs text-muted-foreground">
+            Owed on unfinished outsourced work · all time
+          </p>
         </CardHeader>
       </Card>
 
@@ -173,7 +199,9 @@ export function KpiCards({
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {unpaidInvoiceCount}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Awaiting payment · all time</p>
+          <p className="text-xs text-muted-foreground">
+            Awaiting payment · all time
+          </p>
         </CardHeader>
       </Card>
 
@@ -189,7 +217,9 @@ export function KpiCards({
           <p className="text-xs text-muted-foreground">
             {pendingEntries.length > 0
               ? pendingEntries
-                  .map(([currency, amount]) => formatCompactContractAmount(amount, currency))
+                  .map(([currency, amount]) =>
+                    formatCompactContractAmount(amount, currency),
+                  )
                   .join(" · ") + " · all time"
               : "All time"}
           </p>

@@ -296,45 +296,59 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     .filter((c) => completedIds.includes(c.id) && c.teamMemberId)
     .reduce((sum, c) => sum + Number(c.teamPayAmount ?? 0), 0);
 
-  await prisma.$transaction([
-    prisma.invoice.update({
+  const earningName = `${invoice.client.name} — Invoice ${formatInvoiceNumber(invoice.number)}`;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.invoice.update({
       where: { id },
       data: { status: "PAID", paidOn, transactionId },
-    }),
-    ...(completedIds.length > 0
-      ? [
-          prisma.contract.updateMany({
-            where: { id: { in: completedIds } },
-            data: { status: "COMPLETED" },
-          }),
-        ]
-      : []),
-    ...(partiallyPaidIds.length > 0
-      ? [
-          prisma.contract.updateMany({
-            where: { id: { in: partiallyPaidIds } },
-            data: { status: "PARTIALLY_PAID" },
-          }),
-        ]
-      : []),
-    prisma.earning.create({
+    });
+    if (completedIds.length > 0) {
+      await tx.contract.updateMany({
+        where: { id: { in: completedIds } },
+        data: { status: "COMPLETED" },
+      });
+    }
+    if (partiallyPaidIds.length > 0) {
+      await tx.contract.updateMany({
+        where: { id: { in: partiallyPaidIds } },
+        data: { status: "PARTIALLY_PAID" },
+      });
+    }
+    await tx.earning.create({
       data: {
         date: paidOn,
-        name: `${invoice.client.name} — Invoice ${formatInvoiceNumber(invoice.number)}`,
+        name: earningName,
         amount: pkrAmount,
         teamPay,
         referenceAmount: currency === "PKR" ? null : balanceDue,
         referenceCurrency: currency === "PKR" ? null : currency,
         invoiceId: id,
         createdByUserId,
+        ledgerEntries: {
+          create: [
+            { type: "EARNING", name: earningName, date: paidOn, credit: pkrAmount },
+            ...(teamPay > 0
+              ? [
+                  {
+                    type: "TEAM_PAYMENT" as const,
+                    name: `Team pay — ${earningName}`,
+                    date: paidOn,
+                    debit: teamPay,
+                  },
+                ]
+              : []),
+          ],
+        },
       },
-    }),
-  ]);
+    });
+  });
 
   revalidatePath("/projects/invoices");
   revalidatePath("/projects/contracts");
   revalidatePath("/account/earning");
   revalidatePath("/account/distributions");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function markInvoiceUnpaid(id: string) {
@@ -368,6 +382,7 @@ export async function markInvoiceUnpaid(id: string) {
   revalidatePath("/projects/contracts");
   revalidatePath("/account/earning");
   revalidatePath("/account/distributions");
+  revalidatePath("/account/balance-sheet");
 }
 
 export async function deleteInvoice(id: string) {
@@ -394,6 +409,7 @@ export async function deleteInvoice(id: string) {
     revalidatePath("/projects/contracts");
     revalidatePath("/account/earning");
     revalidatePath("/account/distributions");
+    revalidatePath("/account/balance-sheet");
   } else {
     await prisma.invoice.delete({ where: { id } });
   }
