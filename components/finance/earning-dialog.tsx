@@ -172,11 +172,18 @@ export function EarningDialog({
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             {locked ? (
-              <Button type="button" onClick={onUnlock}>
+              <Button
+                key="update"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onUnlock?.();
+                }}
+              >
                 Update
               </Button>
             ) : (
-              <Button type="submit" disabled={pending}>
+              <Button key="save" type="submit" disabled={pending}>
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save earning"}
               </Button>
             )}

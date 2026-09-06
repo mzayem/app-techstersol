@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   Card,
   CardAction,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -40,8 +41,14 @@ export function IncompleteContractsTable({
     <Card>
       <CardHeader>
         <CardTitle>Contracts still in progress</CardTitle>
+        <CardDescription>Started within the selected period</CardDescription>
         <CardAction>
-          <Button variant="outline" size="sm" render={<Link href="/projects/contracts" />}>
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/projects/contracts" />}
+          >
             View all
           </Button>
         </CardAction>

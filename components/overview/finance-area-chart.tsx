@@ -71,18 +71,33 @@ function rangeStart(range: RangeValue, customFrom: string, now: Date) {
   }
 }
 
-export function FinanceAreaChart({ series }: { series: MonthlyPoint[] }) {
-  const [range, setRange] = React.useState<RangeValue>("6m");
+export function FinanceAreaChart({
+  series,
+  initialRange = "6m",
+  initialFrom,
+  initialTo,
+}: {
+  series: MonthlyPoint[];
+  initialRange?: RangeValue;
+  initialFrom?: string;
+  initialTo?: string;
+}) {
+  const [range, setRange] = React.useState<RangeValue>(initialRange);
   const [customFrom, setCustomFrom] = React.useState(() => {
+    if (initialFrom) return initialFrom;
     const d = new Date();
     d.setMonth(d.getMonth() - 2);
     return d.toISOString().slice(0, 10);
   });
+  const [customTo, setCustomTo] = React.useState(
+    () => initialTo ?? new Date().toISOString().slice(0, 10),
+  );
 
   const filtered = React.useMemo(() => {
     const from = monthKey(rangeStart(range, customFrom, new Date()));
-    return series.filter((p) => p.month >= from);
-  }, [series, range, customFrom]);
+    const to = range === "custom" ? monthKey(new Date(customTo)) : monthKey(new Date());
+    return series.filter((p) => p.month >= from && p.month <= to);
+  }, [series, range, customFrom, customTo]);
 
   const totals = React.useMemo(
     () =>
@@ -107,12 +122,21 @@ export function FinanceAreaChart({ series }: { series: MonthlyPoint[] }) {
         </CardDescription>
         <CardAction className="flex items-center gap-2">
           {range === "custom" && (
-            <Input
-              type="date"
-              value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              className="h-8 w-36"
-            />
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-8 w-36"
+              />
+              <span className="text-muted-foreground">–</span>
+              <Input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-8 w-36"
+              />
+            </div>
           )}
           <Select value={range} onValueChange={(v) => v && setRange(v as RangeValue)}>
             <SelectTrigger size="sm" className="w-40">

@@ -4,6 +4,7 @@ import {
   PiggyBankIcon,
   ReceiptIcon,
   TrendingUpIcon,
+  TrendingDownIcon,
   GiftIcon,
 } from "lucide-react";
 
@@ -11,24 +12,49 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { formatCompactPkr, formatPkr } from "@/lib/finance/constants";
 import { formatCompactContractAmount } from "@/lib/contracts/constants";
 import type { PaymentCurrency } from "@/lib/clients/constants";
+import type { BucketAudit } from "@/actions/overview/queries";
+
+function BudgetBadge({ audit }: { audit: BucketAudit }) {
+  if (audit.overFraction === null) return null;
+  const isOver = audit.overFraction > 0;
+  const percent = Math.round(Math.abs(audit.overFraction) * 100);
+  const Icon = isOver ? TrendingUpIcon : TrendingDownIcon;
+  return (
+    <span
+      className={
+        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium " +
+        (isOver
+          ? "bg-destructive/10 text-destructive"
+          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400")
+      }
+    >
+      <Icon className="size-3" />
+      {percent}% {isOver ? "over" : "under"}
+    </span>
+  );
+}
 
 export function KpiCards({
-  currentMonthEarning,
+  periodEarning,
   avgMonthlyEarning,
-  totalEarning,
   totalExpenses,
   totalDonations,
   totalInvestment,
+  expensesAudit,
+  investmentAudit,
+  donationAudit,
   unpaidInvoiceCount,
   pendingByCurrency,
   pendingTotalPkr,
 }: {
-  currentMonthEarning: number;
+  periodEarning: number;
   avgMonthlyEarning: number;
-  totalEarning: number;
   totalExpenses: number;
   totalDonations: number;
   totalInvestment: number;
+  expensesAudit: BucketAudit;
+  investmentAudit: BucketAudit;
+  donationAudit: BucketAudit;
   unpaidInvoiceCount: number;
   pendingByCurrency: Partial<Record<PaymentCurrency, number>>;
   pendingTotalPkr: number;
@@ -41,53 +67,68 @@ export function KpiCards({
         <CardHeader className="gap-3">
           <div className="flex items-center gap-2 text-muted-foreground">
             <TrendingUpIcon className="size-4" />
-            <CardDescription>Monthly earning</CardDescription>
+            <CardDescription>Earning</CardDescription>
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
-            {formatCompactPkr(currentMonthEarning)}
+            {formatCompactPkr(periodEarning)}
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            This year: avg {formatPkr(avgMonthlyEarning)}/mo · total {formatPkr(totalEarning)}
+            Avg {formatPkr(avgMonthlyEarning)}/mo for this period
           </p>
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader className="gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <ReceiptIcon className="size-4" />
-            <CardDescription>Total expenses</CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ReceiptIcon className="size-4" />
+              <CardDescription>Total expenses</CardDescription>
+            </div>
+            <BudgetBadge audit={expensesAudit} />
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatCompactPkr(totalExpenses)}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">All-time, every bucket</p>
+          <p className="text-xs text-muted-foreground">
+            vs {formatPkr(expensesAudit.allocated)} allocated
+          </p>
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader className="gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <PiggyBankIcon className="size-4" />
-            <CardDescription>Total investment</CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <PiggyBankIcon className="size-4" />
+              <CardDescription>Total investment</CardDescription>
+            </div>
+            <BudgetBadge audit={investmentAudit} />
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatCompactPkr(totalInvestment)}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">All-time</p>
+          <p className="text-xs text-muted-foreground">
+            vs {formatPkr(investmentAudit.allocated)} allocated
+          </p>
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader className="gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <GiftIcon className="size-4" />
-            <CardDescription>Total donations</CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <GiftIcon className="size-4" />
+              <CardDescription>Total donations</CardDescription>
+            </div>
+            <BudgetBadge audit={donationAudit} />
           </div>
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatCompactPkr(totalDonations)}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">All-time</p>
+          <p className="text-xs text-muted-foreground">
+            vs {formatPkr(donationAudit.allocated)} allocated
+          </p>
         </CardHeader>
       </Card>
 
@@ -100,7 +141,7 @@ export function KpiCards({
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {unpaidInvoiceCount}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Awaiting payment</p>
+          <p className="text-xs text-muted-foreground">Awaiting payment · all time</p>
         </CardHeader>
       </Card>
 
@@ -113,14 +154,13 @@ export function KpiCards({
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {formatCompactPkr(pendingTotalPkr)}
           </CardTitle>
-          {pendingEntries.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {pendingEntries
-                .map(([currency, amount]) => formatCompactContractAmount(amount, currency))
-                .join(" · ")}{" "}
-              converted at the current FX rate
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            {pendingEntries.length > 0
+              ? pendingEntries
+                  .map(([currency, amount]) => formatCompactContractAmount(amount, currency))
+                  .join(" · ") + " · all time"
+              : "All time"}
+          </p>
         </CardHeader>
       </Card>
     </div>
