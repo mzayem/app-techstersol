@@ -77,7 +77,16 @@ export default async function ExpensesPage({
               </TableRow>
             )}
             {expenses.map((expense) => (
-              <TableRow key={expense.id}>
+              <ExpenseRowActions
+                key={expense.id}
+                entry={{
+                  id: expense.id,
+                  date: expense.date,
+                  category: expense.category as ExpenseCategory,
+                  name: expense.name,
+                  amount: Number(expense.amount),
+                }}
+              >
                 <TableCell>{formatDate(expense.date)}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {BUCKET_LABELS[expense.category as ExpenseCategory]}
@@ -86,20 +95,7 @@ export default async function ExpensesPage({
                 <TableCell className="text-right tabular-nums">
                   {formatPkr(Number(expense.amount))}
                 </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end">
-                    <ExpenseRowActions
-                      entry={{
-                        id: expense.id,
-                        date: expense.date,
-                        category: expense.category as ExpenseCategory,
-                        name: expense.name,
-                        amount: Number(expense.amount),
-                      }}
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
+              </ExpenseRowActions>
             ))}
           </TableBody>
         </Table>

@@ -178,10 +178,12 @@ export function ContractTable({
             {contracts.map((contract, index) => {
               const isSelected = selected.has(contract.id);
               return (
-                <TableRow
+                <ContractRowActions
                   key={contract.id}
-                  data-state={isSelected ? "selected" : undefined}
-                  onClick={(e) => onRowClick(index, contract.id, e)}
+                  entry={contract}
+                  clients={clients}
+                  selected={isSelected}
+                  onRowClick={(e) => onRowClick(index, contract.id, e)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
@@ -230,12 +232,7 @@ export function ContractTable({
                   <TableCell>
                     <StatusPill status={contract.status} />
                   </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end">
-                      <ContractRowActions entry={contract} clients={clients} />
-                    </div>
-                  </TableCell>
-                </TableRow>
+                </ContractRowActions>
               );
             })}
           </TableBody>

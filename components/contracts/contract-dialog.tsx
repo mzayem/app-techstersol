@@ -40,6 +40,7 @@ import {
   deleteContract,
   updateContract,
 } from "@/actions/contracts/actions";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { ContractActionsMenu } from "@/components/contracts/contract-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -82,11 +83,15 @@ export function ContractDialog({
   clients,
   open: openProp,
   onOpenChange: onOpenChangeProp,
+  locked = false,
+  onUnlock,
 }: {
   contract?: ContractEntry;
   clients: ClientOption[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  locked?: boolean;
+  onUnlock?: () => void;
 }) {
   const isEdit = !!contract;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -188,6 +193,7 @@ export function ContractDialog({
                 placeholder="Select client"
                 searchPlaceholder="Search clients…"
                 emptyText="No clients found."
+                disabled={locked}
               />
               <input type="hidden" name="clientId" value={clientId} />
             </Field>
@@ -197,6 +203,7 @@ export function ContractDialog({
                 name="projectName"
                 placeholder="Project name"
                 required
+                disabled={locked}
                 defaultValue={contract?.projectName}
               />
             </Field>
@@ -207,6 +214,7 @@ export function ContractDialog({
                   type="date"
                   name="date"
                   required
+                  disabled={locked}
                   defaultValue={
                     contract ? toDateInputValue(contract.date) : todayInput()
                   }
@@ -217,6 +225,7 @@ export function ContractDialog({
                   type="date"
                   name="deadline"
                   required
+                  disabled={locked}
                   defaultValue={
                     contract ? toDateInputValue(contract.deadline) : undefined
                   }
@@ -229,6 +238,7 @@ export function ContractDialog({
                 name="description"
                 placeholder="Optional"
                 rows={2}
+                disabled={locked}
                 defaultValue={contract?.description ?? undefined}
               />
             </Field>
@@ -241,6 +251,7 @@ export function ContractDialog({
                   onValueChange={(v) =>
                     setCurrency((v ?? "") as PaymentCurrency | "")
                   }
+                  disabled={locked}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Currency" />
@@ -259,6 +270,7 @@ export function ContractDialog({
                 <Select
                   name="status"
                   defaultValue={contract?.status ?? "PROPOSED"}
+                  disabled={locked}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Status" />
@@ -282,6 +294,7 @@ export function ContractDialog({
                 onValueChange={(v) =>
                   setPaymentType((v ?? "") as ContractPaymentType | "")
                 }
+                disabled={locked}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -308,6 +321,7 @@ export function ContractDialog({
                       placeholder="Name"
                       className="flex-1"
                       value={row.name}
+                      disabled={locked}
                       onChange={(e) =>
                         updateMilestone(index, { name: e.target.value })
                       }
@@ -319,6 +333,7 @@ export function ContractDialog({
                       placeholder="Amount"
                       className="w-28"
                       value={row.amount}
+                      disabled={locked}
                       onChange={(e) =>
                         updateMilestone(index, { amount: e.target.value })
                       }
@@ -327,6 +342,7 @@ export function ContractDialog({
                       type="date"
                       className="w-40"
                       value={row.deadline}
+                      disabled={locked}
                       onChange={(e) =>
                         updateMilestone(index, { deadline: e.target.value })
                       }
@@ -336,7 +352,7 @@ export function ContractDialog({
                       variant="ghost"
                       size="icon-sm"
                       aria-label="Remove milestone"
-                      disabled={milestones.length === 1}
+                      disabled={locked || milestones.length === 1}
                       onClick={() => removeMilestone(index)}
                     >
                       <XIcon />
@@ -347,6 +363,7 @@ export function ContractDialog({
                   type="button"
                   variant="outline"
                   size="sm"
+                  disabled={locked}
                   onClick={addMilestone}
                 >
                   <PlusIcon />
@@ -362,6 +379,7 @@ export function ContractDialog({
                   step="0.01"
                   placeholder="0.00"
                   required
+                  disabled={locked}
                   defaultValue={contract?.amount ?? undefined}
                 />
               </Field>
@@ -370,9 +388,15 @@ export function ContractDialog({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Save contract"}
-            </Button>
+            {locked ? (
+              <Button type="button" onClick={onUnlock}>
+                Update
+              </Button>
+            ) : (
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : isEdit ? "Save changes" : "Save contract"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
@@ -383,24 +407,62 @@ export function ContractDialog({
 export function ContractRowActions({
   entry,
   clients,
+  children,
+  selected,
+  onRowClick,
 }: {
   entry: ContractEntry;
   clients: ClientOption[];
+  children: React.ReactNode;
+  selected?: boolean;
+  onRowClick?: (e: React.MouseEvent) => void;
 }) {
-  const [editOpen, setEditOpen] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  function openView() {
+    setLocked(true);
+    setDialogOpen(true);
+  }
+
+  function openEdit() {
+    setLocked(false);
+    setDialogOpen(true);
+  }
+
+  function handleRowClick(e: React.MouseEvent) {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      onRowClick?.(e);
+    } else {
+      openView();
+    }
+  }
 
   return (
     <>
-      <ContractActionsMenu
-        onEdit={() => setEditOpen(true)}
-        onDelete={() => setDeleteOpen(true)}
-      />
+      <TableRow
+        data-state={selected ? "selected" : undefined}
+        className="cursor-pointer"
+        onClick={handleRowClick}
+      >
+        {children}
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end">
+            <ContractActionsMenu
+              onEdit={openEdit}
+              onDelete={() => setDeleteOpen(true)}
+            />
+          </div>
+        </TableCell>
+      </TableRow>
       <ContractDialog
         contract={entry}
         clients={clients}
-        open={editOpen}
-        onOpenChange={setEditOpen}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        locked={locked}
+        onUnlock={() => setLocked(false)}
       />
       <DeleteEntryDialog
         open={deleteOpen}

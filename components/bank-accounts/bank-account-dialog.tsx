@@ -30,6 +30,7 @@ import {
   CURRENCY_OPTIONAL_FIELDS,
   type BankFieldKey,
 } from "@/lib/bank-accounts/constants";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
 import {
   createBankAccount,
@@ -87,10 +88,14 @@ export function BankAccountDialog({
   bankAccount,
   open: openProp,
   onOpenChange: onOpenChangeProp,
+  locked = false,
+  onUnlock,
 }: {
   bankAccount?: BankAccountEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  locked?: boolean;
+  onUnlock?: () => void;
 }) {
   const isEdit = !!bankAccount;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -148,6 +153,7 @@ export function BankAccountDialog({
               onValueChange={(v) =>
                 setCurrency((v ?? "") as PaymentCurrency | "")
               }
+              disabled={locked}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Currency" />
@@ -168,6 +174,7 @@ export function BankAccountDialog({
               name="bankName"
               placeholder="Bank name"
               required
+              disabled={locked}
               defaultValue={bankAccount?.bankName}
             />
           </Field>
@@ -177,6 +184,7 @@ export function BankAccountDialog({
               name="accountHolderName"
               placeholder="Name on the account"
               required
+              disabled={locked}
               defaultValue={bankAccount?.accountHolderName}
             />
           </Field>
@@ -189,6 +197,7 @@ export function BankAccountDialog({
                   name={field}
                   placeholder={BANK_FIELD_LABELS[field]}
                   required={!isOptional}
+                  disabled={locked}
                   defaultValue={
                     bankAccount
                       ? (FIELD_VALUES[field](bankAccount) ?? undefined)
@@ -204,19 +213,26 @@ export function BankAccountDialog({
               name="swift"
               placeholder="SWIFT / BIC code"
               required
+              disabled={locked}
               defaultValue={bankAccount?.swift}
             />
           </Field>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending
-                ? "Saving…"
-                : isEdit
-                  ? "Save changes"
-                  : "Save bank account"}
-            </Button>
+            {locked ? (
+              <Button type="button" onClick={onUnlock}>
+                Update
+              </Button>
+            ) : (
+              <Button type="submit" disabled={pending}>
+                {pending
+                  ? "Saving…"
+                  : isEdit
+                    ? "Save changes"
+                    : "Save bank account"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
@@ -224,9 +240,26 @@ export function BankAccountDialog({
   );
 }
 
-export function BankAccountRowActions({ entry }: { entry: BankAccountEntry }) {
-  const [editOpen, setEditOpen] = React.useState(false);
+export function BankAccountRowActions({
+  entry,
+  children,
+}: {
+  entry: BankAccountEntry;
+  children: React.ReactNode;
+}) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  function openView() {
+    setLocked(true);
+    setDialogOpen(true);
+  }
+
+  function openEdit() {
+    setLocked(false);
+    setDialogOpen(true);
+  }
 
   async function handleCopy() {
     try {
@@ -239,15 +272,24 @@ export function BankAccountRowActions({ entry }: { entry: BankAccountEntry }) {
 
   return (
     <>
-      <BankAccountActionsMenu
-        onCopy={handleCopy}
-        onEdit={() => setEditOpen(true)}
-        onDelete={() => setDeleteOpen(true)}
-      />
+      <TableRow className="cursor-pointer" onClick={openView}>
+        {children}
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end">
+            <BankAccountActionsMenu
+              onCopy={handleCopy}
+              onEdit={openEdit}
+              onDelete={() => setDeleteOpen(true)}
+            />
+          </div>
+        </TableCell>
+      </TableRow>
       <BankAccountDialog
         bankAccount={entry}
-        open={editOpen}
-        onOpenChange={setEditOpen}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        locked={locked}
+        onUnlock={() => setLocked(false)}
       />
       <DeleteEntryDialog
         open={deleteOpen}

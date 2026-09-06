@@ -72,25 +72,21 @@ export default async function DonationsPage({
               </TableRow>
             )}
             {donations.map((donation) => (
-              <TableRow key={donation.id}>
+              <DonationRowActions
+                key={donation.id}
+                entry={{
+                  id: donation.id,
+                  date: donation.date,
+                  name: donation.name,
+                  amount: Number(donation.amount),
+                }}
+              >
                 <TableCell>{formatDate(donation.date)}</TableCell>
                 <TableCell className="font-medium">{donation.name}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPkr(Number(donation.amount))}
                 </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end">
-                    <DonationRowActions
-                      entry={{
-                        id: donation.id,
-                        date: donation.date,
-                        name: donation.name,
-                        amount: Number(donation.amount),
-                      }}
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
+              </DonationRowActions>
             ))}
           </TableBody>
         </Table>

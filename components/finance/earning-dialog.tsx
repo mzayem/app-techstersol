@@ -29,6 +29,7 @@ import {
   deleteEarning,
   updateEarning,
 } from "@/actions/finance/actions";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -46,10 +47,14 @@ export function EarningDialog({
   earning,
   open: openProp,
   onOpenChange: onOpenChangeProp,
+  locked = false,
+  onUnlock,
 }: {
   earning?: EarningEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  locked?: boolean;
+  onUnlock?: () => void;
 }) {
   const isEdit = !!earning;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -94,6 +99,7 @@ export function EarningDialog({
               type="date"
               name="date"
               required
+              disabled={locked}
               defaultValue={earning ? toDateInputValue(earning.date) : today()}
             />
           </Field>
@@ -102,6 +108,7 @@ export function EarningDialog({
               name="name"
               placeholder="Client or project"
               required
+              disabled={locked}
               defaultValue={earning?.name}
             />
           </Field>
@@ -114,6 +121,7 @@ export function EarningDialog({
                 step="0.01"
                 placeholder="0.00"
                 required
+                disabled={locked}
                 defaultValue={earning?.amount}
               />
             </Field>
@@ -124,6 +132,7 @@ export function EarningDialog({
                 min="0"
                 step="0.01"
                 placeholder="0.00"
+                disabled={locked}
                 defaultValue={earning?.teamPay ?? "0"}
               />
             </Field>
@@ -136,6 +145,7 @@ export function EarningDialog({
                 min="0"
                 step="0.01"
                 placeholder="Optional"
+                disabled={locked}
                 defaultValue={earning?.referenceAmount ?? undefined}
               />
             </Field>
@@ -143,6 +153,7 @@ export function EarningDialog({
               <Select
                 name="referenceCurrency"
                 defaultValue={earning?.referenceCurrency ?? undefined}
+                disabled={locked}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Currency" />
@@ -160,9 +171,15 @@ export function EarningDialog({
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Save earning"}
-            </Button>
+            {locked ? (
+              <Button type="button" onClick={onUnlock}>
+                Update
+              </Button>
+            ) : (
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : isEdit ? "Save changes" : "Save earning"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
@@ -170,21 +187,47 @@ export function EarningDialog({
   );
 }
 
-export function EarningRowActions({ entry }: { entry: EarningEntry }) {
-  const [editOpen, setEditOpen] = React.useState(false);
+export function EarningRowActions({
+  entry,
+  children,
+}: {
+  entry: EarningEntry;
+  children: React.ReactNode;
+}) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  function openView() {
+    setLocked(true);
+    setDialogOpen(true);
+  }
+
+  function openEdit() {
+    setLocked(false);
+    setDialogOpen(true);
+  }
 
   return (
     <>
-      <EntryActionsMenu
-        id={entry.id}
-        onEdit={() => setEditOpen(true)}
-        onDelete={() => setDeleteOpen(true)}
-      />
+      <TableRow className="cursor-pointer" onClick={openView}>
+        {children}
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end">
+            <EntryActionsMenu
+              id={entry.id}
+              onEdit={openEdit}
+              onDelete={() => setDeleteOpen(true)}
+            />
+          </div>
+        </TableCell>
+      </TableRow>
       <EarningDialog
         earning={entry}
-        open={editOpen}
-        onOpenChange={setEditOpen}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        locked={locked}
+        onUnlock={() => setLocked(false)}
       />
       <DeleteEntryDialog
         open={deleteOpen}

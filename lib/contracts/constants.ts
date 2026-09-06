@@ -38,3 +38,15 @@ export function formatContractAmount(amount: number, currency: string) {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+/** Below 10,000 shows the exact amount; at or above it, abbreviates to
+ * e.g. "$10K" or "A$1.2M" for scannable headline stats. */
+export function formatCompactContractAmount(amount: number, currency: string) {
+  if (Math.abs(amount) < 10_000) return formatContractAmount(amount, currency);
+  return new Intl.NumberFormat(currency === "PKR" ? "en-PK" : "en-US", {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(amount);
+}

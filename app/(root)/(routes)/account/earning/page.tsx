@@ -94,7 +94,7 @@ export default async function EarningPage({
                   earning.referenceCurrency as ReferenceCurrency | null,
               };
               return (
-                <TableRow key={earning.id}>
+                <EarningRowActions key={earning.id} entry={entry}>
                   <TableCell>{formatDate(earning.date)}</TableCell>
                   <TableCell className="font-medium">{earning.name}</TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -111,12 +111,7 @@ export default async function EarningPage({
                       ? `${CURRENCY_SYMBOLS[earning.referenceCurrency as ReferenceCurrency]}${Number(earning.referenceAmount).toLocaleString()}`
                       : "—"}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end">
-                      <EarningRowActions entry={entry} />
-                    </div>
-                  </TableCell>
-                </TableRow>
+                </EarningRowActions>
               );
             })}
           </TableBody>

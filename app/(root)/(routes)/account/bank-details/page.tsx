@@ -84,7 +84,7 @@ export default async function BankDetailsPage({
                 bsbCode: account.bsbCode,
               };
               return (
-                <TableRow key={account.id}>
+                <BankAccountRowActions key={account.id} entry={entry}>
                   <TableCell className="font-medium">{currency}</TableCell>
                   <TableCell>{account.bankName}</TableCell>
                   <TableCell>{account.accountHolderName}</TableCell>
@@ -96,12 +96,7 @@ export default async function BankDetailsPage({
                     ))}
                   </TableCell>
                   <TableCell>{account.swift}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end">
-                      <BankAccountRowActions entry={entry} />
-                    </div>
-                  </TableCell>
-                </TableRow>
+                </BankAccountRowActions>
               );
             })}
           </TableBody>

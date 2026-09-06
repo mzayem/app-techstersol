@@ -18,6 +18,7 @@ import {
   deleteDonation,
   updateDonation,
 } from "@/actions/finance/actions";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -32,10 +33,14 @@ export function DonationDialog({
   donation,
   open: openProp,
   onOpenChange: onOpenChangeProp,
+  locked = false,
+  onUnlock,
 }: {
   donation?: DonationEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  locked?: boolean;
+  onUnlock?: () => void;
 }) {
   const isEdit = !!donation;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -80,6 +85,7 @@ export function DonationDialog({
               type="date"
               name="date"
               required
+              disabled={locked}
               defaultValue={
                 donation ? toDateInputValue(donation.date) : today()
               }
@@ -90,6 +96,7 @@ export function DonationDialog({
               name="name"
               placeholder="Recipient"
               required
+              disabled={locked}
               defaultValue={donation?.name}
             />
           </Field>
@@ -101,14 +108,21 @@ export function DonationDialog({
               step="0.01"
               placeholder="0.00"
               required
+              disabled={locked}
               defaultValue={donation?.amount}
             />
           </Field>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Save donation"}
-            </Button>
+            {locked ? (
+              <Button type="button" onClick={onUnlock}>
+                Update
+              </Button>
+            ) : (
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : isEdit ? "Save changes" : "Save donation"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
@@ -116,21 +130,47 @@ export function DonationDialog({
   );
 }
 
-export function DonationRowActions({ entry }: { entry: DonationEntry }) {
-  const [editOpen, setEditOpen] = React.useState(false);
+export function DonationRowActions({
+  entry,
+  children,
+}: {
+  entry: DonationEntry;
+  children: React.ReactNode;
+}) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  function openView() {
+    setLocked(true);
+    setDialogOpen(true);
+  }
+
+  function openEdit() {
+    setLocked(false);
+    setDialogOpen(true);
+  }
 
   return (
     <>
-      <EntryActionsMenu
-        id={entry.id}
-        onEdit={() => setEditOpen(true)}
-        onDelete={() => setDeleteOpen(true)}
-      />
+      <TableRow className="cursor-pointer" onClick={openView}>
+        {children}
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end">
+            <EntryActionsMenu
+              id={entry.id}
+              onEdit={openEdit}
+              onDelete={() => setDeleteOpen(true)}
+            />
+          </div>
+        </TableCell>
+      </TableRow>
       <DonationDialog
         donation={entry}
-        open={editOpen}
-        onOpenChange={setEditOpen}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        locked={locked}
+        onUnlock={() => setLocked(false)}
       />
       <DeleteEntryDialog
         open={deleteOpen}

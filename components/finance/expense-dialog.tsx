@@ -30,6 +30,7 @@ import {
   deleteExpense,
   updateExpense,
 } from "@/actions/finance/actions";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -45,10 +46,14 @@ export function ExpenseDialog({
   expense,
   open: openProp,
   onOpenChange: onOpenChangeProp,
+  locked = false,
+  onUnlock,
 }: {
   expense?: ExpenseEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  locked?: boolean;
+  onUnlock?: () => void;
 }) {
   const isEdit = !!expense;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -94,6 +99,7 @@ export function ExpenseDialog({
                 type="date"
                 name="date"
                 required
+                disabled={locked}
                 defaultValue={
                   expense ? toDateInputValue(expense.date) : today()
                 }
@@ -103,6 +109,7 @@ export function ExpenseDialog({
               <Select
                 name="category"
                 defaultValue={expense?.category ?? "EXPENSE"}
+                disabled={locked}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Type" />
@@ -123,6 +130,7 @@ export function ExpenseDialog({
               name="name"
               placeholder="What was it for"
               required
+              disabled={locked}
               defaultValue={expense?.name}
             />
           </Field>
@@ -134,14 +142,21 @@ export function ExpenseDialog({
               step="0.01"
               placeholder="0.00"
               required
+              disabled={locked}
               defaultValue={expense?.amount}
             />
           </Field>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Save expense"}
-            </Button>
+            {locked ? (
+              <Button type="button" onClick={onUnlock}>
+                Update
+              </Button>
+            ) : (
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : isEdit ? "Save changes" : "Save expense"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
@@ -149,21 +164,47 @@ export function ExpenseDialog({
   );
 }
 
-export function ExpenseRowActions({ entry }: { entry: ExpenseEntry }) {
-  const [editOpen, setEditOpen] = React.useState(false);
+export function ExpenseRowActions({
+  entry,
+  children,
+}: {
+  entry: ExpenseEntry;
+  children: React.ReactNode;
+}) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  function openView() {
+    setLocked(true);
+    setDialogOpen(true);
+  }
+
+  function openEdit() {
+    setLocked(false);
+    setDialogOpen(true);
+  }
 
   return (
     <>
-      <EntryActionsMenu
-        id={entry.id}
-        onEdit={() => setEditOpen(true)}
-        onDelete={() => setDeleteOpen(true)}
-      />
+      <TableRow className="cursor-pointer" onClick={openView}>
+        {children}
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end">
+            <EntryActionsMenu
+              id={entry.id}
+              onEdit={openEdit}
+              onDelete={() => setDeleteOpen(true)}
+            />
+          </div>
+        </TableCell>
+      </TableRow>
       <ExpenseDialog
         expense={entry}
-        open={editOpen}
-        onOpenChange={setEditOpen}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        locked={locked}
+        onUnlock={() => setLocked(false)}
       />
       <DeleteEntryDialog
         open={deleteOpen}
