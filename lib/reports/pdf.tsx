@@ -10,8 +10,20 @@ import {
 
 import { COMPANY_INFO } from "@/lib/invoices/constants";
 import { getReportLogoPng } from "@/lib/reports/logo";
-import { groupRowsByMonth, computeGroupTotals } from "@/lib/reports/group";
-import type { ReportSpec, ReportCell, ReportColumn, ReportRow } from "@/lib/reports/types";
+import { formatCell } from "@/lib/reports/format";
+import {
+  groupRowsByMonth,
+  computeGroupTotals,
+  partitionIntoYearSections,
+  chronologicalBounds,
+} from "@/lib/reports/group";
+import {
+  chooseOrientation,
+  computeColumnWidths,
+  contentWidthFor,
+  type PageOrientation,
+} from "@/lib/reports/layout";
+import type { ReportSpec, ReportColumn, ReportRow } from "@/lib/reports/types";
 
 const styles = StyleSheet.create({
   page: {
@@ -19,9 +31,17 @@ const styles = StyleSheet.create({
     paddingBottom: 44,
     paddingHorizontal: 40,
     fontSize: 9,
-    lineHeight: 1.4,
     fontFamily: "Helvetica",
     color: "#000000",
+  },
+  // `lineHeight` lives here rather than on `page` — react-pdf's pagination
+  // engine miscomputes a `fixed` + `position: absolute` child's placement
+  // (throwing "unsupported number" on some page counts, or silently
+  // dropping its text on others) when the Page itself has a lineHeight
+  // other than the default. Scoping it to the flowing content only avoids
+  // that, since the footer sits outside this wrapper.
+  body: {
+    lineHeight: 1.4,
   },
   headerRow: {
     flexDirection: "row",
@@ -74,56 +94,58 @@ const styles = StyleSheet.create({
     borderTopColor: "#111827",
     backgroundColor: "#f3f4f6",
   },
-  cell: { flex: 1, paddingRight: 6 },
-  cellRight: { flex: 1, paddingRight: 6, textAlign: "right" },
+  cell: { paddingRight: 6 },
+  cellRight: { paddingRight: 6, textAlign: "right" },
   headerCellText: { fontSize: 8, fontWeight: 700, color: "#1f3864" },
   bold: { fontWeight: 700 },
+  summaryBox: {
+    marginTop: 10,
+    marginBottom: 4,
+    padding: 8,
+    backgroundColor: "#eef2ff",
+    borderWidth: 1,
+    borderColor: "#c7d2fe",
+    borderRadius: 3,
+  },
+  summaryText: { fontSize: 9.5, fontWeight: 700, color: "#1e3a8a" },
   footer: {
     position: "absolute",
-    bottom: 24,
+    bottom: 20,
     left: 40,
     right: 40,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
 });
 
-function cellAlign(column: ReportColumn) {
-  return column.align === "right" ? styles.cellRight : styles.cell;
-}
-
-function formatCell(value: ReportCell): string {
-  if (value === null || value === undefined) return "—";
-  if (value instanceof Date) {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(value);
-  }
-  if (typeof value === "number") {
-    return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  }
-  return value;
+function cellStyle(column: ReportColumn, width: number) {
+  return [column.align === "right" ? styles.cellRight : styles.cell, { width }];
 }
 
 /** One bordered table: header row (repeats on every page it flows onto),
- * body rows, and an optional totals row. */
+ * body rows, and an optional totals row. `columnWidths` is parallel to
+ * `columns` — computed once per report by `layout.ts` from actual column
+ * content, not an even flex split. */
 function ReportTable({
   columns,
+  columnWidths,
   rows,
   totalsRow,
 }: {
   columns: ReportColumn[];
+  columnWidths: number[];
   rows: ReportRow[];
   totalsRow?: ReportRow;
 }) {
   return (
     <View style={styles.table}>
-      <View style={styles.tableHeaderRow} fixed>
-        {columns.map((column) => (
-          <Text key={column.key} style={[cellAlign(column), styles.headerCellText]}>
+      <View style={styles.tableHeaderRow} fixed minPresenceAhead={20}>
+        {columns.map((column, i) => (
+          <Text key={column.key} style={[cellStyle(column, columnWidths[i]), styles.headerCellText]}>
             {column.label}
           </Text>
         ))}
@@ -141,8 +163,8 @@ function ReportTable({
           style={[styles.tableRow, ...(index % 2 === 1 ? [styles.tableRowAlt] : [])]}
           wrap={false}
         >
-          {columns.map((column) => (
-            <Text key={column.key} style={cellAlign(column)}>
+          {columns.map((column, i) => (
+            <Text key={column.key} style={cellStyle(column, columnWidths[i])}>
               {formatCell(row[column.key])}
             </Text>
           ))}
@@ -150,8 +172,8 @@ function ReportTable({
       ))}
       {totalsRow && (
         <View style={styles.totalsRow} wrap={false}>
-          {columns.map((column) => (
-            <Text key={column.key} style={[cellAlign(column), styles.bold]}>
+          {columns.map((column, i) => (
+            <Text key={column.key} style={[cellStyle(column, columnWidths[i]), styles.bold]}>
               {formatCell(totalsRow[column.key])}
             </Text>
           ))}
@@ -161,69 +183,62 @@ function ReportTable({
   );
 }
 
+/** "Total earning from January 2026 to September 2026: 1,234,567 · Team
+ * pay: … · Net earning: …" — one sentence per report section (the whole
+ * report, or one calendar year when the data spans more than one). The
+ * first numeric column in `spec.columns` is the headline figure; any
+ * other numeric columns follow using their own table label. Returns null
+ * when the report doesn't opt into totals/a summary noun. */
+function buildSummarySentence(
+  spec: ReportSpec,
+  rows: ReportRow[],
+  fromLabel: string,
+  toLabel: string,
+): string | null {
+  if (!spec.totals || !spec.summaryNoun) return null;
+  const totals = computeGroupTotals(rows, spec.totals);
+  const numericColumns = spec.columns.filter(
+    (column) => typeof totals[column.key] === "number",
+  );
+  if (numericColumns.length === 0) return null;
+
+  const [primary, ...secondary] = numericColumns;
+  const span = fromLabel === toLabel ? `for ${fromLabel}` : `from ${fromLabel} to ${toLabel}`;
+  const parts = [`Total ${spec.summaryNoun} ${span}: ${formatCell(totals[primary.key])}`];
+  for (const column of secondary) {
+    parts.push(`${column.label}: ${formatCell(totals[column.key])}`);
+  }
+  return parts.join("   ·   ");
+}
+
 function ReportDocument({
   spec,
   logoDataUrl,
+  generatedBy,
   generatedOn,
 }: {
   spec: ReportSpec;
   logoDataUrl: string | null;
+  generatedBy: string;
   generatedOn: string;
 }) {
   const groups = spec.groupByDateKey
     ? groupRowsByMonth(spec.rows, spec.groupByDateKey)
     : null;
+  const orientation: PageOrientation = chooseOrientation(spec.columns, spec.rows, spec.totals);
+  const columnWidths = computeColumnWidths(
+    spec.columns,
+    spec.rows,
+    spec.totals,
+    contentWidthFor(orientation),
+  );
 
   return (
     <Document>
-      <Page size="A4" orientation="landscape" style={styles.page}>
-        <View style={styles.headerRow}>
-          {logoDataUrl ? (
-            // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is not an HTML <img>
-            <Image src={logoDataUrl} style={{ width: 150, height: 30 }} />
-          ) : (
-            <Text style={{ fontSize: 15, fontWeight: 700 }}>
-              {COMPANY_INFO.name.toUpperCase()}
-            </Text>
-          )}
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.reportTitle}>{spec.title}</Text>
-            <View style={styles.companyBlock}>
-              {COMPANY_INFO.addressLines.map((line) => (
-                <Text key={line} style={styles.small}>
-                  {line}
-                </Text>
-              ))}
-              <Text style={styles.small}>{COMPANY_INFO.website}</Text>
-            </View>
-          </View>
-        </View>
-
-        {spec.subtitle && <Text style={styles.subtitle}>{spec.subtitle}</Text>}
-
-        {groups ? (
-          groups.map((group, index) => (
-            <View key={index}>
-              {group.yearDivider && (
-                <Text style={styles.yearHeading}>{group.yearDivider}</Text>
-              )}
-              <Text style={styles.groupHeading}>{group.periodLabel}</Text>
-              <ReportTable
-                columns={spec.columns}
-                rows={group.rows}
-                totalsRow={
-                  spec.totals ? computeGroupTotals(group.rows, spec.totals) : undefined
-                }
-              />
-            </View>
-          ))
-        ) : (
-          <ReportTable columns={spec.columns} rows={spec.rows} totalsRow={spec.totals} />
-        )}
-
+      <Page size="A4" orientation={orientation} style={styles.page}>
         <View style={styles.footer} fixed>
           <Text style={[styles.small, { fontStyle: "italic" }]}>
-            Generated on {generatedOn} — {COMPANY_INFO.name}
+            Generated by: {generatedBy}  ·  {generatedOn}
           </Text>
           <Text
             style={styles.small}
@@ -232,12 +247,86 @@ function ReportDocument({
             }
           />
         </View>
+
+        <View style={styles.body}>
+          <View style={styles.headerRow}>
+            {logoDataUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is not an HTML <img>
+              <Image src={logoDataUrl} style={{ width: 150, height: 30 }} />
+            ) : (
+              <Text style={{ fontSize: 15, fontWeight: 700 }}>
+                {COMPANY_INFO.name.toUpperCase()}
+              </Text>
+            )}
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={styles.reportTitle}>{spec.title}</Text>
+              <View style={styles.companyBlock}>
+                {COMPANY_INFO.addressLines.map((line) => (
+                  <Text key={line} style={styles.small}>
+                    {line}
+                  </Text>
+                ))}
+                <Text style={styles.small}>{COMPANY_INFO.website}</Text>
+              </View>
+            </View>
+          </View>
+
+          {spec.subtitle && <Text style={styles.subtitle}>{spec.subtitle}</Text>}
+
+          {groups ? (
+            partitionIntoYearSections(groups).map((section, sectionIndex) => {
+              const sectionRows = section.flatMap((group) => group.rows);
+              const { first, last } = chronologicalBounds(section);
+              const summary = buildSummarySentence(
+                spec,
+                sectionRows,
+                first.periodLabel,
+                last.periodLabel,
+              );
+              return (
+                <View key={sectionIndex}>
+                  {section.map((group, groupIndex) => (
+                    <View key={groupIndex}>
+                      {group.yearDivider && (
+                        <Text style={styles.yearHeading}>{group.yearDivider}</Text>
+                      )}
+                      <Text style={styles.groupHeading}>{group.periodLabel}</Text>
+                      <ReportTable
+                        columns={spec.columns}
+                        columnWidths={columnWidths}
+                        rows={group.rows}
+                        totalsRow={
+                          spec.totals ? computeGroupTotals(group.rows, spec.totals) : undefined
+                        }
+                      />
+                    </View>
+                  ))}
+                  {summary && (
+                    <View style={styles.summaryBox} wrap={false}>
+                      <Text style={styles.summaryText}>{summary}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })
+          ) : (
+            <ReportTable
+              columns={spec.columns}
+              columnWidths={columnWidths}
+              rows={spec.rows}
+              totalsRow={spec.totals}
+            />
+          )}
+        </View>
       </Page>
     </Document>
   );
 }
 
-export async function renderReportPdf(spec: ReportSpec): Promise<Buffer> {
+export async function renderReportPdf(
+  spec: ReportSpec,
+  options: { generatedBy: string },
+): Promise<Buffer> {
   const logoPng = await getReportLogoPng();
   const logoDataUrl = logoPng
     ? `data:image/png;base64,${logoPng.toString("base64")}`
@@ -254,6 +343,7 @@ export async function renderReportPdf(spec: ReportSpec): Promise<Buffer> {
     <ReportDocument
       spec={spec}
       logoDataUrl={logoDataUrl}
+      generatedBy={options.generatedBy}
       generatedOn={generatedOn}
     />,
   );

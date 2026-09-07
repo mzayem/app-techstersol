@@ -49,7 +49,7 @@ export async function GET(
   const buffer =
     format === "xlsx"
       ? await renderReportExcel(spec)
-      : await renderReportPdf(spec);
+      : await renderReportPdf(spec, { generatedBy: appUser.name });
 
   const dateStamp = new Date().toISOString().slice(0, 10);
   const filename = `${moduleDef.filename}-${dateStamp}.${format}`;

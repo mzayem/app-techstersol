@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { SearchIcon } from "lucide-react";
+import { Loader2Icon, SearchIcon } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -26,6 +27,7 @@ export function ClientFilterBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = React.useTransition();
 
   const status = searchParams.get("status") ?? "all";
   const sort = (searchParams.get("sort") as SortOption) ?? "name-asc";
@@ -37,7 +39,9 @@ export function ClientFilterBar() {
       if (value === null || value === "") params.delete(key);
       else params.set(key, value);
     }
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
   }
 
   React.useEffect(() => {
@@ -51,7 +55,12 @@ export function ClientFilterBar() {
   }, [search]);
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+    <div
+      className={cn(
+        "flex flex-col gap-2 transition-opacity sm:flex-row sm:flex-wrap sm:items-center",
+        isPending && "opacity-60",
+      )}
+    >
       <Select
         value={status}
         onValueChange={(value) =>
@@ -72,7 +81,11 @@ export function ClientFilterBar() {
       </Select>
 
       <div className="relative w-full sm:w-56">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        {isPending ? (
+          <Loader2Icon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+        ) : (
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        )}
         <Input
           placeholder="Search by name, email, phone, country"
           className="pl-8"

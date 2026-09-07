@@ -135,7 +135,7 @@ export function ContractTable({
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" disabled={pending} onClick={applyBulkStatus}>
+          <Button size="sm" loading={pending} onClick={applyBulkStatus}>
             {pending ? "Updating…" : "Change status"}
           </Button>
           <Button size="sm" variant="ghost" onClick={clearSelection}>

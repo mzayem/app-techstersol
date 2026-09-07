@@ -1,7 +1,10 @@
 "use client";
 
+import * as React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Loader2Icon } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +26,7 @@ export function WorkDiaryFilterBar({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = React.useTransition();
   const teamMemberId = searchParams.get("teamMemberId") ?? "";
   const period = searchParams.get("period") ?? "year";
 
@@ -32,11 +36,18 @@ export function WorkDiaryFilterBar({
       if (value === null || value === "") params.delete(key);
       else params.set(key, value);
     }
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+    <div
+      className={cn(
+        "flex flex-col gap-2 transition-opacity sm:flex-row sm:flex-wrap sm:items-center",
+        isPending && "opacity-60",
+      )}
+    >
       <div className="w-full sm:w-64">
         <Combobox
           value={teamMemberId}
@@ -88,6 +99,10 @@ export function WorkDiaryFilterBar({
             onChange={(e) => updateParams({ to: e.target.value || null })}
           />
         </div>
+      )}
+
+      {isPending && (
+        <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
       )}
     </div>
   );

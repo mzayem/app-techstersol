@@ -456,11 +456,8 @@ export function InvoiceDialog({
           <DialogFooter>
             <Button
               type="submit"
-              disabled={
-                pending ||
-                items.length === 0 ||
-                items.some((i) => !(i.amount > 0))
-              }
+              disabled={items.length === 0 || items.some((i) => !(i.amount > 0))}
+              loading={pending}
             >
               {pending ? "Saving…" : "Save invoice"}
             </Button>

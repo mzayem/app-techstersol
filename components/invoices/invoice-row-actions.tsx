@@ -91,7 +91,7 @@ export function InvoiceRowActions({
             </AlertDialogClose>
             <Button
               variant="destructive"
-              disabled={pending}
+              loading={pending}
               onClick={confirmMarkUnpaid}
             >
               {pending ? "Saving…" : "Mark as unpaid"}

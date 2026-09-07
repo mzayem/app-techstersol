@@ -131,7 +131,7 @@ const earning: ReportModuleDef = {
       subtitle: dateRangeSubtitle(params),
       columns: [
         { key: "date", label: "Date", numFmt: "dd mmm yyyy" },
-        { key: "name", label: "Name" },
+        { key: "name", label: "Name", flexible: true },
         { key: "amount", label: "Amount", align: "right", numFmt: "#,##0" },
         { key: "teamPay", label: "Team pay", align: "right", numFmt: "#,##0" },
         { key: "netEarning", label: "Net earning", align: "right", numFmt: "#,##0" },
@@ -147,6 +147,7 @@ const earning: ReportModuleDef = {
         reference: null,
       },
       groupByDateKey: "date",
+      summaryNoun: "earning",
     };
   },
 };
@@ -175,12 +176,13 @@ const donations: ReportModuleDef = {
       subtitle: dateRangeSubtitle(params),
       columns: [
         { key: "date", label: "Date", numFmt: "dd mmm yyyy" },
-        { key: "name", label: "Name" },
+        { key: "name", label: "Name", flexible: true },
         { key: "amount", label: "Amount", align: "right", numFmt: "#,##0" },
       ],
       rows: reportRows,
       totals: { date: "Total", name: null, amount: totalAmount },
       groupByDateKey: "date",
+      summaryNoun: "donations",
     };
   },
 };
@@ -221,12 +223,13 @@ const expenses: ReportModuleDef = {
       columns: [
         { key: "date", label: "Date", numFmt: "dd mmm yyyy" },
         { key: "type", label: "Type" },
-        { key: "name", label: "Name" },
+        { key: "name", label: "Name", flexible: true },
         { key: "amount", label: "Amount", align: "right", numFmt: "#,##0" },
       ],
       rows: reportRows,
       totals: { date: "Total", type: null, name: null, amount: totalAmount },
       groupByDateKey: "date",
+      summaryNoun: "expenses",
     };
   },
 };
@@ -271,8 +274,8 @@ const contracts: ReportModuleDef = {
         status ? CONTRACT_STATUS_LABELS[status] : undefined,
       ),
       columns: [
-        { key: "client", label: "Client" },
-        { key: "project", label: "Project" },
+        { key: "client", label: "Client", flexible: true, flexWeight: 1 },
+        { key: "project", label: "Project", flexible: true, flexWeight: 2 },
         { key: "startDate", label: "Start date", numFmt: "dd mmm yyyy" },
         { key: "deadline", label: "Deadline", numFmt: "dd mmm yyyy" },
         { key: "payment", label: "Payment" },
@@ -319,7 +322,7 @@ const invoices: ReportModuleDef = {
       ),
       columns: [
         { key: "number", label: "Invoice" },
-        { key: "client", label: "Client" },
+        { key: "client", label: "Client", flexible: true },
         { key: "bank", label: "Bank" },
         { key: "issueDate", label: "Issue date", numFmt: "dd mmm yyyy" },
         { key: "dueDate", label: "Due date", numFmt: "dd mmm yyyy" },
@@ -360,8 +363,8 @@ const payslips: ReportModuleDef = {
       subtitle: filterSubtitle(params),
       columns: [
         { key: "number", label: "Payslip" },
-        { key: "teamMember", label: "Team member" },
-        { key: "project", label: "Project" },
+        { key: "teamMember", label: "Team member", flexible: true, flexWeight: 1 },
+        { key: "project", label: "Project", flexible: true, flexWeight: 2 },
         { key: "period", label: "Period" },
         { key: "issueDate", label: "Issue date", numFmt: "dd mmm yyyy" },
         { key: "amount", label: "Amount", align: "right", numFmt: "#,##0" },
@@ -376,6 +379,7 @@ const payslips: ReportModuleDef = {
         amount: totalAmount,
       },
       groupByDateKey: "issueDate",
+      summaryNoun: "payslips",
     };
   },
 };

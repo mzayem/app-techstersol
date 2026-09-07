@@ -135,7 +135,7 @@ export function UserDialog({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" loading={pending}>
               {pending ? "Creating…" : "Create user"}
             </Button>
           </DialogFooter>

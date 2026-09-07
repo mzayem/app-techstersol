@@ -62,7 +62,7 @@ export function DeleteEntryDialog({
           </AlertDialogClose>
           <Button
             variant="destructive"
-            disabled={pending}
+            loading={pending}
             onClick={handleDelete}
           >
             {pending ? "Deleting…" : "Delete"}

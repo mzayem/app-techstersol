@@ -12,6 +12,11 @@ export type ReportGroup = {
   yearDivider?: string;
   periodLabel: string;
   rows: ReportRow[];
+  /** Epoch ms for this group's month, for chronological sort — `rows`
+   * follows whatever display sort the caller applied (often newest
+   * first), so group *order* can't be trusted to mean chronological
+   * order. */
+  sortKey: number;
 };
 
 /** Splits rows into one group per calendar month (in the order they first
@@ -61,8 +66,35 @@ export function groupRowsByMonth(rows: ReportRow[], dateKey: string): ReportGrou
     const yearDivider =
       spansMultipleYears && year !== null && year !== previousYear ? String(year) : undefined;
     previousYear = year;
-    return { yearDivider, periodLabel, rows: groupRows };
+    return { yearDivider, periodLabel, rows: groupRows, sortKey: sample?.getTime() ?? 0 };
   });
+}
+
+/** The chronologically first and last group in a section — independent of
+ * the section's own array order, which follows the rows' display sort
+ * (e.g. newest-first) rather than calendar order. */
+export function chronologicalBounds(groups: ReportGroup[]): { first: ReportGroup; last: ReportGroup } {
+  const sorted = [...groups].sort((a, b) => a.sortKey - b.sortKey);
+  return { first: sorted[0], last: sorted[sorted.length - 1] };
+}
+
+/** Splits an ordered list of month-groups into one section per calendar
+ * year — a section boundary falls wherever `yearDivider` is set (which
+ * `groupRowsByMonth` only does when the data actually crosses a year
+ * boundary), so a single-year report comes back as one section covering
+ * every group. */
+export function partitionIntoYearSections(groups: ReportGroup[]): ReportGroup[][] {
+  const sections: ReportGroup[][] = [];
+  let current: ReportGroup[] = [];
+  groups.forEach((group, index) => {
+    if (index > 0 && group.yearDivider) {
+      sections.push(current);
+      current = [];
+    }
+    current.push(group);
+  });
+  if (current.length > 0) sections.push(current);
+  return sections;
 }
 
 /** Builds a subtotal row for one group, shaped like `totalsTemplate`: sums

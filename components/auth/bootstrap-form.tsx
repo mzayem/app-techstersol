@@ -68,7 +68,7 @@ export function BootstrapForm() {
         />
       </label>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" loading={pending}>
         {pending ? "Creating…" : "Create admin account"}
       </Button>
     </form>

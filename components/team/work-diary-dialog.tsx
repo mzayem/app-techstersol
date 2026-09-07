@@ -188,7 +188,7 @@ export function WorkDiaryDialog({
                 Update
               </Button>
             ) : (
-              <Button key="save" type="submit" disabled={pending || !teamMemberId}>
+              <Button key="save" type="submit" disabled={!teamMemberId} loading={pending}>
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save entry"}
               </Button>
             )}

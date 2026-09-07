@@ -162,7 +162,7 @@ export function RoleDialog({
                 Update
               </Button>
             ) : (
-              <Button key="save" type="submit" disabled={pending}>
+              <Button key="save" type="submit" loading={pending}>
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save role"}
               </Button>
             )}

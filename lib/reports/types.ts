@@ -5,6 +5,14 @@ export type ReportColumn = {
   /** Excel cell number format, e.g. "#,##0" or "dd mmm yyyy". Only used
    * when a row's value for this column is a number or Date. */
   numFmt?: string;
+  /** Marks this as a free-text/description column (e.g. "Name", "Client",
+   * "Project") — the PDF sizes every other column tightly to its own
+   * content (dates, amounts, status labels, ids — even when their values
+   * are strings rather than numbers) and gives whatever's left over to
+   * the flexible columns, split by `flexWeight` (default 1). Give the
+   * most important one a higher weight so it reads bigger than the rest. */
+  flexible?: boolean;
+  flexWeight?: number;
 };
 
 export type ReportCell = string | number | Date | null;
@@ -17,12 +25,7 @@ export type ReportSpec = {
   subtitle?: string;
   columns: ReportColumn[];
   rows: ReportRow[];
-  /** Optional summary row, keyed the same as `columns`. Only include this
-   * when every row's amount is in the same currency. */
   totals?: ReportRow;
-  /** Column holding each row's primary date. When rows span more than one
-   * calendar month, the PDF splits into a per-month table (with a year
-   * divider whenever the data crosses a year boundary) instead of one long
-   * flat table. Leave unset to always render a single flat table. */
   groupByDateKey?: string;
+  summaryNoun?: string;
 };

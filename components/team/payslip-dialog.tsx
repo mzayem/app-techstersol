@@ -233,7 +233,7 @@ export function PayslipDialog({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending || !teamMemberId}>
+            <Button type="submit" disabled={!teamMemberId} loading={pending}>
               {pending ? "Saving…" : "Save payslip"}
             </Button>
           </DialogFooter>

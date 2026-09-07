@@ -1,5 +1,6 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Loader2Icon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -44,14 +45,27 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  loading = false,
+  disabled,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & {
+    /** Shows a spinner and forces the button disabled — for an action
+     * that's mid-flight, so a second click can't fire it again. */
+    loading?: boolean;
+  }) {
   return (
     <ButtonPrimitive
       data-slot="button"
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {loading && <Loader2Icon className="animate-spin" />}
+      {children}
+    </ButtonPrimitive>
   );
 }
 

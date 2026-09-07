@@ -86,7 +86,7 @@ export function MarkPaidDialog({
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" loading={pending}>
               {pending ? "Saving…" : "Mark as paid"}
             </Button>
           </DialogFooter>
