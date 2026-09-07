@@ -34,7 +34,7 @@ export default async function AuthPage({
   }
 
   return (
-    <main className="relative flex min-h-full grow flex-col items-center justify-center overflow-hidden bg-background p-4 text-foreground">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-background p-4 text-foreground">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-40 left-1/2 size-128 -translate-x-1/2 rounded-full bg-primary/15 blur-3xl"
