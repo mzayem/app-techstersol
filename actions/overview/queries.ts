@@ -141,16 +141,21 @@ export type BucketAudit = {
   allocated: number;
   /** (spent - allocated) / allocated, as a fraction. Positive = over budget. */
   overFraction: number | null;
+  /** For a bucket that's really a sum of several — e.g. "Total expenses" is
+   * Expense + Lifestyle + Emergency fund — the individual amounts behind
+   * `spent`, for a tooltip to break down. Omitted for single-bucket audits. */
+  breakdown?: { label: string; value: number }[];
 };
 
 function auditBucket(
   spent: number,
   periodEarning: number,
   splitFractions: number[],
+  breakdown?: { label: string; value: number }[],
 ): BucketAudit {
   const allocated = periodEarning * splitFractions.reduce((a, b) => a + b, 0);
   const overFraction = allocated > 0 ? (spent - allocated) / allocated : null;
-  return { spent, allocated, overFraction };
+  return { spent, allocated, overFraction, breakdown };
 }
 
 /** How each bucket's actual spend compares to its allocated share of net
@@ -164,10 +169,13 @@ export function getDistributionAudit(
   const periodSeries = series.filter((p) => withinPeriod(p.month, period));
   const { netEarning: periodEarning } = netPeriodEarning(periodSeries);
 
-  const expenseSpent = periodSeries.reduce(
-    (sum, p) => sum + p.expense + p.lifestyle + p.emergencyFund,
+  const expensePart = periodSeries.reduce((sum, p) => sum + p.expense, 0);
+  const lifestylePart = periodSeries.reduce((sum, p) => sum + p.lifestyle, 0);
+  const emergencyPart = periodSeries.reduce(
+    (sum, p) => sum + p.emergencyFund,
     0,
   );
+  const expenseSpent = expensePart + lifestylePart + emergencyPart;
   const investmentSpent = periodSeries.reduce(
     (sum, p) => sum + p.investment,
     0,
@@ -175,11 +183,20 @@ export function getDistributionAudit(
   const donationSpent = periodSeries.reduce((sum, p) => sum + p.donation, 0);
 
   return {
-    expenses: auditBucket(expenseSpent, periodEarning, [
-      DISTRIBUTION_SPLIT.EXPENSE,
-      DISTRIBUTION_SPLIT.LIFESTYLE,
-      DISTRIBUTION_SPLIT.EMERGENCY_FUND,
-    ]),
+    expenses: auditBucket(
+      expenseSpent,
+      periodEarning,
+      [
+        DISTRIBUTION_SPLIT.EXPENSE,
+        DISTRIBUTION_SPLIT.LIFESTYLE,
+        DISTRIBUTION_SPLIT.EMERGENCY_FUND,
+      ],
+      [
+        { label: "Expenses", value: expensePart },
+        { label: "Lifestyle", value: lifestylePart },
+        { label: "Emergency fund", value: emergencyPart },
+      ],
+    ),
     investment: auditBucket(investmentSpent, periodEarning, [
       DISTRIBUTION_SPLIT.INVESTMENT,
     ]),

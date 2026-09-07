@@ -96,15 +96,18 @@ export type BucketBreakdown = {
   remaining: number;
 };
 
-/** All-time allocated / spent / remaining for each distribution bucket. */
-export async function getDistributionBreakdown(): Promise<
-  Record<Bucket, BucketBreakdown>
-> {
+/** Allocated / spent / remaining for each distribution bucket — all-time
+ * when `dateRange` is omitted, or scoped to it otherwise (the Distributions
+ * page's own time filter; every other caller wants the all-time figure). */
+export async function getDistributionBreakdown(
+  dateRange: DateRange = {},
+): Promise<Record<Bucket, BucketBreakdown>> {
+  const date = dateWhere(dateRange);
   const [earnings, expensesByCategory, donations, teamPayments] = await Promise.all([
-    prisma.earning.aggregate({ _sum: { amount: true, teamPay: true } }),
-    prisma.expense.groupBy({ by: ["category"], _sum: { amount: true } }),
-    prisma.donation.aggregate({ _sum: { amount: true } }),
-    prisma.teamPayment.aggregate({ _sum: { amount: true } }),
+    prisma.earning.aggregate({ where: { date }, _sum: { amount: true, teamPay: true } }),
+    prisma.expense.groupBy({ where: { date }, by: ["category"], _sum: { amount: true } }),
+    prisma.donation.aggregate({ where: { date }, _sum: { amount: true } }),
+    prisma.teamPayment.aggregate({ where: { date }, _sum: { amount: true } }),
   ]);
 
   // Team pay comes out before anything else is distributed — whether it was
@@ -150,14 +153,17 @@ export type NetEarningsBreakdown = {
   netEarning: number;
 };
 
-/** All-time gross earning, total team pay (both the teamPay netted directly
- * on an Earning and any standalone TeamPayment), and the net that's left to
+/** Gross earning, total team pay (both the teamPay netted directly on an
+ * Earning and any standalone TeamPayment), and the net that's left to
  * distribute — the same three numbers the Distributions page's summary line
- * is built from. */
-export async function getTotalNetEarnings(): Promise<NetEarningsBreakdown> {
+ * is built from. All-time when `dateRange` is omitted. */
+export async function getTotalNetEarnings(
+  dateRange: DateRange = {},
+): Promise<NetEarningsBreakdown> {
+  const date = dateWhere(dateRange);
   const [sum, teamPayments] = await Promise.all([
-    prisma.earning.aggregate({ _sum: { amount: true, teamPay: true } }),
-    prisma.teamPayment.aggregate({ _sum: { amount: true } }),
+    prisma.earning.aggregate({ where: { date }, _sum: { amount: true, teamPay: true } }),
+    prisma.teamPayment.aggregate({ where: { date }, _sum: { amount: true } }),
   ]);
   const totalEarning = Number(sum._sum.amount ?? 0);
   const totalTeamPay =

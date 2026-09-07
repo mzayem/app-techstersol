@@ -1,4 +1,5 @@
 import { StatCards } from "@/components/finance/stat-cards";
+import { DistributionFilterBar } from "@/components/finance/distribution-filter-bar";
 import {
   BUCKETS,
   BUCKET_ICONS,
@@ -6,7 +7,9 @@ import {
   DISTRIBUTION_SPLIT,
   formatPkr,
 } from "@/lib/finance/constants";
+import { resolveDateRange } from "@/lib/finance/date-range";
 import {
+  getBucketBalances,
   getDistributionBreakdown,
   getTotalNetEarnings,
 } from "@/actions/finance/queries";
@@ -14,10 +17,25 @@ import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
-export default async function DistributionsPage() {
+export default async function DistributionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   await requirePagePermission("distributions");
-  const [breakdown, { totalEarning, totalTeamPay, netEarning }] =
-    await Promise.all([getDistributionBreakdown(), getTotalNetEarnings()]);
+  const params = await searchParams;
+  const dateRange = resolveDateRange(params.range ?? "this-year", params.from, params.to);
+
+  // The stat cards are running balances that carry credit/debit across
+  // years, so they always show the all-time figure regardless of the time
+  // filter below — only the per-bucket "spent vs allocated for this period"
+  // audit and the earning/team-pay/net summary are scoped to it.
+  const [allTimeBalances, breakdown, { totalEarning, totalTeamPay, netEarning }] =
+    await Promise.all([
+      getBucketBalances(),
+      getDistributionBreakdown(dateRange),
+      getTotalNetEarnings(dateRange),
+    ]);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -28,13 +46,9 @@ export default async function DistributionsPage() {
         </p>
       </div>
 
-      <StatCards
-        balances={
-          Object.fromEntries(
-            BUCKETS.map((b) => [b, breakdown[b].remaining]),
-          ) as Record<(typeof BUCKETS)[number], number>
-        }
-      />
+      <DistributionFilterBar />
+
+      <StatCards balances={allTimeBalances} />
 
       <div className="rounded-md bg-card p-4 ring-1 ring-foreground/10 sm:p-6">
         <p className="text-sm text-muted-foreground">
