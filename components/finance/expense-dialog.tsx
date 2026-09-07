@@ -20,11 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AmountInput } from "@/components/finance/amount-input";
 import {
   EXPENSE_CATEGORIES,
   BUCKET_LABELS,
   type ExpenseCategory,
 } from "@/lib/finance/constants";
+import { resolveAmountField } from "@/lib/finance/expression";
 import {
   createExpense,
   deleteExpense,
@@ -65,6 +67,11 @@ export function ExpenseDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const amountError = resolveAmountField(formData, "amount", "Amount");
+    if (amountError) {
+      setError(amountError);
+      return;
+    }
     startTransition(async () => {
       try {
         if (isEdit) {
@@ -134,18 +141,12 @@ export function ExpenseDialog({
               defaultValue={expense?.name}
             />
           </Field>
-          <Field label="Amount (PKR)">
-            <Input
-              type="number"
-              name="amount"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-              required
-              disabled={locked}
-              defaultValue={expense?.amount}
-            />
-          </Field>
+          <AmountInput
+            name="amount"
+            label="Amount (PKR)"
+            disabled={locked}
+            defaultValue={expense?.amount}
+          />
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             {locked ? (

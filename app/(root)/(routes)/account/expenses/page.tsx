@@ -5,6 +5,7 @@ import {
 import { ExpenseImportDialog } from "@/components/finance/expense-import-dialog";
 import { FilterBar } from "@/components/finance/filter-bar";
 import { StatCards } from "@/components/finance/stat-cards";
+import { ExportReportButton } from "@/components/reports/export-report-button";
 import {
   Table,
   TableBody,
@@ -50,12 +51,15 @@ export default async function ExpensesPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Expenses</h1>
-        {permission.canCreate && (
-          <div className="flex items-center gap-2">
-            <ExpenseImportDialog />
-            <ExpenseDialog />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportReportButton module="expenses" />
+          {permission.canCreate && (
+            <>
+              <ExpenseImportDialog />
+              <ExpenseDialog />
+            </>
+          )}
+        </div>
       </div>
 
       <StatCards balances={balances} />

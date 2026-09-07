@@ -5,6 +5,7 @@ import {
 import { DonationImportDialog } from "@/components/finance/donation-import-dialog";
 import { FilterBar } from "@/components/finance/filter-bar";
 import { StatCards } from "@/components/finance/stat-cards";
+import { ExportReportButton } from "@/components/reports/export-report-button";
 import {
   Table,
   TableBody,
@@ -46,12 +47,15 @@ export default async function DonationsPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Donations</h1>
-        {permission.canCreate && (
-          <div className="flex items-center gap-2">
-            <DonationImportDialog />
-            <DonationDialog />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportReportButton module="donations" />
+          {permission.canCreate && (
+            <>
+              <DonationImportDialog />
+              <DonationDialog />
+            </>
+          )}
+        </div>
       </div>
 
       <StatCards balances={balances} />

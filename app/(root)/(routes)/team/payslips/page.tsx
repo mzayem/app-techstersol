@@ -1,5 +1,6 @@
 import { PayslipDialog } from "@/components/team/payslip-dialog";
 import { PayslipRowActions } from "@/components/team/payslip-row-actions";
+import { ExportReportButton } from "@/components/reports/export-report-button";
 import {
   Table,
   TableBody,
@@ -39,13 +40,16 @@ export default async function PayslipsPage() {
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Payslips</h1>
-        {permission.canCreate && (
-          <PayslipDialog
-            teamMembers={teamMembers}
-            contracts={contracts}
-            workDiaryEntries={workDiaryOptions}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          <ExportReportButton module="payslips" />
+          {permission.canCreate && (
+            <PayslipDialog
+              teamMembers={teamMembers}
+              contracts={contracts}
+              workDiaryEntries={workDiaryOptions}
+            />
+          )}
+        </div>
       </div>
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">

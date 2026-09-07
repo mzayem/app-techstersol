@@ -1,6 +1,7 @@
 import { InvoiceDialog } from "@/components/invoices/invoice-dialog";
 import { InvoiceFilterBar } from "@/components/invoices/invoice-filter-bar";
 import { InvoiceRowActions } from "@/components/invoices/invoice-row-actions";
+import { ExportReportButton } from "@/components/reports/export-report-button";
 import {
   Table,
   TableBody,
@@ -64,13 +65,16 @@ export default async function InvoicesPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Invoices</h1>
-        {permission.canCreate && (
-          <InvoiceDialog
-            clients={clients}
-            lineOptions={lineOptions}
-            bankAccounts={bankAccounts}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          <ExportReportButton module="invoices" />
+          {permission.canCreate && (
+            <InvoiceDialog
+              clients={clients}
+              lineOptions={lineOptions}
+              bankAccounts={bankAccounts}
+            />
+          )}
+        </div>
       </div>
 
       <InvoiceFilterBar />

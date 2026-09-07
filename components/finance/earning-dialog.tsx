@@ -20,10 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AmountInput } from "@/components/finance/amount-input";
 import {
   REFERENCE_CURRENCIES,
   type ReferenceCurrency,
 } from "@/lib/finance/constants";
+import { resolveAmountField } from "@/lib/finance/expression";
 import {
   createEarning,
   deleteEarning,
@@ -66,6 +68,11 @@ export function EarningDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const amountError = resolveAmountField(formData, "amount", "Amount");
+    if (amountError) {
+      setError(amountError);
+      return;
+    }
     startTransition(async () => {
       try {
         if (isEdit) {
@@ -113,18 +120,12 @@ export function EarningDialog({
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Amount (PKR)">
-              <Input
-                type="number"
-                name="amount"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                required
-                disabled={locked}
-                defaultValue={earning?.amount}
-              />
-            </Field>
+            <AmountInput
+              name="amount"
+              label="Amount (PKR)"
+              disabled={locked}
+              defaultValue={earning?.amount}
+            />
             <Field label="Team pay (PKR)">
               <Input
                 type="number"
