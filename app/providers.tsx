@@ -18,6 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       replace={router.replace}
       onSessionChange={() => router.refresh()}
       redirectTo={inPortal ? "/portal" : "/"}
+      signUp={false}
       social={{ providers: ["google"] }}
       account={{ basePath: inPortal ? "/portal/profile" : "/profile" }}
       Link={Link}

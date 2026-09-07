@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { navGroups, navMain } from "@/components/nav/nav-data";
 import { NavUser } from "@/components/nav/nav-user";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import type { PageKey } from "@/lib/rbac/pages";
 import {
   Sidebar,
@@ -95,6 +96,11 @@ export function AppSidebar({
         ))}
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <ModeToggle />
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavUser />
       </SidebarFooter>
     </Sidebar>

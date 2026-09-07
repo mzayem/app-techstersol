@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { NavUser } from "@/components/nav/nav-user";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import {
   Sidebar,
   SidebarContent,
@@ -85,6 +86,11 @@ export function PortalSidebar({
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <ModeToggle />
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavUser />
       </SidebarFooter>
     </Sidebar>
