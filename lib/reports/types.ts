@@ -20,4 +20,9 @@ export type ReportSpec = {
   /** Optional summary row, keyed the same as `columns`. Only include this
    * when every row's amount is in the same currency. */
   totals?: ReportRow;
+  /** Column holding each row's primary date. When rows span more than one
+   * calendar month, the PDF splits into a per-month table (with a year
+   * divider whenever the data crosses a year boundary) instead of one long
+   * flat table. Leave unset to always render a single flat table. */
+  groupByDateKey?: string;
 };

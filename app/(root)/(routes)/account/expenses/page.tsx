@@ -17,6 +17,7 @@ import {
 import { resolveDateRange } from "@/lib/finance/date-range";
 import {
   BUCKET_LABELS,
+  EXPENSE_CATEGORIES,
   formatPkr,
   type ExpenseCategory,
 } from "@/lib/finance/constants";
@@ -37,12 +38,16 @@ export default async function ExpensesPage({
   const { permission } = await requirePagePermission("expenses");
   const params = await searchParams;
   const dateRange = resolveDateRange(params.range, params.from, params.to);
+  const category = EXPENSE_CATEGORIES.includes(params.category as ExpenseCategory)
+    ? (params.category as ExpenseCategory)
+    : undefined;
 
   const [expenses, balances] = await Promise.all([
     listExpenses({
       dateRange,
       search: params.q,
       sort: params.sort as SortOption | undefined,
+      category,
     }),
     getBucketBalances(),
   ]);
@@ -64,7 +69,7 @@ export default async function ExpensesPage({
 
       <StatCards balances={balances} />
 
-      <FilterBar />
+      <FilterBar categoryFilter />
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">
         <Table>

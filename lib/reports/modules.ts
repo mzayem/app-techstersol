@@ -4,6 +4,7 @@ import { resolveDateRange, DATE_PRESET_LABELS, type DatePreset } from "@/lib/fin
 import {
   BUCKET_LABELS,
   CURRENCY_SYMBOLS,
+  EXPENSE_CATEGORIES,
   type ExpenseCategory,
   type ReferenceCurrency,
 } from "@/lib/finance/constants";
@@ -46,17 +47,34 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 });
 
+const MONTH_YEAR_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  month: "long",
+  year: "numeric",
+});
+
+/** Names the active range as concretely as possible — a single month says
+ * "September 2026", a full year says "2026", a wider preset spells out its
+ * bounding months, and only an exact custom range falls back to day-level
+ * dates. */
 function dateRangeSubtitle(params: Record<string, string | undefined>): string {
   const preset = (params.range as DatePreset | undefined) ?? "this-month";
   const range = resolveDateRange(params.range, params.from, params.to);
   const parts: string[] = [];
-  if (preset === "custom" && (range.from || range.to)) {
+
+  if (preset === "this-month" && range.from) {
+    parts.push(MONTH_YEAR_FORMAT.format(range.from));
+  } else if (preset === "this-year" && range.from) {
+    parts.push(String(range.from.getFullYear()));
+  } else if (preset === "6-months" && range.from) {
+    parts.push(`${MONTH_YEAR_FORMAT.format(range.from)} – ${MONTH_YEAR_FORMAT.format(new Date())}`);
+  } else if (preset === "custom" && (range.from || range.to)) {
     parts.push(
-      `Range: ${range.from ? DATE_FORMAT.format(range.from) : "…"} – ${range.to ? DATE_FORMAT.format(range.to) : "…"}`,
+      `${range.from ? DATE_FORMAT.format(range.from) : "…"} – ${range.to ? DATE_FORMAT.format(range.to) : "…"}`,
     );
   } else {
-    parts.push(`Range: ${DATE_PRESET_LABELS[preset] ?? preset}`);
+    parts.push(DATE_PRESET_LABELS[preset] ?? preset);
   }
+
   if (params.q) parts.push(`Search: "${params.q}"`);
   return parts.join("  ·  ");
 }
@@ -128,6 +146,7 @@ const earning: ReportModuleDef = {
         netEarning: totalAmount - totalTeamPay,
         reference: null,
       },
+      groupByDateKey: "date",
     };
   },
 };
@@ -161,6 +180,7 @@ const donations: ReportModuleDef = {
       ],
       rows: reportRows,
       totals: { date: "Total", name: null, amount: totalAmount },
+      groupByDateKey: "date",
     };
   },
 };
@@ -171,10 +191,14 @@ const expenses: ReportModuleDef = {
   filename: "expense-report",
   async fetch(params) {
     const dateRange = resolveDateRange(params.range, params.from, params.to);
+    const category = EXPENSE_CATEGORIES.includes(params.category as ExpenseCategory)
+      ? (params.category as ExpenseCategory)
+      : undefined;
     const rows = await listExpenses({
       dateRange,
       search: params.q,
       sort: params.sort as FinanceSortOption | undefined,
+      category,
     });
 
     let totalAmount = 0;
@@ -191,7 +215,9 @@ const expenses: ReportModuleDef = {
 
     return {
       title: expenses.title,
-      subtitle: dateRangeSubtitle(params),
+      subtitle: [dateRangeSubtitle(params), category ? `Type: ${BUCKET_LABELS[category]}` : null]
+        .filter(Boolean)
+        .join("  ·  "),
       columns: [
         { key: "date", label: "Date", numFmt: "dd mmm yyyy" },
         { key: "type", label: "Type" },
@@ -200,6 +226,7 @@ const expenses: ReportModuleDef = {
       ],
       rows: reportRows,
       totals: { date: "Total", type: null, name: null, amount: totalAmount },
+      groupByDateKey: "date",
     };
   },
 };
@@ -348,6 +375,7 @@ const payslips: ReportModuleDef = {
         issueDate: null,
         amount: totalAmount,
       },
+      groupByDateKey: "issueDate",
     };
   },
 };

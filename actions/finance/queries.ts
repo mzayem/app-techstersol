@@ -5,6 +5,7 @@ import {
   BUCKETS,
   DISTRIBUTION_SPLIT,
   type Bucket,
+  type ExpenseCategory,
 } from "@/lib/finance/constants";
 import type { DateRange } from "@/lib/finance/date-range";
 
@@ -20,6 +21,10 @@ export type ListFilters = {
   dateRange: DateRange;
   search?: string;
   sort?: SortOption;
+};
+
+export type ExpenseListFilters = ListFilters & {
+  category?: ExpenseCategory;
 };
 
 function dateWhere(range: DateRange): Prisma.DateTimeFilter | undefined {
@@ -60,10 +65,11 @@ export async function listEarnings(filters: ListFilters) {
   });
 }
 
-export async function listExpenses(filters: ListFilters) {
+export async function listExpenses(filters: ExpenseListFilters) {
   return prisma.expense.findMany({
     where: {
       date: dateWhere(filters.dateRange),
+      category: filters.category,
       name: filters.search
         ? { contains: filters.search, mode: "insensitive" }
         : undefined,

@@ -10,7 +10,8 @@ import {
 
 import { COMPANY_INFO } from "@/lib/invoices/constants";
 import { getReportLogoPng } from "@/lib/reports/logo";
-import type { ReportSpec, ReportCell, ReportColumn } from "@/lib/reports/types";
+import { groupRowsByMonth, computeGroupTotals } from "@/lib/reports/group";
+import type { ReportSpec, ReportCell, ReportColumn, ReportRow } from "@/lib/reports/types";
 
 const styles = StyleSheet.create({
   page: {
@@ -29,10 +30,23 @@ const styles = StyleSheet.create({
   },
   reportTitle: { fontSize: 18, fontWeight: 700, color: "#111827" },
   small: { fontSize: 8.5, color: "#434343" },
-  companyBlock: { gap: 2 },
-  subtitle: { marginTop: 4, fontSize: 9, color: "#4b5563" },
-  table: {
+  companyBlock: { marginTop: 10, gap: 2 },
+  subtitle: { marginTop: 6, fontSize: 9, color: "#4b5563" },
+  yearHeading: {
     marginTop: 18,
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#111827",
+  },
+  groupHeading: {
+    marginTop: 14,
+    marginBottom: 2,
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "#1f3864",
+  },
+  table: {
+    marginTop: 6,
     borderWidth: 1,
     borderColor: "#d1d5db",
   },
@@ -94,6 +108,59 @@ function formatCell(value: ReportCell): string {
   return value;
 }
 
+/** One bordered table: header row (repeats on every page it flows onto),
+ * body rows, and an optional totals row. */
+function ReportTable({
+  columns,
+  rows,
+  totalsRow,
+}: {
+  columns: ReportColumn[];
+  rows: ReportRow[];
+  totalsRow?: ReportRow;
+}) {
+  return (
+    <View style={styles.table}>
+      <View style={styles.tableHeaderRow} fixed>
+        {columns.map((column) => (
+          <Text key={column.key} style={[cellAlign(column), styles.headerCellText]}>
+            {column.label}
+          </Text>
+        ))}
+      </View>
+      {rows.length === 0 && (
+        <View style={styles.tableRow}>
+          <Text style={{ ...styles.cell, color: "#6b7280" }}>
+            No records found for this selection.
+          </Text>
+        </View>
+      )}
+      {rows.map((row, index) => (
+        <View
+          key={index}
+          style={[styles.tableRow, ...(index % 2 === 1 ? [styles.tableRowAlt] : [])]}
+          wrap={false}
+        >
+          {columns.map((column) => (
+            <Text key={column.key} style={cellAlign(column)}>
+              {formatCell(row[column.key])}
+            </Text>
+          ))}
+        </View>
+      ))}
+      {totalsRow && (
+        <View style={styles.totalsRow} wrap={false}>
+          {columns.map((column) => (
+            <Text key={column.key} style={[cellAlign(column), styles.bold]}>
+              {formatCell(totalsRow[column.key])}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function ReportDocument({
   spec,
   logoDataUrl,
@@ -103,6 +170,10 @@ function ReportDocument({
   logoDataUrl: string | null;
   generatedOn: string;
 }) {
+  const groups = spec.groupByDateKey
+    ? groupRowsByMonth(spec.rows, spec.groupByDateKey)
+    : null;
+
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
@@ -130,52 +201,25 @@ function ReportDocument({
 
         {spec.subtitle && <Text style={styles.subtitle}>{spec.subtitle}</Text>}
 
-        <View style={styles.table}>
-          <View style={styles.tableHeaderRow}>
-            {spec.columns.map((column) => (
-              <Text
-                key={column.key}
-                style={[cellAlign(column), styles.headerCellText]}
-              >
-                {column.label}
-              </Text>
-            ))}
-          </View>
-          {spec.rows.length === 0 && (
-            <View style={styles.tableRow}>
-              <Text style={{ ...styles.cell, color: "#6b7280" }}>
-                No records found for this selection.
-              </Text>
+        {groups ? (
+          groups.map((group, index) => (
+            <View key={index}>
+              {group.yearDivider && (
+                <Text style={styles.yearHeading}>{group.yearDivider}</Text>
+              )}
+              <Text style={styles.groupHeading}>{group.periodLabel}</Text>
+              <ReportTable
+                columns={spec.columns}
+                rows={group.rows}
+                totalsRow={
+                  spec.totals ? computeGroupTotals(group.rows, spec.totals) : undefined
+                }
+              />
             </View>
-          )}
-          {spec.rows.map((row, index) => (
-            <View
-              key={index}
-              style={[
-                styles.tableRow,
-                ...(index % 2 === 1 ? [styles.tableRowAlt] : []),
-              ]}
-            >
-              {spec.columns.map((column) => (
-                <Text key={column.key} style={cellAlign(column)}>
-                  {formatCell(row[column.key])}
-                </Text>
-              ))}
-            </View>
-          ))}
-          {spec.totals && (
-            <View style={styles.totalsRow}>
-              {spec.columns.map((column) => (
-                <Text
-                  key={column.key}
-                  style={[cellAlign(column), styles.bold]}
-                >
-                  {formatCell(spec.totals![column.key])}
-                </Text>
-              ))}
-            </View>
-          )}
-        </View>
+          ))
+        ) : (
+          <ReportTable columns={spec.columns} rows={spec.rows} totalsRow={spec.totals} />
+        )}
 
         <View style={styles.footer} fixed>
           <Text style={[styles.small, { fontStyle: "italic" }]}>

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DATE_PRESETS, DATE_PRESET_LABELS } from "@/lib/finance/date-range";
+import { EXPENSE_CATEGORIES, BUCKET_LABELS } from "@/lib/finance/constants";
 import type { SortOption } from "@/actions/finance/queries";
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -24,13 +25,19 @@ const SORT_LABELS: Record<SortOption, string> = {
   "name-desc": "Name (Z–A)",
 };
 
-export function FilterBar() {
+export function FilterBar({
+  categoryFilter = false,
+}: {
+  /** Shows an expense-type filter — only meaningful on the Expenses page. */
+  categoryFilter?: boolean;
+} = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const preset = searchParams.get("range") ?? "this-month";
   const sort = (searchParams.get("sort") as SortOption) ?? "date-desc";
+  const category = searchParams.get("category") ?? "all";
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
 
   function updateParams(updates: Record<string, string | null>) {
@@ -54,6 +61,15 @@ export function FilterBar() {
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="relative w-full sm:w-52">
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search by name"
+          className="pl-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
       <Select
         value={preset}
         onValueChange={(value) =>
@@ -93,15 +109,26 @@ export function FilterBar() {
         </div>
       )}
 
-      <div className="relative w-full sm:w-52">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search by name"
-          className="pl-8"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      {categoryFilter && (
+        <Select
+          value={category}
+          onValueChange={(value) =>
+            updateParams({ category: value === "all" ? null : value })
+          }
+        >
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            {EXPENSE_CATEGORIES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {BUCKET_LABELS[c]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       <Select
         value={sort}

@@ -53,6 +53,16 @@ export function BankAccountFilterBar() {
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="relative w-full sm:w-56">
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search by bank or account holder"
+          className="pl-8"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <Select
         value={currency}
         onValueChange={(value) =>
@@ -71,16 +81,6 @@ export function BankAccountFilterBar() {
           ))}
         </SelectContent>
       </Select>
-
-      <div className="relative w-full sm:w-56">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search by bank or account holder"
-          className="pl-8"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
 
       <Select
         value={sort}
