@@ -67,9 +67,7 @@ export default async function AuthPage({
           </div>
         </div>
 
-        <div className="w-full rounded-xl border border-border bg-card p-6 shadow-sm ring-1 ring-foreground/10 sm:p-8">
-          <AuthView path={path} />
-        </div>
+        <AuthView path={path} className="w-full" />
       </div>
     </main>
   );

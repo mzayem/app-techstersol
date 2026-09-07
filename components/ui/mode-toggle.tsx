@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -16,12 +15,11 @@ const THEME_ICONS = { light: Sun, dark: Moon, system: Monitor } as const;
 
 export function ModeToggle() {
   const { theme = "system", setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
 
-  const Icon = mounted
-    ? (THEME_ICONS[theme as keyof typeof THEME_ICONS] ?? Monitor)
-    : Monitor;
+  // `theme` is undefined on the server and on the first client render alike
+  // (next-themes only resolves it from storage after mount), so this default
+  // renders identically both times — no hydration mismatch, no effect needed.
+  const Icon = THEME_ICONS[theme as keyof typeof THEME_ICONS] ?? Monitor;
 
   return (
     <DropdownMenu>
