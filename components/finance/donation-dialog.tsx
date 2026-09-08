@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { AmountInput } from "@/components/finance/amount-input";
 import { resolveAmountField } from "@/lib/finance/expression";
 import {
@@ -88,8 +89,7 @@ export function DonationDialog({
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <Field label="Date">
-            <Input
-              type="date"
+            <DatePicker
               name="date"
               required
               disabled={locked}

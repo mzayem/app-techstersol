@@ -19,6 +19,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "../ui/separator";
 
@@ -27,6 +28,7 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { visiblePages: PageKey[] }) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
   const visible = new Set(visiblePages);
   const filteredGroups = navGroups
     .map((group) => ({
@@ -35,12 +37,22 @@ export function AppSidebar({
     }))
     .filter((group) => group.items.length > 0);
 
+  // The sidebar is a full-screen overlay on mobile — after tapping a link
+  // it's navigating away anyway, so leaving the drawer open just blocks the
+  // page underneath until the user dismisses it themselves.
+  function closeOnMobile() {
+    if (isMobile) setOpenMobile(false);
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/" />}>
+            <SidebarMenuButton
+              size="lg"
+              render={<Link href="/" onClick={closeOnMobile} />}
+            >
               <Image
                 src="/images/icon.webp"
                 alt=""
@@ -64,7 +76,7 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname === navMain.url}
                   tooltip={navMain.title}
-                  render={<Link href={navMain.url} />}
+                  render={<Link href={navMain.url} onClick={closeOnMobile} />}
                 >
                   <navMain.icon />
                   <span>{navMain.title}</span>
@@ -83,7 +95,7 @@ export function AppSidebar({
                     <SidebarMenuButton
                       isActive={pathname === item.url}
                       tooltip={item.title}
-                      render={<Link href={item.url} />}
+                      render={<Link href={item.url} onClick={closeOnMobile} />}
                     >
                       <item.icon />
                       <span>{item.title}</span>

@@ -6,7 +6,7 @@ import { Loader2Icon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Combobox } from "@/components/ui/combobox";
-import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Select,
   SelectContent,
@@ -44,11 +44,11 @@ export function WorkDiaryFilterBar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 transition-opacity sm:flex-row sm:flex-wrap sm:items-center",
+        "flex flex-row flex-wrap items-center gap-2 transition-opacity",
         isPending && "opacity-60",
       )}
     >
-      <div className="w-full sm:w-64">
+      <div className="w-full basis-full sm:w-64 sm:basis-auto">
         <Combobox
           value={teamMemberId}
           onValueChange={(v) => updateParams({ teamMemberId: v || null })}
@@ -68,7 +68,7 @@ export function WorkDiaryFilterBar({
           })
         }
       >
-        <SelectTrigger className="w-full sm:w-40">
+        <SelectTrigger className="min-w-32 flex-1 sm:w-40 sm:flex-none">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -84,21 +84,12 @@ export function WorkDiaryFilterBar({
       </Select>
 
       {period === "custom" && (
-        <div className="flex items-center gap-1.5">
-          <Input
-            type="date"
-            className="w-36"
-            defaultValue={searchParams.get("from") ?? ""}
-            onChange={(e) => updateParams({ from: e.target.value || null })}
-          />
-          <span className="text-muted-foreground">–</span>
-          <Input
-            type="date"
-            className="w-36"
-            defaultValue={searchParams.get("to") ?? ""}
-            onChange={(e) => updateParams({ to: e.target.value || null })}
-          />
-        </div>
+        <DateRangePicker
+          className="basis-full sm:w-64 sm:basis-auto"
+          from={searchParams.get("from") ?? ""}
+          to={searchParams.get("to") ?? ""}
+          onChange={({ from, to }) => updateParams({ from: from || null, to: to || null })}
+        />
       )}
 
       {isPending && (

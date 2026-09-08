@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPkr } from "@/lib/finance/constants";
 import { formatWeekRange } from "@/lib/team/work-diary";
@@ -190,28 +191,26 @@ export function PayslipDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Period start">
-              <Input
-                type="date"
+              <DatePicker
                 name="periodStart"
                 required
                 value={periodStart}
-                onChange={(e) => setPeriodStart(e.target.value)}
+                onValueChange={setPeriodStart}
               />
             </Field>
             <Field label="Period end">
-              <Input
-                type="date"
+              <DatePicker
                 name="periodEnd"
                 required
                 value={periodEnd}
-                onChange={(e) => setPeriodEnd(e.target.value)}
+                onValueChange={setPeriodEnd}
               />
             </Field>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Issue date">
-              <Input type="date" name="issueDate" required defaultValue={todayInput()} />
+              <DatePicker name="issueDate" required defaultValue={todayInput()} />
             </Field>
             <Field label="Amount (PKR)">
               <Input

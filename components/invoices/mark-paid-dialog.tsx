@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { markInvoicePaid } from "@/actions/invoices/actions";
 
@@ -58,8 +59,7 @@ export function MarkPaidDialog({
             <Input name="transactionId" placeholder="TID" required />
           </Field>
           <Field label="Paid on">
-            <Input
-              type="date"
+            <DatePicker
               name="paidOn"
               required
               defaultValue={new Date().toISOString().slice(0, 10)}

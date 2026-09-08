@@ -23,6 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 
@@ -39,14 +40,25 @@ export function PortalSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { showWorkDiary: boolean }) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
   const navItems = PORTAL_NAV.filter((item) => !item.hourlyOnly || showWorkDiary);
+
+  // The sidebar is a full-screen overlay on mobile — after tapping a link
+  // it's navigating away anyway, so leaving the drawer open just blocks the
+  // page underneath until the user dismisses it themselves.
+  function closeOnMobile() {
+    if (isMobile) setOpenMobile(false);
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/portal" />}>
+            <SidebarMenuButton
+              size="lg"
+              render={<Link href="/portal" onClick={closeOnMobile} />}
+            >
               <Image
                 src="/images/icon.webp"
                 alt=""
@@ -74,7 +86,7 @@ export function PortalSidebar({
                       (item.url !== "/portal" && pathname.startsWith(item.url))
                     }
                     tooltip={item.title}
-                    render={<Link href={item.url} />}
+                    render={<Link href={item.url} onClick={closeOnMobile} />}
                   >
                     <item.icon />
                     <span>{item.title}</span>

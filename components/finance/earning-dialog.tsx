@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -102,8 +103,7 @@ export function EarningDialog({
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <Field label="Date">
-            <Input
-              type="date"
+            <DatePicker
               name="date"
               required
               disabled={locked}

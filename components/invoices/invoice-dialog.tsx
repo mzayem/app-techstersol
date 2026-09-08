@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -429,23 +430,21 @@ export function InvoiceDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Issue date">
-                <Input
-                  type="date"
+                <DatePicker
                   name="issueDate"
                   required
                   value={issueDateValue}
-                  onChange={(e) => onIssueDateChange(e.target.value)}
+                  onValueChange={onIssueDateChange}
                 />
               </Field>
               <Field label="Due date">
-                <Input
-                  type="date"
+                <DatePicker
                   name="dueDate"
                   required
                   value={dueDateValue}
-                  onChange={(e) => {
+                  onValueChange={(v) => {
                     setDueDateTouched(true);
-                    setDueDateValue(e.target.value);
+                    setDueDateValue(v);
                   }}
                 />
               </Field>

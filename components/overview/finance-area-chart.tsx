@@ -17,7 +17,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Select,
   SelectContent,
@@ -129,21 +129,15 @@ export function FinanceAreaChart({
         </CardDescription>
         <CardAction className="flex items-center gap-2">
           {range === "custom" && (
-            <div className="flex items-center gap-1.5">
-              <Input
-                type="date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-8 w-36"
-              />
-              <span className="text-muted-foreground">–</span>
-              <Input
-                type="date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="h-8 w-36"
-              />
-            </div>
+            <DateRangePicker
+              className="h-8 w-56"
+              from={customFrom}
+              to={customTo}
+              onChange={(r) => {
+                setCustomFrom(r.from);
+                setCustomTo(r.to);
+              }}
+            />
           )}
           <Select value={range} onValueChange={(v) => v && setRange(v as RangeValue)}>
             <SelectTrigger size="sm" className="w-40">

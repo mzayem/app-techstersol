@@ -6,6 +6,7 @@ import { Loader2Icon, SearchIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Select,
   SelectContent,
@@ -66,11 +67,11 @@ export function FilterBar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 transition-opacity sm:flex-row sm:flex-wrap sm:items-center",
+        "flex flex-row flex-wrap items-center gap-2 transition-opacity",
         isPending && "opacity-60",
       )}
     >
-      <div className="relative w-full sm:w-52">
+      <div className="relative w-full basis-full sm:w-52 sm:basis-auto">
         {isPending ? (
           <Loader2Icon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
         ) : (
@@ -92,7 +93,7 @@ export function FilterBar({
           })
         }
       >
-        <SelectTrigger className="w-full sm:w-40">
+        <SelectTrigger className="min-w-32 flex-1 sm:w-40 sm:flex-none">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -105,21 +106,12 @@ export function FilterBar({
       </Select>
 
       {preset === "custom" && (
-        <div className="flex items-center gap-1.5">
-          <Input
-            type="date"
-            className="w-36"
-            defaultValue={searchParams.get("from") ?? ""}
-            onChange={(e) => updateParams({ from: e.target.value || null })}
-          />
-          <span className="text-muted-foreground">–</span>
-          <Input
-            type="date"
-            className="w-36"
-            defaultValue={searchParams.get("to") ?? ""}
-            onChange={(e) => updateParams({ to: e.target.value || null })}
-          />
-        </div>
+        <DateRangePicker
+          className="basis-full sm:w-64 sm:basis-auto"
+          from={searchParams.get("from") ?? ""}
+          to={searchParams.get("to") ?? ""}
+          onChange={({ from, to }) => updateParams({ from: from || null, to: to || null })}
+        />
       )}
 
       {categoryFilter && (
@@ -129,7 +121,7 @@ export function FilterBar({
             updateParams({ category: value === "all" ? null : value })
           }
         >
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="min-w-32 flex-1 sm:w-40 sm:flex-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -147,7 +139,7 @@ export function FilterBar({
         value={sort}
         onValueChange={(value) => updateParams({ sort: value })}
       >
-        <SelectTrigger className="w-full sm:w-44">
+        <SelectTrigger className="min-w-32 flex-1 sm:w-44 sm:flex-none">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

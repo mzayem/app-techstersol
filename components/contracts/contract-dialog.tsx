@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -222,8 +223,7 @@ export function ContractDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Start date">
-                <Input
-                  type="date"
+                <DatePicker
                   name="date"
                   required
                   disabled={locked}
@@ -233,8 +233,7 @@ export function ContractDialog({
                 />
               </Field>
               <Field label="Deadline">
-                <Input
-                  type="date"
+                <DatePicker
                   name="deadline"
                   required
                   disabled={locked}
@@ -350,14 +349,11 @@ export function ContractDialog({
                         updateMilestone(index, { amount: e.target.value })
                       }
                     />
-                    <Input
-                      type="date"
+                    <DatePicker
                       className="w-40"
                       value={row.deadline}
                       disabled={locked}
-                      onChange={(e) =>
-                        updateMilestone(index, { deadline: e.target.value })
-                      }
+                      onValueChange={(v) => updateMilestone(index, { deadline: v })}
                     />
                     <Button
                       type="button"

@@ -5,7 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Select,
   SelectContent,
@@ -37,7 +37,7 @@ export function PeriodSelector() {
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 transition-opacity sm:flex-row sm:items-center",
+        "flex flex-row flex-wrap items-center gap-2 transition-opacity",
         isPending && "opacity-60",
       )}
     >
@@ -50,7 +50,7 @@ export function PeriodSelector() {
           })
         }
       >
-        <SelectTrigger className="w-full sm:w-40">
+        <SelectTrigger className="min-w-32 flex-1 sm:w-40 sm:flex-none">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -63,21 +63,12 @@ export function PeriodSelector() {
       </Select>
 
       {period === "custom" && (
-        <div className="flex items-center gap-1.5">
-          <Input
-            type="date"
-            className="w-36"
-            defaultValue={searchParams.get("from") ?? ""}
-            onChange={(e) => updateParams({ from: e.target.value || null })}
-          />
-          <span className="text-muted-foreground">–</span>
-          <Input
-            type="date"
-            className="w-36"
-            defaultValue={searchParams.get("to") ?? ""}
-            onChange={(e) => updateParams({ to: e.target.value || null })}
-          />
-        </div>
+        <DateRangePicker
+          className="basis-full sm:w-64 sm:basis-auto"
+          from={searchParams.get("from") ?? ""}
+          to={searchParams.get("to") ?? ""}
+          onChange={({ from, to }) => updateParams({ from: from || null, to: to || null })}
+        />
       )}
 
       {isPending && (

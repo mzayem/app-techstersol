@@ -353,14 +353,14 @@ export function KpiCards({
               label="Team paid"
               value={formatCompactPkr(totalTeamPaid)}
               full={formatPkr(totalTeamPaid)}
-              hint="This period, outside a booked earning"
+              hint="Outside a booked earning"
             />
             <StatStrip
               icon={HourglassIcon}
               label="Pending payment for teams"
               value={formatCompactPkr(teamPendingPkr)}
               full={formatPkr(teamPendingPkr)}
-              hint="Outsourced work + logged diary hours · all time"
+              hint="Projects + logged diary hours · all time"
             />
             <StatStrip
               icon={FileWarningIcon}

@@ -4,7 +4,7 @@ import * as React from "react";
 import { FileTextIcon, SparklesIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   Dialog,
   DialogContent,
@@ -126,21 +126,14 @@ export function AnalysisReportDialog({
                 </Select>
               </label>
               {preset === "custom" && (
-                <div className="flex items-center gap-1.5">
-                  <Input
-                    type="date"
-                    className="w-full"
-                    value={from}
-                    onChange={(e) => setFrom(e.target.value)}
-                  />
-                  <span className="text-muted-foreground">–</span>
-                  <Input
-                    type="date"
-                    className="w-full"
-                    value={to}
-                    onChange={(e) => setTo(e.target.value)}
-                  />
-                </div>
+                <DateRangePicker
+                  from={from}
+                  to={to}
+                  onChange={(range) => {
+                    setFrom(range.from);
+                    setTo(range.to);
+                  }}
+                />
               )}
             </>
           )}
