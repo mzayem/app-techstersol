@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -11,23 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { useMounted } from "@/lib/hooks/use-mounted";
 
 const THEME_ICONS = { light: Sun, dark: Moon, system: Monitor } as const;
-
-const subscribeNever = () => () => {};
-
-/** True only once hydration has completed. Backed by `useSyncExternalStore`
- * (rather than a `useEffect` + `setState`) so there's no synchronous
- * setState-in-effect to trigger a cascading-render lint error — React
- * itself re-renders once the client snapshot ("true") differs from the
- * server one ("false"), right after hydration. */
-function useMounted() {
-  return React.useSyncExternalStore(
-    subscribeNever,
-    () => true,
-    () => false,
-  );
-}
 
 export function ModeToggle() {
   const { theme = "system", setTheme } = useTheme();

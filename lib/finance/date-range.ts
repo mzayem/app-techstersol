@@ -46,3 +46,37 @@ function endOfDay(date: Date) {
   date.setHours(23, 59, 59, 999);
   return date;
 }
+
+/** Prisma `where` clause for a date field, given a resolved range — shared
+ * so every list query filters dates the same way. `undefined` for an
+ * unbounded range means "no filter", not "excludes everything". */
+export function dateWhere(
+  range: DateRange,
+): { gte?: Date; lte?: Date } | undefined {
+  if (!range.from && !range.to) return undefined;
+  return {
+    ...(range.from ? { gte: range.from } : {}),
+    ...(range.to ? { lte: range.to } : {}),
+  };
+}
+
+/** The fiscal year running July 1 of `startYear` through June 30 of
+ * `startYear + 1` (e.g. `fiscalYearRange(2025)` covers Jul 2025 – Jun
+ * 2026) — Pakistan's tax year, for the Annual Report. */
+export function fiscalYearRange(startYear: number): DateRange {
+  return {
+    from: new Date(startYear, 6, 1),
+    to: endOfDay(new Date(startYear + 1, 5, 30)),
+  };
+}
+
+/** "2025–26" style label for a fiscal year starting in `startYear`. */
+export function formatFiscalYearLabel(startYear: number): string {
+  return `${startYear}–${String(startYear + 1).slice(-2)}`;
+}
+
+/** The fiscal year `date` falls in, as `startYear` (e.g. a January 2026
+ * date falls in the fiscal year that started July 2025, so returns 2025). */
+export function fiscalYearForDate(date: Date): number {
+  return date.getMonth() >= 6 ? date.getFullYear() : date.getFullYear() - 1;
+}

@@ -1,5 +1,3 @@
-import type { Prisma } from "@/generated/prisma/client";
-
 import { prisma } from "@/lib/prisma";
 import {
   BUCKETS,
@@ -7,7 +5,7 @@ import {
   type Bucket,
   type ExpenseCategory,
 } from "@/lib/finance/constants";
-import type { DateRange } from "@/lib/finance/date-range";
+import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
 export type SortOption =
   | "date-desc"
@@ -26,14 +24,6 @@ export type ListFilters = {
 export type ExpenseListFilters = ListFilters & {
   category?: ExpenseCategory;
 };
-
-function dateWhere(range: DateRange): Prisma.DateTimeFilter | undefined {
-  if (!range.from && !range.to) return undefined;
-  return {
-    ...(range.from ? { gte: range.from } : {}),
-    ...(range.to ? { lte: range.to } : {}),
-  };
-}
 
 function orderBy(sort: SortOption | undefined, amountField: string) {
   switch (sort) {

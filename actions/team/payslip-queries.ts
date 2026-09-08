@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
 export type SortOption = "number-desc" | "number-asc" | "issue-desc" | "issue-asc";
 
 export type ListFilters = {
   search?: string;
   sort?: SortOption;
+  /** Filters by `issueDate` — omit for no date filtering. */
+  dateRange?: DateRange;
 };
 
 function orderBy(sort: SortOption | undefined) {
@@ -24,6 +27,7 @@ function orderBy(sort: SortOption | undefined) {
 export async function listPayslips(filters: ListFilters) {
   return prisma.payslip.findMany({
     where: {
+      issueDate: filters.dateRange ? dateWhere(filters.dateRange) : undefined,
       teamMember: filters.search
         ? { name: { contains: filters.search, mode: "insensitive" } }
         : undefined,

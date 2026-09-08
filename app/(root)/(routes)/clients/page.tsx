@@ -3,6 +3,7 @@ import {
   ClientRowActions,
 } from "@/components/clients/client-dialog";
 import { ClientFilterBar } from "@/components/clients/client-filter-bar";
+import { ExportReportDialog } from "@/components/reports/export-report-dialog";
 import {
   Table,
   TableBody,
@@ -39,7 +40,10 @@ export default async function ClientsPage({
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Clients</h1>
-        {permission.canCreate && <ClientDialog />}
+        <div className="flex items-center gap-2">
+          <ExportReportDialog module="clients" label="clients" />
+          {permission.canCreate && <ClientDialog />}
+        </div>
       </div>
 
       <ClientFilterBar />

@@ -1,7 +1,7 @@
 import { InvoiceDialog } from "@/components/invoices/invoice-dialog";
 import { InvoiceFilterBar } from "@/components/invoices/invoice-filter-bar";
 import { InvoiceRowActions } from "@/components/invoices/invoice-row-actions";
-import { ExportReportButton } from "@/components/reports/export-report-button";
+import { ExportReportDialog } from "@/components/reports/export-report-dialog";
 import {
   Table,
   TableBody,
@@ -66,7 +66,7 @@ export default async function InvoicesPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Invoices</h1>
         <div className="flex items-center gap-2">
-          <ExportReportButton module="invoices" />
+          <ExportReportDialog module="invoices" label="invoices" />
           {permission.canCreate && (
             <InvoiceDialog
               clients={clients}

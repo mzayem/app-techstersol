@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { InvoiceStatus } from "@/lib/invoices/constants";
+import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
 export type SortOption = "number-desc" | "number-asc" | "due-asc" | "due-desc";
 
@@ -7,6 +8,8 @@ export type ListFilters = {
   search?: string;
   status?: InvoiceStatus;
   sort?: SortOption;
+  /** Filters by `issueDate` — omit for no date filtering. */
+  dateRange?: DateRange;
 };
 
 function orderBy(sort: SortOption | undefined) {
@@ -27,6 +30,7 @@ export async function listInvoices(filters: ListFilters) {
   return prisma.invoice.findMany({
     where: {
       status: filters.status,
+      issueDate: filters.dateRange ? dateWhere(filters.dateRange) : undefined,
       client: filters.search
         ? { name: { contains: filters.search, mode: "insensitive" } }
         : undefined,

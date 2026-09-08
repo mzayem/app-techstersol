@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { ContractStatus } from "@/lib/contracts/constants";
+import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
 export type SortOption =
   | "date-desc"
@@ -13,6 +14,8 @@ export type ListFilters = {
   search?: string;
   status?: ContractStatus;
   sort?: SortOption;
+  /** Filters by the contract's start `date` — omit for no date filtering. */
+  dateRange?: DateRange;
 };
 
 function orderBy(sort: SortOption | undefined) {
@@ -37,6 +40,7 @@ export async function listContracts(filters: ListFilters) {
   const contracts = await prisma.contract.findMany({
     where: {
       status: filters.status,
+      date: filters.dateRange ? dateWhere(filters.dateRange) : undefined,
       OR: filters.search
         ? [
             { projectName: { contains: filters.search, mode: "insensitive" } },

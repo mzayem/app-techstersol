@@ -40,6 +40,11 @@ import {
   listPayslips,
   type SortOption as PayslipSortOption,
 } from "@/actions/team/payslip-queries";
+import {
+  listClients,
+  type SortOption as ClientSortOption,
+} from "@/actions/clients/queries";
+import { CLIENT_STATUS_LABELS, type ClientStatus } from "@/lib/clients/constants";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -55,10 +60,17 @@ const MONTH_YEAR_FORMAT = new Intl.DateTimeFormat("en-GB", {
 /** Names the active range as concretely as possible — a single month says
  * "September 2026", a full year says "2026", a wider preset spells out its
  * bounding months, and only an exact custom range falls back to day-level
- * dates. */
-function dateRangeSubtitle(params: Record<string, string | undefined>): string {
-  const preset = (params.range as DatePreset | undefined) ?? "this-month";
-  const range = resolveDateRange(params.range, params.from, params.to);
+ * dates. `defaultPreset` is what an absent `range` param means for this
+ * module — finance modules default to "this-month" (their page's own
+ * default), lifecycle modules like Contracts/Invoices/Payslips default to
+ * "all" (they have no on-page date filter to inherit a default from). */
+function dateRangeSubtitle(
+  params: Record<string, string | undefined>,
+  options?: { defaultPreset?: DatePreset; statusLabel?: string },
+): string {
+  const preset =
+    (params.range as DatePreset | undefined) ?? options?.defaultPreset ?? "this-month";
+  const range = resolveDateRange(params.range ?? preset, params.from, params.to);
   const parts: string[] = [];
 
   if (preset === "this-month" && range.from) {
@@ -75,15 +87,9 @@ function dateRangeSubtitle(params: Record<string, string | undefined>): string {
     parts.push(DATE_PRESET_LABELS[preset] ?? preset);
   }
 
+  if (options?.statusLabel) parts.push(`Status: ${options.statusLabel}`);
   if (params.q) parts.push(`Search: "${params.q}"`);
   return parts.join("  ·  ");
-}
-
-function filterSubtitle(params: Record<string, string | undefined>, statusLabel?: string): string {
-  const parts: string[] = [];
-  if (statusLabel) parts.push(`Status: ${statusLabel}`);
-  if (params.q) parts.push(`Search: "${params.q}"`);
-  return parts.length > 0 ? parts.join("  ·  ") : "All records";
 }
 
 export type ReportModuleDef = {
@@ -240,10 +246,12 @@ const contracts: ReportModuleDef = {
   filename: "contracts-report",
   async fetch(params) {
     const status = params.status as ContractStatus | undefined;
+    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
     const rows = await listContracts({
       search: params.q,
       status,
       sort: params.sort as ContractSortOption | undefined,
+      dateRange,
     });
 
     const reportRows = rows.map((contract) => {
@@ -269,10 +277,10 @@ const contracts: ReportModuleDef = {
 
     return {
       title: contracts.title,
-      subtitle: filterSubtitle(
-        params,
-        status ? CONTRACT_STATUS_LABELS[status] : undefined,
-      ),
+      subtitle: dateRangeSubtitle(params, {
+        defaultPreset: "all",
+        statusLabel: status ? CONTRACT_STATUS_LABELS[status] : undefined,
+      }),
       columns: [
         { key: "client", label: "Client", flexible: true, flexWeight: 1 },
         { key: "project", label: "Project", flexible: true, flexWeight: 2 },
@@ -293,10 +301,12 @@ const invoices: ReportModuleDef = {
   filename: "invoices-report",
   async fetch(params) {
     const status = params.status as InvoiceStatus | undefined;
+    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
     const rows = await listInvoices({
       search: params.q,
       status,
       sort: params.sort as InvoiceSortOption | undefined,
+      dateRange,
     });
 
     const reportRows = rows.map((invoice) => {
@@ -316,10 +326,10 @@ const invoices: ReportModuleDef = {
 
     return {
       title: invoices.title,
-      subtitle: filterSubtitle(
-        params,
-        status ? INVOICE_STATUS_LABELS[status] : undefined,
-      ),
+      subtitle: dateRangeSubtitle(params, {
+        defaultPreset: "all",
+        statusLabel: status ? INVOICE_STATUS_LABELS[status] : undefined,
+      }),
       columns: [
         { key: "number", label: "Invoice" },
         { key: "client", label: "Client", flexible: true },
@@ -339,9 +349,11 @@ const payslips: ReportModuleDef = {
   title: "PAYSLIPS REPORT",
   filename: "payslips-report",
   async fetch(params) {
+    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
     const rows = await listPayslips({
       search: params.q,
       sort: params.sort as PayslipSortOption | undefined,
+      dateRange,
     });
 
     let totalAmount = 0;
@@ -360,7 +372,7 @@ const payslips: ReportModuleDef = {
 
     return {
       title: payslips.title,
-      subtitle: filterSubtitle(params),
+      subtitle: dateRangeSubtitle(params, { defaultPreset: "all" }),
       columns: [
         { key: "number", label: "Payslip" },
         { key: "teamMember", label: "Team member", flexible: true, flexWeight: 1 },
@@ -384,6 +396,50 @@ const payslips: ReportModuleDef = {
   },
 };
 
+const clients: ReportModuleDef = {
+  pageKey: "clients",
+  title: "CLIENTS REPORT",
+  filename: "clients-report",
+  async fetch(params) {
+    const status = params.status as ClientStatus | undefined;
+    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
+    const rows = await listClients({
+      search: params.q,
+      status,
+      sort: params.sort as ClientSortOption | undefined,
+      dateRange,
+    });
+
+    const reportRows = rows.map((client) => ({
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+      country: client.country,
+      currency: client.currency,
+      status: CLIENT_STATUS_LABELS[client.status as ClientStatus],
+      createdAt: client.createdAt,
+    }));
+
+    return {
+      title: clients.title,
+      subtitle: dateRangeSubtitle(params, {
+        defaultPreset: "all",
+        statusLabel: status ? CLIENT_STATUS_LABELS[status] : undefined,
+      }),
+      columns: [
+        { key: "name", label: "Name", flexible: true, flexWeight: 2 },
+        { key: "email", label: "Email", flexible: true },
+        { key: "phone", label: "Phone" },
+        { key: "country", label: "Country" },
+        { key: "currency", label: "Currency" },
+        { key: "status", label: "Status" },
+        { key: "createdAt", label: "Created", numFmt: "dd mmm yyyy" },
+      ],
+      rows: reportRows,
+    };
+  },
+};
+
 export const REPORT_MODULES: Record<string, ReportModuleDef> = {
   earning,
   donations,
@@ -391,4 +447,5 @@ export const REPORT_MODULES: Record<string, ReportModuleDef> = {
   contracts,
   invoices,
   payslips,
+  clients,
 };

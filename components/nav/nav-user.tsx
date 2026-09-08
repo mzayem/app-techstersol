@@ -9,9 +9,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useMounted } from "@/lib/hooks/use-mounted";
 
 export function NavUser() {
-  const { user, isPending } = useAuthenticate({ authClient });
+  const authState = useAuthenticate({ authClient });
+  // `useAuthenticate` is a client-only hook — it can resolve an
+  // already-cached session synchronously on the client's very first render,
+  // before the server (which has no such cache) ever could, so that first
+  // render can already disagree with the SSR'd HTML. Force the same
+  // "still loading" state SSR renders until hydration completes, then let
+  // the real session take over.
+  const mounted = useMounted();
+  const user = mounted ? authState.user : undefined;
+  const isPending = mounted ? authState.isPending : true;
 
   return (
     <SidebarMenu>

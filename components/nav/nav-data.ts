@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   CalendarDays,
   FileSignature,
   FileText,
@@ -88,6 +89,12 @@ export const navGroups = [
         icon: CalendarDays,
         key: "work-diary" as PageKey,
       },
+    ],
+  },
+  {
+    title: "Reports",
+    items: [
+      { title: "Reports", url: "/reports", icon: BarChart3, key: "reports" as PageKey },
     ],
   },
   {
