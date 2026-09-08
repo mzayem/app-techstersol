@@ -21,9 +21,10 @@ export type TextStyle = {
 };
 
 type TextRun = { text: string; style: TextStyle };
+type TextAlign = "left" | "center" | "right" | "justify";
 
 export type BlockNode =
-  | { type: "paragraph"; runs: TextRun[] }
+  | { type: "paragraph"; runs: TextRun[]; align?: TextAlign }
   | { type: "listItem"; runs: TextRun[] }
   | { type: "image"; src: string; width?: number; height?: number };
 
@@ -150,6 +151,15 @@ function parseInlineCssStyle(styleAttr: string): Partial<TextStyle> {
   return result;
 }
 
+/** TipTap's TextAlign extension puts `text-align` directly on the block
+ * element's own style attribute (`<p style="text-align: center">`), not on
+ * a nested TextStyle span — read separately from parseInlineCssStyle. */
+function parseBlockAlign(styleAttr: string | undefined): TextAlign | undefined {
+  if (!styleAttr) return undefined;
+  const m = /text-align\s*:\s*(left|center|right|justify)/i.exec(styleAttr);
+  return m ? (m[1].toLowerCase() as TextAlign) : undefined;
+}
+
 const LEGACY_FONT_SIZE_PT: Record<string, number> = {
   "1": 8,
   "2": 10,
@@ -180,9 +190,9 @@ function mergeElementStyle(
 
 type ParseCtx = { blocks: BlockNode[]; pending: TextRun[] };
 
-function flushPending(ctx: ParseCtx) {
+function flushPending(ctx: ParseCtx, align?: TextAlign) {
   if (ctx.pending.length > 0) {
-    ctx.blocks.push({ type: "paragraph", runs: ctx.pending });
+    ctx.blocks.push({ type: "paragraph", runs: ctx.pending, ...(align ? { align } : {}) });
     ctx.pending = [];
   }
 }
@@ -235,15 +245,20 @@ function emit(node: RawNode, style: TextStyle, ctx: ParseCtx) {
     return;
   }
   if (BLOCK_TAGS.has(node.tag)) {
+    const align = parseBlockAlign(node.attrs.style);
     flushPending(ctx);
     if (node.children.length === 0) {
       // TipTap represents a deliberate blank line as an empty <p></p> — a
       // run of only whitespace still gives it real line height in the PDF
       // instead of silently collapsing the spacing the user typed.
-      ctx.blocks.push({ type: "paragraph", runs: [{ text: " ", style }] });
+      ctx.blocks.push({
+        type: "paragraph",
+        runs: [{ text: " ", style }],
+        ...(align ? { align } : {}),
+      });
     } else {
       for (const child of node.children) emit(child, style, ctx);
-      flushPending(ctx);
+      flushPending(ctx, align);
     }
     return;
   }
@@ -353,7 +368,10 @@ export function LetterBody({
           );
         }
         return (
-          <Text key={i} style={paragraphStyle}>
+          <Text
+            key={i}
+            style={block.align ? [paragraphStyle, { textAlign: block.align }] : paragraphStyle}
+          >
             {block.runs.map((run, j) => (
               <RunText key={j} run={run} />
             ))}

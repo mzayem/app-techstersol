@@ -5,12 +5,18 @@ import { useEditor, useEditorState, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color, FontFamily, FontSize } from "@tiptap/extension-text-style";
 import TiptapImage from "@tiptap/extension-image";
+import TextAlign from "@tiptap/extension-text-align";
 import {
   BoldIcon,
   ItalicIcon,
   UnderlineIcon,
   ListIcon,
+  AlignLeftIcon,
+  AlignCenterIcon,
+  AlignRightIcon,
+  AlignJustifyIcon,
   ImagePlusIcon,
+  Code2Icon,
   DownloadIcon,
 } from "lucide-react";
 
@@ -116,19 +122,24 @@ export function LetterheadEditor() {
       Color,
       FontFamily,
       FontSize,
+      TextAlign.configure({ types: ["paragraph"] }),
       TiptapImage.configure({ allowBase64: true }),
     ],
     editorProps: {
       attributes: {
+        // Tailwind's base reset strips list-style from every <ul>/<ol> on
+        // the page — without restoring it here, TipTap's bullet/ordered
+        // lists were creating real <li> markup with no visible marker at
+        // all, which just looked like the button did nothing.
         class:
-          "min-h-48 rounded-b-md border border-input bg-background p-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_img]:my-1 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-sm [&_p]:m-0",
+          "min-h-48 rounded-b-md border border-input bg-background p-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_img]:my-1 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-sm [&_p]:m-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1",
       },
     },
   });
 
-  // Bold/italic/underline/bullet-list toggle state, read reactively off
-  // the editor so the toolbar buttons highlight to match the cursor's
-  // actual formatting — TipTap's recommended pattern for this.
+  // Bold/italic/underline/bullet-list/alignment toggle state, read
+  // reactively off the editor so the toolbar buttons highlight to match
+  // the cursor's actual formatting — TipTap's recommended pattern for this.
   const activeMarks = useEditorState({
     editor,
     selector: (ctx) => ({
@@ -136,8 +147,26 @@ export function LetterheadEditor() {
       italic: ctx.editor?.isActive("italic") ?? false,
       underline: ctx.editor?.isActive("underline") ?? false,
       bulletList: ctx.editor?.isActive("bulletList") ?? false,
+      alignLeft: ctx.editor?.isActive({ textAlign: "left" }) ?? false,
+      alignCenter: ctx.editor?.isActive({ textAlign: "center" }) ?? false,
+      alignRight: ctx.editor?.isActive({ textAlign: "right" }) ?? false,
+      alignJustify: ctx.editor?.isActive({ textAlign: "justify" }) ?? false,
     }),
   });
+
+  const [showSource, setShowSource] = React.useState(false);
+  const [sourceHtml, setSourceHtml] = React.useState("");
+
+  function toggleSourceView() {
+    if (!editor) return;
+    if (showSource) {
+      editor.commands.setContent(sourceHtml);
+      setShowSource(false);
+    } else {
+      setSourceHtml(editor.getHTML());
+      setShowSource(true);
+    }
+  }
 
   function handleFontFamilyChange(value: string) {
     setFontFamily(value);
@@ -199,7 +228,7 @@ export function LetterheadEditor() {
           body: JSON.stringify({
             label,
             date,
-            bodyHtml: editor?.getHTML() ?? "",
+            bodyHtml: (showSource ? sourceHtml : editor?.getHTML()) ?? "",
             lineHeight,
             signOff: {
               mode: signOffMode,
@@ -252,7 +281,7 @@ export function LetterheadEditor() {
             variant={activeMarks?.bold ? "secondary" : "ghost"}
             size="icon-sm"
             aria-label="Bold"
-            disabled={!editor}
+            disabled={!editor || showSource}
             onClick={() => editor?.chain().focus().toggleBold().run()}
           >
             <BoldIcon />
@@ -262,7 +291,7 @@ export function LetterheadEditor() {
             variant={activeMarks?.italic ? "secondary" : "ghost"}
             size="icon-sm"
             aria-label="Italic"
-            disabled={!editor}
+            disabled={!editor || showSource}
             onClick={() => editor?.chain().focus().toggleItalic().run()}
           >
             <ItalicIcon />
@@ -272,7 +301,7 @@ export function LetterheadEditor() {
             variant={activeMarks?.underline ? "secondary" : "ghost"}
             size="icon-sm"
             aria-label="Underline"
-            disabled={!editor}
+            disabled={!editor || showSource}
             onClick={() => editor?.chain().focus().toggleUnderline().run()}
           >
             <UnderlineIcon />
@@ -283,10 +312,51 @@ export function LetterheadEditor() {
             variant={activeMarks?.bulletList ? "secondary" : "ghost"}
             size="icon-sm"
             aria-label="Bullet list"
-            disabled={!editor}
+            disabled={!editor || showSource}
             onClick={() => editor?.chain().focus().toggleBulletList().run()}
           >
             <ListIcon />
+          </Button>
+          <Separator orientation="vertical" className="mx-1 h-5" />
+          <Button
+            type="button"
+            variant={activeMarks?.alignLeft ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label="Align left"
+            disabled={!editor || showSource}
+            onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+          >
+            <AlignLeftIcon />
+          </Button>
+          <Button
+            type="button"
+            variant={activeMarks?.alignCenter ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label="Align center"
+            disabled={!editor || showSource}
+            onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+          >
+            <AlignCenterIcon />
+          </Button>
+          <Button
+            type="button"
+            variant={activeMarks?.alignRight ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label="Align right"
+            disabled={!editor || showSource}
+            onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+          >
+            <AlignRightIcon />
+          </Button>
+          <Button
+            type="button"
+            variant={activeMarks?.alignJustify ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label="Justify"
+            disabled={!editor || showSource}
+            onClick={() => editor?.chain().focus().setTextAlign("justify").run()}
+          >
+            <AlignJustifyIcon />
           </Button>
           <Separator orientation="vertical" className="mx-1 h-5" />
 
@@ -354,7 +424,7 @@ export function LetterheadEditor() {
             variant="ghost"
             size="icon-sm"
             aria-label="Insert image"
-            disabled={!editor}
+            disabled={!editor || showSource}
             onClick={handleInsertImageClick}
           >
             <ImagePlusIcon />
@@ -366,11 +436,32 @@ export function LetterheadEditor() {
             className="hidden"
             onChange={handleImageFileChange}
           />
+          <Separator orientation="vertical" className="mx-1 h-5" />
+          <Button
+            type="button"
+            variant={showSource ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label={showSource ? "Back to visual editor" : "View HTML source"}
+            title={showSource ? "Back to visual editor" : "View HTML source"}
+            disabled={!editor}
+            onClick={toggleSourceView}
+          >
+            <Code2Icon />
+          </Button>
         </div>
-        {/* Line spacing is applied live here too — not just at PDF
-            generation time — so what you see while writing matches the
-            downloaded PDF. */}
-        <EditorContent editor={editor} style={{ lineHeight }} />
+        {showSource ? (
+          <textarea
+            value={sourceHtml}
+            onChange={(e) => setSourceHtml(e.target.value)}
+            spellCheck={false}
+            className="min-h-48 w-full rounded-b-md border border-input bg-background p-3 font-mono text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+        ) : (
+          // Line spacing is applied live here too — not just at PDF
+          // generation time — so what you see while writing matches the
+          // downloaded PDF.
+          <EditorContent editor={editor} style={{ lineHeight }} />
+        )}
         {imageError && <p className="text-xs text-destructive">{imageError}</p>}
       </Field>
 

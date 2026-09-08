@@ -17,11 +17,11 @@ export type LetterheadFontFamily = (typeof LETTERHEAD_FONT_FAMILIES)[number]["va
 export const LETTERHEAD_FONT_SIZES = [8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32] as const;
 
 export const LETTERHEAD_LINE_SPACINGS = [
-  { value: 1, label: "Single" },
+  { value: 1, label: "Single (default)" },
   { value: 1.15, label: "1.15" },
   { value: 1.5, label: "1.5" },
-  { value: 1.7, label: "1.7 (default)" },
+  { value: 1.7, label: "1.7" },
   { value: 2, label: "Double" },
 ] as const;
 
-export const LETTERHEAD_DEFAULT_LINE_HEIGHT = 1.7;
+export const LETTERHEAD_DEFAULT_LINE_HEIGHT = 1;
