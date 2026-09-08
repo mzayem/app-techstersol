@@ -1,13 +1,38 @@
 "use client";
 
 import * as React from "react";
-import { BoldIcon, DownloadIcon, ListIcon } from "lucide-react";
+import { useEditor, useEditorState, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { TextStyle, Color, FontFamily, FontSize } from "@tiptap/extension-text-style";
+import TiptapImage from "@tiptap/extension-image";
+import {
+  BoldIcon,
+  ItalicIcon,
+  UnderlineIcon,
+  ListIcon,
+  ImagePlusIcon,
+  DownloadIcon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { VerifyPasswordDialog } from "@/components/reports/verify-password-dialog";
+import {
+  LETTERHEAD_FONT_FAMILIES,
+  LETTERHEAD_FONT_SIZES,
+  LETTERHEAD_LINE_SPACINGS,
+  LETTERHEAD_DEFAULT_LINE_HEIGHT,
+} from "@/lib/reports/letterhead/fonts";
 
 const DEFAULT_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -19,10 +44,47 @@ function todayFormatted() {
   return DEFAULT_DATE_FORMAT.format(new Date()).replace(",", "");
 }
 
+// Inserted images are downscaled client-side before they ever reach the
+// editor or the PDF — keeps the request payload and the final PDF's file
+// size sane regardless of what the user picks (a phone photo, a full-page
+// screenshot, ...).
+const MAX_IMAGE_DIMENSION_PX = 1000;
+
+function downscaleImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read the file"));
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onerror = () => reject(new Error("Could not load the image"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > MAX_IMAGE_DIMENSION_PX || height > MAX_IMAGE_DIMENSION_PX) {
+          const scale = MAX_IMAGE_DIMENSION_PX / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas is unavailable"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function LetterheadEditor() {
   const [label, setLabel] = React.useState("BUSINESS DECLARATION");
   const [date, setDate] = React.useState(todayFormatted);
-  const editorRef = React.useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [signOffMode, setSignOffMode] = React.useState<"filled" | "blank">("filled");
   const [name, setName] = React.useState("Muhammad Zayem");
@@ -32,12 +94,85 @@ export function LetterheadEditor() {
   const [signaturePassword, setSignaturePassword] = React.useState<string | null>(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = React.useState(false);
 
+  const [fontFamily, setFontFamily] = React.useState<string>(LETTERHEAD_FONT_FAMILIES[0].value);
+  const [fontSize, setFontSize] = React.useState(10.5);
+  const [color, setColor] = React.useState("#1b1b1b");
+  const [lineHeight, setLineHeight] = React.useState(LETTERHEAD_DEFAULT_LINE_HEIGHT);
+  const [imageError, setImageError] = React.useState<string | null>(null);
+
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
 
-  function exec(command: string) {
-    document.execCommand(command);
-    editorRef.current?.focus();
+  // A real editor (TipTap/ProseMirror) instead of contentEditable +
+  // document.execCommand — execCommand is deprecated, has always been
+  // inconsistent across browsers (that's the "bold not working right"),
+  // doesn't support Ctrl/Cmd+B-style shortcuts reliably, and is flaky on
+  // mobile touch input. TipTap handles all of that natively.
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      TextStyle,
+      Color,
+      FontFamily,
+      FontSize,
+      TiptapImage.configure({ allowBase64: true }),
+    ],
+    editorProps: {
+      attributes: {
+        class:
+          "min-h-48 rounded-b-md border border-input bg-background p-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_img]:my-1 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-sm [&_p]:m-0",
+      },
+    },
+  });
+
+  // Bold/italic/underline/bullet-list toggle state, read reactively off
+  // the editor so the toolbar buttons highlight to match the cursor's
+  // actual formatting — TipTap's recommended pattern for this.
+  const activeMarks = useEditorState({
+    editor,
+    selector: (ctx) => ({
+      bold: ctx.editor?.isActive("bold") ?? false,
+      italic: ctx.editor?.isActive("italic") ?? false,
+      underline: ctx.editor?.isActive("underline") ?? false,
+      bulletList: ctx.editor?.isActive("bulletList") ?? false,
+    }),
+  });
+
+  function handleFontFamilyChange(value: string) {
+    setFontFamily(value);
+    editor?.chain().focus().setFontFamily(value).run();
+  }
+
+  function handleFontSizeChange(value: string) {
+    setFontSize(Number(value));
+    editor?.chain().focus().setFontSize(`${value}pt`).run();
+  }
+
+  function handleColorChange(value: string) {
+    setColor(value);
+    editor?.chain().focus().setColor(value).run();
+  }
+
+  function handleInsertImageClick() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setImageError("Please choose an image file");
+      return;
+    }
+    setImageError(null);
+    try {
+      const dataUrl = await downscaleImage(file);
+      editor?.chain().focus().setImage({ src: dataUrl }).run();
+    } catch {
+      setImageError("Failed to add that image");
+    }
   }
 
   function handleSignatureToggle(checked: boolean) {
@@ -64,7 +199,8 @@ export function LetterheadEditor() {
           body: JSON.stringify({
             label,
             date,
-            bodyHtml: editorRef.current?.innerHTML ?? "",
+            bodyHtml: editor?.getHTML() ?? "",
+            lineHeight,
             signOff: {
               mode: signOffMode,
               name,
@@ -110,32 +246,132 @@ export function LetterheadEditor() {
       </div>
 
       <Field label="Letter body">
-        <div className="flex items-center gap-1 rounded-t-md border border-b-0 border-input bg-muted/40 p-1">
+        <div className="flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 border-input bg-muted/40 p-1.5">
           <Button
             type="button"
-            variant="ghost"
+            variant={activeMarks?.bold ? "secondary" : "ghost"}
             size="icon-sm"
             aria-label="Bold"
-            onClick={() => exec("bold")}
+            disabled={!editor}
+            onClick={() => editor?.chain().focus().toggleBold().run()}
           >
             <BoldIcon />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={activeMarks?.italic ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label="Italic"
+            disabled={!editor}
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+          >
+            <ItalicIcon />
+          </Button>
+          <Button
+            type="button"
+            variant={activeMarks?.underline ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label="Underline"
+            disabled={!editor}
+            onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          >
+            <UnderlineIcon />
+          </Button>
+          <Separator orientation="vertical" className="mx-1 h-5" />
+          <Button
+            type="button"
+            variant={activeMarks?.bulletList ? "secondary" : "ghost"}
             size="icon-sm"
             aria-label="Bullet list"
-            onClick={() => exec("insertUnorderedList")}
+            disabled={!editor}
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
           >
             <ListIcon />
           </Button>
+          <Separator orientation="vertical" className="mx-1 h-5" />
+
+          <Select
+            value={fontFamily}
+            onValueChange={(value) => value && handleFontFamilyChange(value)}
+          >
+            <SelectTrigger className="h-8 w-36 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LETTERHEAD_FONT_FAMILIES.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={String(fontSize)}
+            onValueChange={(value) => value && handleFontSizeChange(value)}
+          >
+            <SelectTrigger className="h-8 w-18 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LETTERHEAD_FONT_SIZES.map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size}pt
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <label
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-input bg-background"
+            title="Text color"
+          >
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => handleColorChange(e.target.value)}
+              className="size-5 cursor-pointer appearance-none border-none bg-transparent p-0"
+              aria-label="Text color"
+            />
+          </label>
+
+          <Select value={String(lineHeight)} onValueChange={(v) => v && setLineHeight(Number(v))}>
+            <SelectTrigger className="h-8 w-28 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LETTERHEAD_LINE_SPACINGS.map((l) => (
+                <SelectItem key={l.value} value={String(l.value)}>
+                  {l.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Separator orientation="vertical" className="mx-1 h-5" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Insert image"
+            disabled={!editor}
+            onClick={handleInsertImageClick}
+          >
+            <ImagePlusIcon />
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageFileChange}
+          />
         </div>
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          className="min-h-48 rounded-b-md border border-input bg-background p-3 text-sm leading-relaxed outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        />
+        {/* Line spacing is applied live here too — not just at PDF
+            generation time — so what you see while writing matches the
+            downloaded PDF. */}
+        <EditorContent editor={editor} style={{ lineHeight }} />
+        {imageError && <p className="text-xs text-destructive">{imageError}</p>}
       </Field>
 
       <div className="flex flex-col gap-3 rounded-md border border-input p-3">

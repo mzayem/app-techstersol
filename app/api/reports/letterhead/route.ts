@@ -11,6 +11,7 @@ type LetterheadRequestBody = {
   label?: string;
   date?: string;
   bodyHtml?: string;
+  lineHeight?: number;
   signOff?: {
     mode?: "blank" | "filled";
     name?: string;
@@ -44,6 +45,10 @@ export async function POST(request: Request) {
   const signOffInput = body.signOff ?? {};
   const mode = signOffInput.mode === "blank" ? "blank" : "filled";
   const includeSignature = signOffInput.includeSignature === true;
+  const lineHeight =
+    typeof body.lineHeight === "number" && body.lineHeight >= 1 && body.lineHeight <= 3
+      ? body.lineHeight
+      : undefined;
 
   if (includeSignature) {
     // The toggle is only a client-side convenience — this request is the
@@ -65,6 +70,7 @@ export async function POST(request: Request) {
     label,
     date,
     bodyHtml,
+    lineHeight,
     signOff: {
       mode,
       name: signOffInput.name?.trim() || "Muhammad Zayem",

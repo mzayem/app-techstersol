@@ -30,7 +30,10 @@ const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
-const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+// "b" collides with Ctrl/Cmd+B for Bold in any rich-text editor in the app
+// (see the letterhead editor) — "\" is the low-conflict choice most shadcn
+// sidebar setups have moved to for exactly this reason.
+const SIDEBAR_KEYBOARD_SHORTCUT = "\\";
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
