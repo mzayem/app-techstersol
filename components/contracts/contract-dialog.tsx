@@ -36,11 +36,8 @@ import {
   type ContractStatus,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
-import {
-  createContract,
-  deleteContract,
-  updateContract,
-} from "@/actions/contracts/actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
+import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { ContractActionsMenu } from "@/components/contracts/contract-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
@@ -167,19 +164,29 @@ export function ContractDialog({
       amount: Number(m.amount),
       deadline: m.deadline,
     }));
+    const fields = formDataToRecord(formData);
+    const label = `contract "${fields.projectName}"`;
 
     startTransition(async () => {
-      try {
-        if (isEdit) {
-          await updateContract(contract.id, formData, milestoneInputs);
-        } else {
-          await createContract(formData, milestoneInputs);
+      const result = isEdit
+        ? await enqueueMutation({
+            key: "updateContract",
+            payload: { id: contract.id, formData: fields, milestones: milestoneInputs },
+            label,
+          })
+        : await enqueueMutation({
+            key: "createContract",
+            payload: { formData: fields, milestones: milestoneInputs },
+            label,
+          });
+      if (result.ok) {
+        if (!isEdit) {
           formRef.current?.reset();
           resetForm();
         }
         setOpen(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -544,7 +551,14 @@ export function ContractRowActions({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         entryLabel={`contract ${entry.projectName}`}
-        onDelete={deleteContract.bind(null, entry.id)}
+        onDelete={async () => {
+          const result = await enqueueMutation({
+            key: "deleteContract",
+            payload: { id: entry.id },
+            label: `contract "${entry.projectName}"`,
+          });
+          if (!result.ok) throw new Error(result.error);
+        }}
       />
     </>
   );

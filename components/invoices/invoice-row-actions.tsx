@@ -17,7 +17,8 @@ import {
   formatInvoiceNumber,
   type InvoiceStatus,
 } from "@/lib/invoices/constants";
-import { deleteInvoice, markInvoiceUnpaid } from "@/actions/invoices/actions";
+import { markInvoiceUnpaid } from "@/actions/invoices/actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
 import { InvoiceActionsMenu } from "@/components/invoices/invoice-actions-menu";
 import { MarkPaidDialog } from "@/components/invoices/mark-paid-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
@@ -103,7 +104,14 @@ export function InvoiceRowActions({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         entryLabel={`invoice ${formatInvoiceNumber(number)}`}
-        onDelete={deleteInvoice.bind(null, id)}
+        onDelete={async () => {
+          const result = await enqueueMutation({
+            key: "deleteInvoice",
+            payload: { id },
+            label: `invoice ${formatInvoiceNumber(number)}`,
+          });
+          if (!result.ok) throw new Error(result.error);
+        }}
       />
     </>
   );

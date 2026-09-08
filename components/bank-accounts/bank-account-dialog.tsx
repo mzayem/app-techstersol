@@ -32,11 +32,8 @@ import {
 } from "@/lib/bank-accounts/constants";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
-import {
-  createBankAccount,
-  deleteBankAccount,
-  updateBankAccount,
-} from "@/actions/bank-accounts/actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
+import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { BankAccountActionsMenu } from "@/components/bank-accounts/bank-account-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -110,18 +107,24 @@ export function BankAccountDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const fields = formDataToRecord(formData);
+    const label = `bank account "${fields.bankName}"`;
     startTransition(async () => {
-      try {
-        if (isEdit) {
-          await updateBankAccount(bankAccount.id, formData);
-        } else {
-          await createBankAccount(formData);
+      const result = isEdit
+        ? await enqueueMutation({
+            key: "updateBankAccount",
+            payload: { id: bankAccount.id, formData: fields },
+            label,
+          })
+        : await enqueueMutation({ key: "createBankAccount", payload: fields, label });
+      if (result.ok) {
+        if (!isEdit) {
           formRef.current?.reset();
           setCurrency("USD");
         }
         setOpen(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -302,7 +305,14 @@ export function BankAccountRowActions({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         entryLabel={`${entry.currency} account at ${entry.bankName}`}
-        onDelete={deleteBankAccount.bind(null, entry.id)}
+        onDelete={async () => {
+          const result = await enqueueMutation({
+            key: "deleteBankAccount",
+            payload: { id: entry.id },
+            label: `bank account "${entry.bankName}"`,
+          });
+          if (!result.ok) throw new Error(result.error);
+        }}
       />
     </>
   );

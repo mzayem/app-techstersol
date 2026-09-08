@@ -26,10 +26,9 @@ import {
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import { DEFAULT_DUE_DAYS } from "@/lib/invoices/constants";
-import {
-  createInvoice,
-  type InvoiceItemInput,
-} from "@/actions/invoices/actions";
+import { type InvoiceItemInput } from "@/actions/invoices/actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
+import { formDataToRecord } from "@/lib/sync/actions-registry";
 
 export type ClientOption = { id: string; name: string };
 
@@ -188,14 +187,19 @@ export function InvoiceDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const fields = formDataToRecord(formData);
     startTransition(async () => {
-      try {
-        await createInvoice(formData, items);
+      const result = await enqueueMutation({
+        key: "createInvoice",
+        payload: { formData: fields, items },
+        label: "invoice",
+      });
+      if (result.ok) {
         formRef.current?.reset();
         resetForm();
         setOpen(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+      } else {
+        setError(result.error);
       }
     });
   }

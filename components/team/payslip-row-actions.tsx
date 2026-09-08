@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatPayslipNumber } from "@/lib/team/constants";
-import { deletePayslip } from "@/actions/team/payslip-actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
 export function PayslipRowActions({ id, number }: { id: string; number: number }) {
@@ -47,7 +47,14 @@ export function PayslipRowActions({ id, number }: { id: string; number: number }
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         entryLabel={`payslip ${formatPayslipNumber(number)}`}
-        onDelete={deletePayslip.bind(null, id)}
+        onDelete={async () => {
+          const result = await enqueueMutation({
+            key: "deletePayslip",
+            payload: { id },
+            label: `payslip ${formatPayslipNumber(number)}`,
+          });
+          if (!result.ok) throw new Error(result.error);
+        }}
       />
     </>
   );

@@ -29,11 +29,8 @@ import {
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import { COUNTRIES } from "@/lib/clients/countries";
-import {
-  createClient,
-  deleteClient,
-  updateClient,
-} from "@/actions/clients/actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
+import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { ClientActionsMenu } from "@/components/clients/client-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
@@ -74,18 +71,24 @@ export function ClientDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const fields = formDataToRecord(formData);
+    const label = `client "${fields.name}"`;
     startTransition(async () => {
-      try {
-        if (isEdit) {
-          await updateClient(client.id, formData);
-        } else {
-          await createClient(formData);
+      const result = isEdit
+        ? await enqueueMutation({
+            key: "updateClient",
+            payload: { id: client.id, formData: fields },
+            label,
+          })
+        : await enqueueMutation({ key: "createClient", payload: fields, label });
+      if (result.ok) {
+        if (!isEdit) {
           formRef.current?.reset();
           setCountry("");
         }
         setOpen(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -256,7 +259,14 @@ export function ClientRowActions({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         entryLabel={`client ${entry.name}`}
-        onDelete={deleteClient.bind(null, entry.id)}
+        onDelete={async () => {
+          const result = await enqueueMutation({
+            key: "deleteClient",
+            payload: { id: entry.id },
+            label: `client "${entry.name}"`,
+          });
+          if (!result.ok) throw new Error(result.error);
+        }}
       />
     </>
   );

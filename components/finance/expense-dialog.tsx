@@ -28,11 +28,8 @@ import {
   type ExpenseCategory,
 } from "@/lib/finance/constants";
 import { resolveAmountField } from "@/lib/finance/expression";
-import {
-  createExpense,
-  deleteExpense,
-  updateExpense,
-} from "@/actions/finance/actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
+import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
@@ -73,17 +70,21 @@ export function ExpenseDialog({
       setError(amountError);
       return;
     }
+    const fields = formDataToRecord(formData);
+    const label = `expense "${fields.name}"`;
     startTransition(async () => {
-      try {
-        if (isEdit) {
-          await updateExpense(expense.id, formData);
-        } else {
-          await createExpense(formData);
-          formRef.current?.reset();
-        }
+      const result = isEdit
+        ? await enqueueMutation({
+            key: "updateExpense",
+            payload: { id: expense.id, formData: fields },
+            label,
+          })
+        : await enqueueMutation({ key: "createExpense", payload: fields, label });
+      if (result.ok) {
+        if (!isEdit) formRef.current?.reset();
         setOpen(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -218,7 +219,14 @@ export function ExpenseRowActions({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         entryLabel={`expense "${entry.name}"`}
-        onDelete={deleteExpense.bind(null, entry.id)}
+        onDelete={async () => {
+          const result = await enqueueMutation({
+            key: "deleteExpense",
+            payload: { id: entry.id },
+            label: `expense "${entry.name}"`,
+          });
+          if (!result.ok) throw new Error(result.error);
+        }}
       />
     </>
   );

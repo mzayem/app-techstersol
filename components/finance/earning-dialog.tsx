@@ -27,11 +27,8 @@ import {
   type ReferenceCurrency,
 } from "@/lib/finance/constants";
 import { resolveAmountField } from "@/lib/finance/expression";
-import {
-  createEarning,
-  deleteEarning,
-  updateEarning,
-} from "@/actions/finance/actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
+import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
@@ -74,17 +71,21 @@ export function EarningDialog({
       setError(amountError);
       return;
     }
+    const fields = formDataToRecord(formData);
+    const label = `earning "${fields.name}"`;
     startTransition(async () => {
-      try {
-        if (isEdit) {
-          await updateEarning(earning.id, formData);
-        } else {
-          await createEarning(formData);
-          formRef.current?.reset();
-        }
+      const result = isEdit
+        ? await enqueueMutation({
+            key: "updateEarning",
+            payload: { id: earning.id, formData: fields },
+            label,
+          })
+        : await enqueueMutation({ key: "createEarning", payload: fields, label });
+      if (result.ok) {
+        if (!isEdit) formRef.current?.reset();
         setOpen(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -241,7 +242,14 @@ export function EarningRowActions({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         entryLabel={`earning from ${entry.name}`}
-        onDelete={deleteEarning.bind(null, entry.id)}
+        onDelete={async () => {
+          const result = await enqueueMutation({
+            key: "deleteEarning",
+            payload: { id: entry.id },
+            label: `earning "${entry.name}"`,
+          });
+          if (!result.ok) throw new Error(result.error);
+        }}
       />
     </>
   );

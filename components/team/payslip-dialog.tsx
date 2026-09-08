@@ -19,7 +19,8 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { formatPkr } from "@/lib/finance/constants";
 import { formatWeekRange } from "@/lib/team/work-diary";
-import { createPayslip } from "@/actions/team/payslip-actions";
+import { enqueueMutation } from "@/lib/sync/mutate";
+import { formDataToRecord } from "@/lib/sync/actions-registry";
 
 export type TeamMemberOption = { id: string; name: string };
 export type ContractOption = { id: string; projectName: string; teamMemberId: string | null };
@@ -92,9 +93,14 @@ export function PayslipDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const fields = formDataToRecord(formData);
     startTransition(async () => {
-      try {
-        await createPayslip(formData);
+      const result = await enqueueMutation({
+        key: "createPayslip",
+        payload: fields,
+        label: "payslip",
+      });
+      if (result.ok) {
         formRef.current?.reset();
         setTeamMemberId("");
         setContractId("");
@@ -104,8 +110,8 @@ export function PayslipDialog({
         setPeriodEnd(todayInput());
         setAmount("");
         setOpen(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+      } else {
+        setError(result.error);
       }
     });
   }
