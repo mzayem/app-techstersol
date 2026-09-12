@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { requireTeamUser } from "@/lib/rbac/permissions";
 import { listMyProjects } from "@/actions/portal/queries";
+import { ContractChatButton } from "@/components/contracts/contract-chat";
 
 export const dynamic = "force-dynamic";
 
@@ -42,12 +43,13 @@ export default async function PortalProjectsPage() {
               <TableHead>Project</TableHead>
               <TableHead>Deadline</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {projects.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   No projects assigned to you yet.
                 </TableCell>
               </TableRow>
@@ -59,6 +61,12 @@ export default async function PortalProjectsPage() {
                   {formatDate(project.deadline)}
                 </TableCell>
                 <TableCell>{STATUS_LABELS[project.status] ?? project.status}</TableCell>
+                <TableCell>
+                  <ContractChatButton
+                    contractId={project.id}
+                    projectName={project.projectName}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

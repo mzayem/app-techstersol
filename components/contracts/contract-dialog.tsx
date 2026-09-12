@@ -40,6 +40,7 @@ import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { ContractActionsMenu } from "@/components/contracts/contract-actions-menu";
+import { ContractChatButton } from "@/components/contracts/contract-chat";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
 export type ClientOption = {
@@ -530,7 +531,11 @@ export function ContractRowActions({
       >
         {children}
         <TableCell onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-1">
+            <ContractChatButton
+              contractId={entry.id}
+              projectName={entry.projectName}
+            />
             <ContractActionsMenu
               onEdit={openEdit}
               onDelete={() => setDeleteOpen(true)}

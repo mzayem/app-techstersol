@@ -199,14 +199,30 @@ model Contract {
   invoiceLinks    InvoiceContract[]
   invoiceItems    InvoiceItem[]
   payslips        Payslip[]
+  messages        ContractMessage[]
 
   @@index([status])
   @@index([clientId])
   @@index([teamMemberId])
 }
 
-/// An outsourced contractor or team member who can be assigned to a
-/// contract's work and paid via a Payslip.
+/// One post in a contract's project chat — a running log of notes between
+/// whoever can see the project (dashboard team, the assigned team member,
+/// and eventually the client). authorName is snapshotted at send time so
+/// a later rename or account removal doesn't rewrite who said what.
+model ContractMessage {
+  id           String   @id @default(cuid())
+  contractId   String
+  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  authorUserId String
+  authorName   String
+  body         String   @db.Text
+  createdAt    DateTime @default(now())
+
+  @@index([contractId])
+}
+
+
 model TeamMember {
   id              String           @id @default(cuid())
   name            String
