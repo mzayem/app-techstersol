@@ -18,6 +18,8 @@ const STATUS_LABELS: Record<string, string> = {
   PENDING_PAYMENT: "Pending payment",
   PARTIALLY_PAID: "Partially paid",
   COMPLETED: "Completed",
+  PAUSED: "Paused",
+  CANCELLED: "Cancelled",
 };
 
 export default async function PortalProjectsPage() {

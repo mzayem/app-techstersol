@@ -41,11 +41,10 @@ export async function enqueueMutation<P>({
       return { ok: true };
     } catch (error) {
       if (!isLikelyNetworkError(error)) {
-        toast.close(toastId);
-        return {
-          ok: false,
-          error: error instanceof Error ? error.message : "Something went wrong",
-        };
+        const message =
+          error instanceof Error ? error.message : "Something went wrong";
+        toast.update(toastId, { title: message, type: "error", timeout: 5000 });
+        return { ok: false, error: message };
       }
       // Fetch-level failure — fall through and queue it below instead of
       // blocking the user on a network hiccup.

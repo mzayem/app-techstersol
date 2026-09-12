@@ -254,6 +254,8 @@ function StatusPill({ status }: { status: ContractStatus }) {
     PENDING_PAYMENT: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     PARTIALLY_PAID: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
     COMPLETED: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    PAUSED: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
+    CANCELLED: "bg-red-500/10 text-red-600 dark:text-red-400",
   };
   return (
     <span

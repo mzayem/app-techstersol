@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { CONTRACT_STATUSES_EXCLUDED_FROM_PENDING } from "@/lib/contracts/constants";
 
 export type PortalOverview = {
   completedProjects: number;
@@ -7,7 +8,8 @@ export type PortalOverview = {
    * contracts, plus every logged work diary week (there's no "paid" flag
    * on a diary entry yet — see actions/overview/queries.ts's
    * getTeamPendingPayments for the same reasoning, scoped here to one
-   * member). */
+   * member). A contract that's PAUSED or CANCELLED is excluded, same as
+   * there — nothing is expected to be paid on it while it stays that way. */
   pendingPaymentPkr: number;
   /** Money that actually left the company for them this year — sourced
    * only from TeamPayment (via their Payslips), since an Earning's
@@ -27,7 +29,12 @@ export async function getPortalOverview(teamMemberId: string): Promise<PortalOve
       select: { status: true },
     }),
     prisma.contract.findMany({
-      where: { teamMemberId, status: { not: "COMPLETED" } },
+      where: {
+        teamMemberId,
+        status: {
+          notIn: ["COMPLETED", ...CONTRACT_STATUSES_EXCLUDED_FROM_PENDING],
+        },
+      },
       select: { teamPayAmount: true },
     }),
     prisma.workDiaryEntry.aggregate({

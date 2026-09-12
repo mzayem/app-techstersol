@@ -5,6 +5,8 @@ export const CONTRACT_STATUSES = [
   "PENDING_PAYMENT",
   "PARTIALLY_PAID",
   "COMPLETED",
+  "PAUSED",
+  "CANCELLED",
 ] as const;
 export type ContractStatus = (typeof CONTRACT_STATUSES)[number];
 
@@ -15,7 +17,18 @@ export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   PENDING_PAYMENT: "Pending payment",
   PARTIALLY_PAID: "Partially paid",
   COMPLETED: "Completed",
+  PAUSED: "Paused",
+  CANCELLED: "Cancelled",
 };
+
+/** Statuses that take a contract out of every "pending payment" figure
+ * (KPI cards, ledger-facing totals, team pending pay) — a paused or
+ * cancelled project isn't expected to produce payment activity until
+ * it's reactivated, so it shouldn't inflate what's owed. */
+export const CONTRACT_STATUSES_EXCLUDED_FROM_PENDING = [
+  "PAUSED",
+  "CANCELLED",
+] as const satisfies readonly ContractStatus[];
 
 export const PAYMENT_TYPES = ["PROJECT", "MILESTONE"] as const;
 export type ContractPaymentType = (typeof PAYMENT_TYPES)[number];

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { PaymentCurrency } from "@/lib/clients/constants";
+import { CONTRACT_STATUSES_EXCLUDED_FROM_PENDING } from "@/lib/contracts/constants";
 import { DISTRIBUTION_SPLIT } from "@/lib/finance/constants";
 import { getRatesToPkr } from "@/lib/fx/rates";
 import type { ResolvedPeriod } from "@/lib/overview/period";
@@ -212,7 +213,12 @@ export function getDistributionAudit(
  * That split avoids double-counting: an amount already sitting on an
  * unpaid invoice is counted once, via the invoice side. Always all-time —
  * an outstanding balance doesn't stop being outstanding because the
- * calendar page turned, so this ignores the overview's period selector. */
+ * calendar page turned, so this ignores the overview's period selector.
+ *
+ * A PAUSED or CANCELLED contract is excluded from both sides: its own
+ * status already falls outside PENDING_PAYMENT/PARTIALLY_PAID, and any
+ * invoice line still billed against it is skipped too, so pausing or
+ * cancelling a project drops it out of "pending payments" immediately. */
 export async function getPendingPayments(): Promise<{
   unpaidInvoiceCount: number;
   pendingByCurrency: Partial<Record<PaymentCurrency, number>>;
@@ -230,7 +236,12 @@ export async function getPendingPayments(): Promise<{
       select: {
         currency: true,
         discount: true,
-        items: { select: { amount: true } },
+        items: {
+          select: {
+            amount: true,
+            contract: { select: { status: true } },
+          },
+        },
       },
     }),
     prisma.contract.findMany({
@@ -248,11 +259,16 @@ export async function getPendingPayments(): Promise<{
     getRatesToPkr(),
   ]);
 
-  for (const invoice of unpaidInvoices) {
-    const total = invoice.items.reduce(
-      (sum, item) => sum + Number(item.amount),
-      0,
+  const isExcludedStatus = (status: string) =>
+    (CONTRACT_STATUSES_EXCLUDED_FROM_PENDING as readonly string[]).includes(
+      status,
     );
+
+  for (const invoice of unpaidInvoices) {
+    const total = invoice.items.reduce((sum, item) => {
+      if (item.contract && isExcludedStatus(item.contract.status)) return sum;
+      return sum + Number(item.amount);
+    }, 0);
     add(invoice.currency as PaymentCurrency, total - Number(invoice.discount));
   }
 
@@ -292,11 +308,18 @@ export async function getPendingPayments(): Promise<{
  * "paid" flag on a diary entry yet, so a logged hourly week counts as owed
  * until a payslip is issued for it by hand). As opposed to client-side
  * pending payments (money owed to the company). Always all-time, same
- * reasoning as getPendingPayments. */
+ * reasoning as getPendingPayments — and, same as there, a PAUSED or
+ * CANCELLED contract's teamPayAmount is excluded since no payment is
+ * expected on it while it stays in that status. */
 export async function getTeamPendingPayments(): Promise<number> {
   const [openOutsourced, diarySum] = await Promise.all([
     prisma.contract.findMany({
-      where: { teamMemberId: { not: null }, status: { not: "COMPLETED" } },
+      where: {
+        teamMemberId: { not: null },
+        status: {
+          notIn: ["COMPLETED", ...CONTRACT_STATUSES_EXCLUDED_FROM_PENDING],
+        },
+      },
       select: { teamPayAmount: true },
     }),
     prisma.workDiaryEntry.aggregate({ _sum: { amount: true } }),

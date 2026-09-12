@@ -40,6 +40,8 @@ enum ContractStatus {
   PENDING_PAYMENT
   PARTIALLY_PAID
   COMPLETED
+  PAUSED
+  CANCELLED
 }
 
 enum InvoiceStatus {
