@@ -124,9 +124,6 @@ function escapeHtmlClient(value: string) {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // --- Local cache: the live IMAP server is slow, so each folder/page's last
-// known contents are kept in localStorage. A folder switch shows that
-// instantly, then a background fetch silently reconciles it — the same
-// stale-while-revalidate pattern most mail apps use.
 const CACHE_PREFIX = "techstersol-mail-v1:";
 
 type CachedMailListItem = Omit<MailListItem, "date"> & { date: string | null };
@@ -177,9 +174,6 @@ function writeCache(
   }
 }
 
-/** Keeps a cached page in sync with an optimistic local mutation (star,
- * delete, mark read/unread) so a folder switch doesn't briefly show
- * already-undone state before the next background refresh catches up. */
 function patchCache(
   folder: MailFolder,
   page: number,
@@ -210,9 +204,6 @@ function clearFolderCache(folder: MailFolder) {
   }
 }
 
-/** Best-effort "Name <email>" → "email" extraction for prefilling the To
- * field from a stored draft — the compose form still validates on submit,
- * so a miss here just leaves the field blank for the admin to fill in. */
 function extractEmail(raw: string): string {
   const angle = raw.match(/<([^>]+)>/);
   if (angle) return angle[1].trim();
