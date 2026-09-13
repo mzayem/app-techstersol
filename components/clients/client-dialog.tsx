@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   CLIENT_STATUSES,
   CLIENT_STATUS_LABELS,
@@ -45,6 +46,7 @@ export type ClientEntry = {
   country: string;
   currency: PaymentCurrency;
   status: ClientStatus;
+  emailNotificationsEnabled: boolean;
 };
 
 export function ClientDialog({
@@ -68,6 +70,9 @@ export function ClientDialog({
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
   const [country, setCountry] = React.useState(client?.country ?? "");
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = React.useState(
+    client?.emailNotificationsEnabled ?? true,
+  );
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -85,6 +90,7 @@ export function ClientDialog({
         if (!isEdit) {
           formRef.current?.reset();
           setCountry("");
+          setEmailNotificationsEnabled(true);
         }
         setOpen(false);
       } else {
@@ -188,6 +194,25 @@ export function ClientDialog({
                 </SelectContent>
               </Select>
             </Field>
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">Email notifications</span>
+              <span className="text-xs text-muted-foreground">
+                Master switch for contract-status emails to this client. Off disables every
+                project&apos;s notifications, regardless of that project&apos;s own setting.
+              </span>
+            </div>
+            <Switch
+              checked={emailNotificationsEnabled}
+              onCheckedChange={setEmailNotificationsEnabled}
+              disabled={locked}
+            />
+            <input
+              type="hidden"
+              name="emailNotificationsEnabled"
+              value={emailNotificationsEnabled ? "true" : "false"}
+            />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>

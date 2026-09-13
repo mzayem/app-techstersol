@@ -91,7 +91,11 @@ export default async function PayslipsPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end">
-                    <PayslipRowActions id={payslip.id} number={payslip.number} />
+                    <PayslipRowActions
+                      id={payslip.id}
+                      number={payslip.number}
+                      teamMemberEmail={payslip.teamMember.email}
+                    />
                   </div>
                 </TableCell>
               </TableRow>

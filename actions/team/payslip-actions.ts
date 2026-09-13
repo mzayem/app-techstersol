@@ -6,6 +6,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PAYSLIP_NUMBER_START } from "@/lib/team/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { notifyPayslipIssued } from "@/lib/mail/notifications/payslips";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -66,7 +67,7 @@ export async function createPayslip(formData: FormData) {
     const number = last ? last.number + 1 : PAYSLIP_NUMBER_START;
 
     try {
-      await prisma.payslip.create({
+      const created = await prisma.payslip.create({
         data: {
           number,
           teamMemberId,
@@ -99,6 +100,7 @@ export async function createPayslip(formData: FormData) {
               }),
         },
       });
+      await notifyPayslipIssued(created.id);
       revalidatePath("/team/payslips");
       revalidatePath("/team/payments");
       revalidatePath("/account/balance-sheet");

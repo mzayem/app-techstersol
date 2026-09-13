@@ -21,6 +21,7 @@ import { markInvoiceUnpaid } from "@/actions/invoices/actions";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { InvoiceActionsMenu } from "@/components/invoices/invoice-actions-menu";
 import { MarkPaidDialog } from "@/components/invoices/mark-paid-dialog";
+import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
 export function InvoiceRowActions({
@@ -28,12 +29,14 @@ export function InvoiceRowActions({
   number,
   status,
   currency,
+  clientEmail,
   suggestedPkrAmount,
 }: {
   id: string;
   number: number;
   status: InvoiceStatus;
   currency: PaymentCurrency;
+  clientEmail: string;
   /** Balance due converted to PKR at the current FX rate — prefilled as a
    * default in the mark-paid dialog's PKR amount field, since the actual
    * amount received can differ (bank fees, rate at time of transfer). */
@@ -60,6 +63,7 @@ export function InvoiceRowActions({
         onMarkUnpaid={() => setMarkUnpaidOpen(true)}
         onDelete={() => setDeleteOpen(true)}
       />
+      <SendEmailDialog defaultTo={clientEmail} record={{ kind: "invoice", id }} />
       <MarkPaidDialog
         open={markPaidOpen}
         onOpenChange={setMarkPaidOpen}

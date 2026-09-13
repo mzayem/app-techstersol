@@ -145,6 +145,7 @@ export default async function InvoicesPage({
                         number={invoice.number}
                         status={status}
                         currency={currency}
+                        clientEmail={invoice.client.email}
                         suggestedPkrAmount={suggestedPkrAmount}
                       />
                     </div>

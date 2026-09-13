@@ -33,7 +33,7 @@ export async function listPayslips(filters: ListFilters) {
         : undefined,
     },
     include: {
-      teamMember: { select: { id: true, name: true } },
+      teamMember: { select: { id: true, name: true, email: true } },
       contract: { select: { id: true, projectName: true } },
     },
     orderBy: orderBy(filters.sort),
@@ -45,6 +45,29 @@ export async function getPayslipForPdf(id: string) {
     where: { id },
     include: { teamMember: true, contract: { select: { projectName: true } } },
   });
+}
+
+/** Maps a `getPayslipForPdf` result into the shape `renderPayslipPdf`
+ * expects — shared by the PDF route handler and the payslip-email
+ * notifier so both build the exact same document. */
+export function toPayslipPdfData(payslip: NonNullable<Awaited<ReturnType<typeof getPayslipForPdf>>>) {
+  return {
+    id: payslip.id,
+    number: payslip.number,
+    periodStart: payslip.periodStart,
+    periodEnd: payslip.periodEnd,
+    issueDate: payslip.issueDate,
+    amount: Number(payslip.amount),
+    note: payslip.note,
+    projectName: payslip.contract?.projectName ?? null,
+    teamMember: {
+      name: payslip.teamMember.name,
+      phone: payslip.teamMember.phone,
+      email: payslip.teamMember.email,
+      country: payslip.teamMember.country,
+      address: payslip.teamMember.address,
+    },
+  };
 }
 
 /** Public-safe fields only, for the QR verification page. */

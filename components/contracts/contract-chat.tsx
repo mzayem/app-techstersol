@@ -74,9 +74,13 @@ function formatMessageTime(date: Date) {
 export function ContractChatButton({
   contractId,
   projectName,
+  readOnly = false,
 }: {
   contractId: string;
   projectName: string;
+  /** Team-portal viewers can read a project's chat but never post — hides
+   * the message composer entirely rather than just disabling it. */
+  readOnly?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -103,6 +107,7 @@ export function ContractChatButton({
         projectName={projectName}
         open={open}
         onOpenChange={setOpen}
+        readOnly={readOnly}
       />
     </>
   );
@@ -113,11 +118,13 @@ function ContractChatSheet({
   projectName,
   open,
   onOpenChange,
+  readOnly = false,
 }: {
   contractId: string;
   projectName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  readOnly?: boolean;
 }) {
   const [messages, setMessages] = React.useState<ContractMessageEntry[] | null>(
     null,
@@ -276,6 +283,11 @@ function ContractChatSheet({
             ))}
         </div>
 
+        {readOnly ? (
+          <div className="border-t p-3 text-center text-xs text-muted-foreground">
+            View only — you can&apos;t post messages here.
+          </div>
+        ) : (
         <div className="p-3">
           <div className="flex flex-col gap-1 rounded-2xl bg-muted p-2">
             <Textarea
@@ -323,6 +335,7 @@ function ContractChatSheet({
             </div>
           </div>
         </div>
+        )}
       </SheetContent>
     </Sheet>
   );

@@ -16,6 +16,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -41,12 +42,14 @@ import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { ContractActionsMenu } from "@/components/contracts/contract-actions-menu";
 import { ContractChatButton } from "@/components/contracts/contract-chat";
+import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
 export type ClientOption = {
   id: string;
   name: string;
   currency: PaymentCurrency;
+  emailNotificationsEnabled: boolean;
 };
 
 export type TeamMemberOption = { id: string; name: string };
@@ -54,6 +57,7 @@ export type TeamMemberOption = { id: string; name: string };
 export type ContractEntry = {
   id: string;
   clientId: string;
+  clientEmail: string;
   date: Date;
   deadline: Date;
   projectName: string;
@@ -64,6 +68,8 @@ export type ContractEntry = {
   status: ContractStatus;
   teamMemberId: string | null;
   teamPayAmount: number | null;
+  statusEmailsEnabled: boolean;
+  chatNotificationsEnabled: boolean;
   milestones: { name: string; amount: number; deadline: Date }[];
 };
 
@@ -126,6 +132,17 @@ export function ContractDialog({
     contract?.teamMemberId ? "outsourced" : "company",
   );
   const [teamMemberId, setTeamMemberId] = React.useState(contract?.teamMemberId ?? "");
+  const [statusEmailsEnabled, setStatusEmailsEnabled] = React.useState(
+    contract?.statusEmailsEnabled ?? true,
+  );
+  const [chatNotificationsEnabled, setChatNotificationsEnabled] = React.useState(
+    contract?.chatNotificationsEnabled ?? false,
+  );
+
+  const selectedClient = clients.find((c) => c.id === clientId);
+  const clientNotificationsDisabled = selectedClient
+    ? !selectedClient.emailNotificationsEnabled
+    : false;
 
   function resetForm() {
     setClientId("");
@@ -134,6 +151,8 @@ export function ContractDialog({
     setMilestones([emptyMilestoneRow()]);
     setHandledBy("company");
     setTeamMemberId("");
+    setStatusEmailsEnabled(true);
+    setChatNotificationsEnabled(false);
   }
 
   function onClientChange(id: string | null) {
@@ -458,6 +477,47 @@ export function ContractDialog({
                 </Field>
               </div>
             )}
+
+            <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">Email on status changes</span>
+                <span className="text-xs text-muted-foreground">
+                  {clientNotificationsDisabled
+                    ? "Off — this client has email notifications disabled in their profile."
+                    : "Notify the client by email whenever this project's status changes."}
+                </span>
+              </div>
+              <Switch
+                checked={statusEmailsEnabled && !clientNotificationsDisabled}
+                onCheckedChange={setStatusEmailsEnabled}
+                disabled={locked || clientNotificationsDisabled}
+              />
+              <input
+                type="hidden"
+                name="statusEmailsEnabled"
+                value={statusEmailsEnabled && !clientNotificationsDisabled ? "true" : "false"}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">Email on new chat messages</span>
+                <span className="text-xs text-muted-foreground">
+                  Off by default. When on, a message from you emails the client, and a message
+                  from the client emails you.
+                </span>
+              </div>
+              <Switch
+                checked={chatNotificationsEnabled}
+                onCheckedChange={setChatNotificationsEnabled}
+                disabled={locked}
+              />
+              <input
+                type="hidden"
+                name="chatNotificationsEnabled"
+                value={chatNotificationsEnabled ? "true" : "false"}
+              />
+            </div>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -535,6 +595,10 @@ export function ContractRowActions({
             <ContractChatButton
               contractId={entry.id}
               projectName={entry.projectName}
+            />
+            <SendEmailDialog
+              defaultTo={entry.clientEmail}
+              record={{ kind: "contract", id: entry.id }}
             />
             <ContractActionsMenu
               onEdit={openEdit}

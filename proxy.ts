@@ -10,6 +10,6 @@ export const config = {
   // fetching the manifest gets redirected to the sign-in page instead of
   // returning JSON.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|verify|manifest.webmanifest|icon.png|apple-icon.png|icons/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|verify|credentials|manifest.webmanifest|icon.png|apple-icon.png|icons/).*)",
   ],
 };

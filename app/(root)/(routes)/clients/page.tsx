@@ -81,6 +81,7 @@ export default async function ClientsPage({
                 country: client.country,
                 currency: client.currency as PaymentCurrency,
                 status: client.status as ClientStatus,
+                emailNotificationsEnabled: client.emailNotificationsEnabled,
               };
               return (
                 <ClientRowActions key={client.id} entry={entry}>

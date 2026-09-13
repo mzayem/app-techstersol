@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { checkPermission, getActiveClientProfiles, getCurrentAppUser } from "@/lib/rbac/permissions";
+import { notifyChatMessage } from "@/lib/mail/notifications/contracts";
 
 const MAX_MESSAGE_LENGTH = 4000;
 
@@ -51,19 +52,25 @@ export type ContractMessageEntry = {
 export async function listContractMessages(
   contractId: string,
 ): Promise<ContractMessageEntry[]> {
-  await authorizeContractChat(contractId);
+  const appUser = await authorizeContractChat(contractId);
 
-  return prisma.contractMessage.findMany({
+  const messages = await prisma.contractMessage.findMany({
     where: { contractId },
     select: {
       id: true,
       authorUserId: true,
       authorName: true,
+      authorKind: true,
       body: true,
       createdAt: true,
     },
     orderBy: { createdAt: "asc" },
   });
+
+  return messages.map(({ authorKind, ...m }) => ({
+    ...m,
+    authorName: appUser.kind === "TEAM" && authorKind === "CLIENT" ? "Client" : m.authorName,
+  }));
 }
 
 export async function createContractMessage(
@@ -71,6 +78,9 @@ export async function createContractMessage(
   body: string,
 ): Promise<ContractMessageEntry> {
   const appUser = await authorizeContractChat(contractId);
+  if (appUser.kind === "TEAM") {
+    throw new Error("Team members can view this project's chat but can't post messages");
+  }
 
   const trimmed = body.trim();
   if (!trimmed) throw new Error("Message can't be empty");
@@ -85,6 +95,7 @@ export async function createContractMessage(
       contractId,
       authorUserId: appUser.id,
       authorName: appUser.name,
+      authorKind: appUser.kind,
       body: trimmed,
     },
     select: {
@@ -95,6 +106,24 @@ export async function createContractMessage(
       createdAt: true,
     },
   });
+
+  const contract = await prisma.contract.findUnique({
+    where: { id: contractId },
+    select: {
+      projectName: true,
+      chatNotificationsEnabled: true,
+      client: { select: { email: true } },
+    },
+  });
+  if (contract?.chatNotificationsEnabled) {
+    await notifyChatMessage({
+      projectName: contract.projectName,
+      authorLabel: appUser.name,
+      message: trimmed,
+      forAdmin: appUser.kind === "CLIENT",
+      clientEmail: contract.client.email,
+    });
+  }
 
   revalidatePath("/projects/contracts");
   revalidatePath("/portal/projects");

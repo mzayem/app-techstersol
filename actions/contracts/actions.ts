@@ -16,6 +16,7 @@ import {
 } from "@/lib/contracts/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { validateMilestones } from "@/lib/contracts/validation";
+import { notifyContractCreated, notifyContractStatusChanged } from "@/lib/mail/notifications/contracts";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -37,6 +38,8 @@ function readContractFields(
   const amountRaw = str(formData, "amount");
   const teamMemberId = str(formData, "teamMemberId");
   const teamPayAmountRaw = str(formData, "teamPayAmount");
+  const statusEmailsEnabled = str(formData, "statusEmailsEnabled") !== "false";
+  const chatNotificationsEnabled = str(formData, "chatNotificationsEnabled") === "true";
 
   if (!clientId || !date || !deadline || !projectName) {
     throw new Error("Client, dates, and project name are required");
@@ -91,6 +94,8 @@ function readContractFields(
     status: statusRaw as ContractStatus,
     teamMemberId: teamMemberId || null,
     teamPayAmount,
+    statusEmailsEnabled,
+    chatNotificationsEnabled,
     milestones: milestoneData,
   };
 }
@@ -106,7 +111,7 @@ export async function createContract(
     milestones,
   );
 
-  await prisma.contract.create({
+  const created = await prisma.contract.create({
     data: {
       ...fields,
       createdByUserId,
@@ -114,6 +119,7 @@ export async function createContract(
     },
   });
 
+  await notifyContractCreated(created.id);
   revalidatePath("/projects/contracts");
 }
 
@@ -128,6 +134,8 @@ export async function updateContract(
     milestones,
   );
 
+  const before = await prisma.contract.findUnique({ where: { id }, select: { status: true } });
+
   await prisma.contract.update({
     where: { id },
     data: {
@@ -139,6 +147,9 @@ export async function updateContract(
     },
   });
 
+  if (before && before.status !== fields.status) {
+    await notifyContractStatusChanged(id);
+  }
   revalidatePath("/projects/contracts");
 }
 
@@ -161,10 +172,18 @@ export async function bulkUpdateContractStatus(
     throw new Error("Invalid status");
   }
 
+  const before = await prisma.contract.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, status: true },
+  });
+
   await prisma.contract.updateMany({
     where: { id: { in: ids } },
     data: { status },
   });
+
+  const changedIds = before.filter((c) => c.status !== status).map((c) => c.id);
+  await Promise.all(changedIds.map((changedId) => notifyContractStatusChanged(changedId)));
 
   revalidatePath("/projects/contracts");
 }

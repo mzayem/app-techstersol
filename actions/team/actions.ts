@@ -56,6 +56,8 @@ function readTeamMemberFields(formData: FormData) {
     type,
     // Only meaningful for HOURLY — cleared if the member is project-based.
     hourlyRate: type === "HOURLY" ? hourlyRate : null,
+    // Only meaningful when there's an email on file to send to.
+    payslipEmailsEnabled: !!email && str(formData, "payslipEmailsEnabled") !== "false",
   };
 }
 

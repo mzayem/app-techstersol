@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { PaymentCurrency } from "@/lib/clients/constants";
 import type { InvoiceStatus } from "@/lib/invoices/constants";
 import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
@@ -36,7 +37,7 @@ export async function listInvoices(filters: ListFilters) {
         : undefined,
     },
     include: {
-      client: { select: { id: true, name: true } },
+      client: { select: { id: true, name: true, email: true } },
       bankAccount: { select: { bankName: true } },
       items: true,
     },
@@ -159,6 +160,44 @@ export async function getInvoiceForPdf(id: string) {
       items: { orderBy: { sortOrder: "asc" } },
     },
   });
+}
+
+/** Maps a `getInvoiceForPdf` result into the shape `renderInvoicePdf`
+ * expects — shared by the PDF route handler and the invoice-email
+ * notifiers so both build the exact same document. */
+export function toInvoicePdfData(invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>) {
+  return {
+    id: invoice.id,
+    number: invoice.number,
+    status: invoice.status,
+    issueDate: invoice.issueDate,
+    dueDate: invoice.dueDate,
+    paidOn: invoice.paidOn,
+    transactionId: invoice.transactionId,
+    currency: invoice.currency as PaymentCurrency,
+    discount: Number(invoice.discount),
+    client: {
+      name: invoice.client.name,
+      phone: invoice.client.phone,
+      email: invoice.client.email,
+      country: invoice.client.country,
+    },
+    bankAccount: {
+      bankName: invoice.bankAccount.bankName,
+      accountHolderName: invoice.bankAccount.accountHolderName,
+      accountType: invoice.bankAccount.accountType,
+      routingNumber: invoice.bankAccount.routingNumber,
+      accountNumber: invoice.bankAccount.accountNumber,
+      iban: invoice.bankAccount.iban,
+      sortCode: invoice.bankAccount.sortCode,
+      bsbCode: invoice.bankAccount.bsbCode,
+      swift: invoice.bankAccount.swift,
+    },
+    items: invoice.items.map((item) => ({
+      description: item.description,
+      amount: Number(item.amount),
+    })),
+  };
 }
 
 /** Public-safe fields only — no amounts or bank account numbers. */

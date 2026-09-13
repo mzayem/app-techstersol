@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentAppUser } from "@/lib/rbac/permissions";
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { renderPayslipPdf } from "@/lib/team/payslip-pdf";
-import { getPayslipForPdf } from "@/actions/team/payslip-queries";
+import { getPayslipForPdf, toPayslipPdfData } from "@/actions/team/payslip-queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,26 +28,7 @@ export async function GET(
   }
 
   const origin = new URL(request.url).origin;
-  const buffer = await renderPayslipPdf(
-    {
-      id: payslip.id,
-      number: payslip.number,
-      periodStart: payslip.periodStart,
-      periodEnd: payslip.periodEnd,
-      issueDate: payslip.issueDate,
-      amount: Number(payslip.amount),
-      note: payslip.note,
-      projectName: payslip.contract?.projectName ?? null,
-      teamMember: {
-        name: payslip.teamMember.name,
-        phone: payslip.teamMember.phone,
-        email: payslip.teamMember.email,
-        country: payslip.teamMember.country,
-        address: payslip.teamMember.address,
-      },
-    },
-    origin,
-  );
+  const buffer = await renderPayslipPdf(toPayslipPdfData(payslip), origin);
 
   const filename = `Payslip-${formatPayslipNumber(payslip.number)}.pdf`;
 

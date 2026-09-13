@@ -1,10 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
+import { MailIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -21,11 +30,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import {
   createClientUser,
   createDashboardUser,
   createTeamUser,
   deleteAppUser,
+  sendCredentialsEmail,
   updateAppUser,
 } from "@/actions/rbac/user-actions";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
@@ -325,6 +336,23 @@ export function UserRowActions({
 }) {
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [sendOpen, setSendOpen] = React.useState(false);
+  const [sending, startSending] = React.useTransition();
+
+  function confirmSendCredentials() {
+    startSending(async () => {
+      try {
+        await sendCredentialsEmail(user.id);
+        toast.add({ title: `New credentials sent to ${user.email}`, type: "success" });
+        setSendOpen(false);
+      } catch (e) {
+        toast.add({
+          title: e instanceof Error ? e.message : "Couldn't send credentials",
+          type: "error",
+        });
+      }
+    });
+  }
 
   return (
     <>
@@ -335,6 +363,14 @@ export function UserRowActions({
         onClick={() => setEditOpen(true)}
       >
         <PencilIcon />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Send credentials email"
+        onClick={() => setSendOpen(true)}
+      >
+        <MailIcon />
       </Button>
       <Button
         variant="ghost"
@@ -352,6 +388,31 @@ export function UserRowActions({
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+      <AlertDialog
+        open={sendOpen}
+        onOpenChange={(next) => {
+          if (!sending) setSendOpen(next);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send new credentials to {user.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This generates a brand-new password for this login, replacing the current one, and
+              emails a one-time view link to {user.email}. Their old password stops working
+              immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="outline" disabled={sending} />}>
+              Cancel
+            </AlertDialogClose>
+            <Button loading={sending} onClick={confirmSendCredentials}>
+              {sending ? "Sending…" : "Send new credentials"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}

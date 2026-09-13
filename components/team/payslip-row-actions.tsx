@@ -16,12 +16,27 @@ import {
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 
-export function PayslipRowActions({ id, number }: { id: string; number: number }) {
+export function PayslipRowActions({
+  id,
+  number,
+  teamMemberEmail,
+}: {
+  id: string;
+  number: number;
+  teamMemberEmail: string | null;
+}) {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
     <>
+      <SendEmailDialog
+        defaultTo={teamMemberEmail ?? ""}
+        record={{ kind: "payslip", id }}
+        disabled={!teamMemberEmail}
+        disabledReason="This team member has no email on file"
+      />
       <DropdownMenu>
         <DropdownMenuTrigger
           render={<Button variant="ghost" size="icon-sm" aria-label="Open actions menu" />}

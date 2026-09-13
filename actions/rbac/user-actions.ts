@@ -1,11 +1,16 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import type { AppUserStatus } from "@/generated/prisma/client";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { createCredentialLink } from "@/lib/mail/credential-link";
+import { sendMail } from "@/lib/mail/transport";
+import { renderCredentialsEmail } from "@/lib/mail/templates/credentials";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -49,6 +54,29 @@ async function createAuthAccount(
   return data.user.id;
 }
 
+/** Mints a one-time view link for the given plaintext password and emails
+ * it. Failures here are logged, not thrown — the account itself is
+ * already created/updated by the time this runs, and a transient mail
+ * outage shouldn't undo that; an admin can always resend from the Users
+ * page (`sendCredentialsEmail` below). */
+async function sendCredentialsMail(appUserId: string, name: string, email: string, password: string) {
+  try {
+    const token = await createCredentialLink(appUserId, password);
+    const viewUrl = `${process.env.NEXT_PUBLIC_APP_URL}/credentials/${token}`;
+    await sendMail({
+      to: email,
+      subject: "Your Techstersol account",
+      html: renderCredentialsEmail({ name, email, viewUrl }),
+    });
+  } catch (err) {
+    console.error("Failed to send credentials email:", err);
+  }
+}
+
+function generatePassword() {
+  return randomBytes(9).toString("base64url");
+}
+
 export async function createDashboardUser(formData: FormData) {
   await requirePagePermission("users", "create");
 
@@ -64,9 +92,10 @@ export async function createDashboardUser(formData: FormData) {
 
   const authUserId = await createAuthAccount(name, email, password);
 
-  await prisma.appUser.create({
+  const appUser = await prisma.appUser.create({
     data: { authUserId, email, name, kind: "DASHBOARD_HANDLER", roleId, status: readStatus(formData) },
   });
+  await sendCredentialsMail(appUser.id, name, email, password);
 
   revalidatePath("/admin/users");
 }
@@ -88,9 +117,10 @@ export async function createTeamUser(formData: FormData) {
 
   const authUserId = await createAuthAccount(name, email, password);
 
-  await prisma.appUser.create({
+  const appUser = await prisma.appUser.create({
     data: { authUserId, email, name, kind: "TEAM", teamMemberId, status: readStatus(formData) },
   });
+  await sendCredentialsMail(appUser.id, name, email, password);
 
   revalidatePath("/admin/users");
 }
@@ -120,14 +150,16 @@ export async function createClientUser(formData: FormData) {
 
   const authUserId = await createAuthAccount(name, email, password);
 
-  await prisma.$transaction(async (tx) => {
-    const appUser = await tx.appUser.create({
+  const appUser = await prisma.$transaction(async (tx) => {
+    const created = await tx.appUser.create({
       data: { authUserId, email, name, kind: "CLIENT", status: readStatus(formData) },
     });
     await tx.clientProfile.createMany({
-      data: clientIds.map((clientId) => ({ appUserId: appUser.id, clientId })),
+      data: clientIds.map((clientId) => ({ appUserId: created.id, clientId })),
     });
+    return created;
   });
+  await sendCredentialsMail(appUser.id, name, email, password);
 
   revalidatePath("/admin/users");
 }
@@ -173,6 +205,7 @@ export async function updateAppUser(id: string, formData: FormData) {
       newPassword: password,
     });
     if (error) throw new Error(error.message ?? "Could not set the new password");
+    await sendCredentialsMail(appUser.id, name, email, password);
   }
 
   if (appUser.kind === "DASHBOARD_HANDLER") {
@@ -230,6 +263,27 @@ export async function updateAppUser(id: string, formData: FormData) {
   }
 
   revalidatePath("/admin/users");
+}
+
+/** A manual "resend credentials" from the Users page. We never retain a
+ * usable plaintext password once its one-time link is viewed or expires,
+ * so this can't just resend the original — it generates a fresh random
+ * password, sets it via Neon Auth, and emails a new one-time view link.
+ * Effectively "reset & notify," not a no-op resend. */
+export async function sendCredentialsEmail(id: string) {
+  await requirePagePermission("users", "edit");
+
+  const appUser = await prisma.appUser.findUnique({ where: { id } });
+  if (!appUser) throw new Error("User not found");
+
+  const password = generatePassword();
+  const { error } = await auth.admin.setUserPassword({
+    userId: appUser.authUserId,
+    newPassword: password,
+  });
+  if (error) throw new Error(error.message ?? "Could not reset the password");
+
+  await sendCredentialsMail(appUser.id, appUser.name, appUser.email, password);
 }
 
 /** Revokes dashboard/portal access by removing our own record — this

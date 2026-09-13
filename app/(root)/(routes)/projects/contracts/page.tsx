@@ -42,6 +42,7 @@ export default async function ContractsPage({
     id: c.id,
     name: c.name,
     currency: c.currency as PaymentCurrency,
+    emailNotificationsEnabled: c.emailNotificationsEnabled,
   }));
 
   const items: ContractListItem[] = contracts.map((contract) => {
@@ -60,6 +61,7 @@ export default async function ContractsPage({
       id: contract.id,
       clientId: contract.clientId,
       clientName: contract.client.name,
+      clientEmail: contract.client.email,
       date: contract.date,
       deadline: contract.deadline,
       projectName: contract.projectName,
@@ -70,6 +72,8 @@ export default async function ContractsPage({
       status: contract.status as ContractStatus,
       teamMemberId: contract.teamMemberId,
       teamPayAmount: contract.teamPayAmount ? Number(contract.teamPayAmount) : null,
+      statusEmailsEnabled: contract.statusEmailsEnabled,
+      chatNotificationsEnabled: contract.chatNotificationsEnabled,
       milestones,
       totalAmount,
       paidAmount: contract.paidAmount,

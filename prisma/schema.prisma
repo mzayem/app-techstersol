@@ -122,6 +122,7 @@ model AppUser {
   teamMemberId   String?         @unique
   teamMember     TeamMember?     @relation(fields: [teamMemberId], references: [id])
   clientProfiles ClientProfile[]
+  credentialViewLinks CredentialViewLink[]
   status         AppUserStatus   @default(ACTIVE)
   /// Consecutive wrong-password attempts since the last reset (a correct
   /// sign-in, or a timed lockout expiring into the next tier).
@@ -192,6 +193,7 @@ model Client {
   country         String
   currency        PaymentCurrency
   status          ClientStatus    @default(ACTIVE)
+ emailNotificationsEnabled Boolean @default(true)
   createdByUserId String
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -201,6 +203,24 @@ model Client {
 
   @@index([status])
   @@index([name])
+}
+
+/// A one-time password-view link handed out by a "new/reset credentials"
+/// email. The plaintext password only ever exists encrypted here, and
+/// only until the first (and only) successful view, at which point
+/// passwordCiphertext is wiped — usedAt alone isn't trusted as the sole
+/// guard against a second view.
+model CredentialViewLink {
+  id                 String    @id @default(cuid())
+  appUserId          String
+  appUser            AppUser   @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+  tokenHash          String    @unique
+  passwordCiphertext String?
+  expiresAt          DateTime
+  usedAt             DateTime?
+  createdAt          DateTime  @default(now())
+
+  @@index([appUserId])
 }
 
 /// Links one CLIENT-kind AppUser to one Client record it can act as. A
@@ -234,6 +254,8 @@ model Contract {
   teamMemberId    String?
   teamMember      TeamMember?         @relation(fields: [teamMemberId], references: [id])
   teamPayAmount   Decimal?            @db.Decimal(14, 2)
+  statusEmailsEnabled       Boolean   @default(true)
+  chatNotificationsEnabled  Boolean   @default(false)
   createdByUserId String
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
@@ -248,16 +270,14 @@ model Contract {
   @@index([teamMemberId])
 }
 
-/// One post in a contract's project chat — a running log of notes between
-/// whoever can see the project (dashboard team, the assigned team member,
-/// and eventually the client). authorName is snapshotted at send time so
-/// a later rename or account removal doesn't rewrite who said what.
+
 model ContractMessage {
   id           String   @id @default(cuid())
   contractId   String
   contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
   authorUserId String
   authorName   String
+  authorKind   UserKind
   body         String   @db.Text
   createdAt    DateTime @default(now())
 
@@ -275,6 +295,9 @@ model TeamMember {
   address         String?
   type            TeamMemberType   @default(PROJECT_BASED)
   hourlyRate      Decimal?         @db.Decimal(14, 2)
+  /// Send a payslip email (with PDF) when one is issued — meaningless
+  /// while email is null; the UI disables the toggle in that case.
+  payslipEmailsEnabled Boolean     @default(true)
   createdByUserId String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

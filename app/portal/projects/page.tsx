@@ -65,6 +65,7 @@ export default async function PortalProjectsPage() {
                   <ContractChatButton
                     contractId={project.id}
                     projectName={project.projectName}
+                    readOnly
                   />
                 </TableCell>
               </TableRow>

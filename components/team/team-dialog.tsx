@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -50,6 +51,7 @@ export type TeamMemberEntry = {
   address: string | null;
   type: TeamMemberType;
   hourlyRate: number | null;
+  payslipEmailsEnabled: boolean;
 };
 
 export function TeamMemberDialog({
@@ -79,6 +81,10 @@ export function TeamMemberDialog({
   const [currency, setCurrency] = React.useState<PaymentCurrency | "">(
     member?.currency ?? "",
   );
+  const [email, setEmail] = React.useState(member?.email ?? "");
+  const [payslipEmailsEnabled, setPayslipEmailsEnabled] = React.useState(
+    member?.payslipEmailsEnabled ?? true,
+  );
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -92,6 +98,8 @@ export function TeamMemberDialog({
           setCountry("");
           setMemberType("PROJECT_BASED");
           setCurrency("");
+          setEmail("");
+          setPayslipEmailsEnabled(true);
         }
         setOpen(false);
       } catch (e) {
@@ -173,7 +181,8 @@ export function TeamMemberDialog({
                 name="email"
                 placeholder="name@example.com"
                 disabled={locked}
-                defaultValue={member?.email ?? undefined}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </Field>
           </div>
@@ -217,6 +226,26 @@ export function TeamMemberDialog({
               defaultValue={member?.address ?? undefined}
             />
           </Field>
+          <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">Payslip emails</span>
+              <span className="text-xs text-muted-foreground">
+                {email
+                  ? "Email a copy of each payslip (with PDF) to this address."
+                  : "Add an email address above to enable this."}
+              </span>
+            </div>
+            <Switch
+              checked={payslipEmailsEnabled && !!email}
+              onCheckedChange={setPayslipEmailsEnabled}
+              disabled={locked || !email}
+            />
+            <input
+              type="hidden"
+              name="payslipEmailsEnabled"
+              value={payslipEmailsEnabled && !!email ? "true" : "false"}
+            />
+          </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             {locked ? (

@@ -64,6 +64,7 @@ export default async function TeamPage() {
                 address: member.address,
                 type,
                 hourlyRate: member.hourlyRate ? Number(member.hourlyRate) : null,
+                payslipEmailsEnabled: member.payslipEmailsEnabled,
               };
               return (
                 <TeamMemberRowActions key={member.id} entry={entry}>

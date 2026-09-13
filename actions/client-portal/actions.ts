@@ -10,6 +10,7 @@ import {
 } from "@/lib/contracts/constants";
 import { getActiveClientProfiles, getCurrentAppUser } from "@/lib/rbac/permissions";
 import { validateMilestones } from "@/lib/contracts/validation";
+import { notifyProposalSubmitted } from "@/lib/mail/notifications/contracts";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -99,5 +100,6 @@ export async function createClientContractRequest(
     },
   });
 
+  await notifyProposalSubmitted({ clientName: profile.name, projectName: fields.projectName });
   revalidatePath("/client-portal/contracts");
 }

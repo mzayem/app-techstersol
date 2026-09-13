@@ -53,7 +53,7 @@ export async function listContracts(filters: ListFilters) {
         : undefined,
     },
     include: {
-      client: { select: { id: true, name: true } },
+      client: { select: { id: true, name: true, email: true } },
       milestones: { orderBy: { deadline: "asc" } },
     },
     orderBy: orderBy(filters.sort),
@@ -89,7 +89,7 @@ async function paidAmountsByContract(contractIds: string[]) {
 
 export async function listClientOptions() {
   return prisma.client.findMany({
-    select: { id: true, name: true, currency: true },
+    select: { id: true, name: true, currency: true, emailNotificationsEnabled: true },
     orderBy: { name: "asc" },
     take: 100,
   });

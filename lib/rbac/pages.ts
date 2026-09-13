@@ -19,7 +19,8 @@ export type PageKey =
   | "work-diary"
   | "reports"
   | "roles"
-  | "users";
+  | "users"
+  | "emails";
 
 export type PageRegistryEntry = {
   key: PageKey;
@@ -64,6 +65,7 @@ export const PAGE_REGISTRY: PageRegistryEntry[] = [
   { key: "reports", label: "Reports", url: "/reports", group: "Reports" },
   { key: "roles", label: "Roles", url: "/admin/roles", group: "Admin" },
   { key: "users", label: "Users", url: "/admin/users", group: "Admin" },
+  { key: "emails", label: "Emails", url: "/admin/emails", group: "Admin" },
 ];
 
 export const PAGE_KEYS = PAGE_REGISTRY.map((p) => p.key);

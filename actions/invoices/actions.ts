@@ -15,6 +15,7 @@ import {
 } from "@/lib/invoices/constants";
 import { invoicedAmountsByLine, remainingKey } from "@/actions/invoices/queries";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { notifyInvoiceCreated, notifyInvoicePaid } from "@/lib/mail/notifications/invoices";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -157,7 +158,7 @@ export async function createInvoice(
     const number = last ? last.number + 1 : INVOICE_NUMBER_START;
 
     try {
-      await prisma.invoice.create({
+      const created = await prisma.invoice.create({
         data: {
           number,
           clientId,
@@ -173,6 +174,7 @@ export async function createInvoice(
           },
         },
       });
+      await notifyInvoiceCreated(created.id);
       revalidatePath("/projects/invoices");
       return;
     } catch (e) {
@@ -335,6 +337,8 @@ export async function markInvoicePaid(id: string, formData: FormData) {
       },
     });
   });
+
+  await notifyInvoicePaid(id);
 
   revalidatePath("/projects/invoices");
   revalidatePath("/projects/contracts");

@@ -6,6 +6,7 @@ import {
   Gift,
   Landmark,
   LayoutDashboard,
+  Mail,
   Receipt,
   ReceiptText,
   ScrollText,
@@ -102,6 +103,7 @@ export const navGroups = [
     items: [
       { title: "Roles", url: "/admin/roles", icon: ShieldCheck, key: "roles" as PageKey },
       { title: "Users", url: "/admin/users", icon: UsersRound, key: "users" as PageKey },
+      { title: "Emails", url: "/admin/emails", icon: Mail, key: "emails" as PageKey },
     ],
   },
 ];

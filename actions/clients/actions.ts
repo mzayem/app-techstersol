@@ -46,6 +46,7 @@ function readClientFields(formData: FormData) {
     country,
     currency: currencyRaw as PaymentCurrency,
     status: statusRaw as ClientStatus,
+    emailNotificationsEnabled: str(formData, "emailNotificationsEnabled") !== "false",
   };
 }
 
