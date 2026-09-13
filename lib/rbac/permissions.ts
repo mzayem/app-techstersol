@@ -21,14 +21,20 @@ const NO_ACCESS: PagePermission = {
 };
 
 /** The signed-in identity, resolved from Neon Auth's session to our own
- * AppUser record — null if there's no session, or no matching AppUser
+ * AppUser record — null if there's no session, no matching AppUser
  * (shouldn't normally happen post-bootstrap, but a fresh Neon Auth account
- * an admin hasn't linked yet would land here). */
+ * an admin hasn't linked yet would land here), or the AppUser is Suspended
+ * or Blocked. That last check is what actually enforces an account block —
+ * not the sign-in-time lockout guard, since a Suspended/Blocked user could
+ * otherwise still reach a valid session via Google sign-in, which has no
+ * password for the brute-force guard to intercept. Treating them the same
+ * as "not signed in" means every existing requirePagePermission/
+ * requireTeamUser/requireClientUser call site is covered with no changes. */
 export async function getCurrentAppUser() {
   const { data } = await auth.getSession();
   if (!data?.user) return null;
 
-  return prisma.appUser.findUnique({
+  const appUser = await prisma.appUser.findUnique({
     where: { authUserId: data.user.id },
     include: {
       role: { include: { permissions: true } },
@@ -42,6 +48,9 @@ export async function getCurrentAppUser() {
       },
     },
   });
+
+  if (appUser && appUser.status !== "ACTIVE") return null;
+  return appUser;
 }
 
 export type CurrentAppUser = NonNullable<Awaited<ReturnType<typeof getCurrentAppUser>>>;

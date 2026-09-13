@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export async function listAppUsers() {
-  return prisma.appUser.findMany({
+  const users = await prisma.appUser.findMany({
     include: {
       role: { select: { id: true, name: true } },
       teamMember: { select: { id: true, name: true } },
@@ -9,6 +9,17 @@ export async function listAppUsers() {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // Computed here (not in the page component) so rendering stays a pure
+  // function of already-resolved data instead of calling Date.now() itself.
+  const now = Date.now();
+  return users.map((user) => ({
+    ...user,
+    lockedMinutesRemaining:
+      user.lockedUntil && user.lockedUntil.getTime() > now
+        ? Math.max(1, Math.ceil((user.lockedUntil.getTime() - now) / 60_000))
+        : null,
+  }));
 }
 
 /** Clients with no login yet — the only ones offered when creating a new

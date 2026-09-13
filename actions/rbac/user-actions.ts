@@ -4,11 +4,19 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
+import type { AppUserStatus } from "@/generated/prisma/client";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+const APP_USER_STATUSES: AppUserStatus[] = ["ACTIVE", "SUSPENDED", "BLOCKED"];
+
+function readStatus(formData: FormData): AppUserStatus {
+  const raw = str(formData, "status");
+  return APP_USER_STATUSES.includes(raw as AppUserStatus) ? (raw as AppUserStatus) : "ACTIVE";
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,7 +65,7 @@ export async function createDashboardUser(formData: FormData) {
   const authUserId = await createAuthAccount(name, email, password);
 
   await prisma.appUser.create({
-    data: { authUserId, email, name, kind: "DASHBOARD_HANDLER", roleId },
+    data: { authUserId, email, name, kind: "DASHBOARD_HANDLER", roleId, status: readStatus(formData) },
   });
 
   revalidatePath("/admin/users");
@@ -81,7 +89,7 @@ export async function createTeamUser(formData: FormData) {
   const authUserId = await createAuthAccount(name, email, password);
 
   await prisma.appUser.create({
-    data: { authUserId, email, name, kind: "TEAM", teamMemberId },
+    data: { authUserId, email, name, kind: "TEAM", teamMemberId, status: readStatus(formData) },
   });
 
   revalidatePath("/admin/users");
@@ -114,7 +122,7 @@ export async function createClientUser(formData: FormData) {
 
   await prisma.$transaction(async (tx) => {
     const appUser = await tx.appUser.create({
-      data: { authUserId, email, name, kind: "CLIENT" },
+      data: { authUserId, email, name, kind: "CLIENT", status: readStatus(formData) },
     });
     await tx.clientProfile.createMany({
       data: clientIds.map((clientId) => ({ appUserId: appUser.id, clientId })),
@@ -138,11 +146,19 @@ export async function updateAppUser(id: string, formData: FormData) {
   const name = str(formData, "name");
   const email = str(formData, "email");
   const password = str(formData, "password");
+  const status = readStatus(formData);
   if (!name || !email) throw new Error("Name and email are required");
   if (!EMAIL_RE.test(email)) throw new Error("Enter a valid email address");
   if (password && password.length < 8) {
     throw new Error("Password must be at least 8 characters");
   }
+
+  // Reactivating gives a clean slate rather than an immediate re-block —
+  // an admin choosing Active clearly means "let them try again".
+  const lockoutReset =
+    status === "ACTIVE"
+      ? { failedLoginAttempts: 0, lockoutStage: 0, lockedUntil: null }
+      : {};
 
   if (name !== appUser.name || email !== appUser.email) {
     const { error } = await auth.admin.updateUser({
@@ -164,13 +180,19 @@ export async function updateAppUser(id: string, formData: FormData) {
     if (!roleId) throw new Error("Role is required");
     const role = await prisma.role.findUnique({ where: { id: roleId } });
     if (!role) throw new Error("Selected role no longer exists");
-    await prisma.appUser.update({ where: { id }, data: { name, email, roleId } });
+    await prisma.appUser.update({
+      where: { id },
+      data: { name, email, roleId, status, ...lockoutReset },
+    });
   } else if (appUser.kind === "TEAM") {
     const teamMemberId = str(formData, "teamMemberId");
     if (!teamMemberId) throw new Error("Team member is required");
     const teamMember = await prisma.teamMember.findUnique({ where: { id: teamMemberId } });
     if (!teamMember) throw new Error("Selected team member no longer exists");
-    await prisma.appUser.update({ where: { id }, data: { name, email, teamMemberId } });
+    await prisma.appUser.update({
+      where: { id },
+      data: { name, email, teamMemberId, status, ...lockoutReset },
+    });
   } else {
     const clientIds = [
       ...new Set(formData.getAll("clientId").map((v) => String(v).trim())),
@@ -189,7 +211,7 @@ export async function updateAppUser(id: string, formData: FormData) {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.appUser.update({ where: { id }, data: { name, email } });
+      await tx.appUser.update({ where: { id }, data: { name, email, status, ...lockoutReset } });
       await tx.clientProfile.deleteMany({
         where: { appUserId: id, clientId: { notIn: clientIds } },
       });

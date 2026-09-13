@@ -67,6 +67,17 @@ enum UserKind {
   CLIENT
 }
 
+/// SUSPENDED and BLOCKED both block sign-in identically — they're kept as
+/// two admin-facing labels because Suspended is meant as a manual, easily
+/// reversed pause, while Blocked is either a manual hard stop or the
+/// automatic terminal state the brute-force lockout policy sets after
+/// its final tier (see AppUser.lockoutStage).
+enum AppUserStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
 model Role {
   id          String           @id @default(cuid())
   name        String           @unique
@@ -111,6 +122,15 @@ model AppUser {
   teamMemberId   String?         @unique
   teamMember     TeamMember?     @relation(fields: [teamMemberId], references: [id])
   clientProfiles ClientProfile[]
+  status         AppUserStatus   @default(ACTIVE)
+  /// Consecutive wrong-password attempts since the last reset (a correct
+  /// sign-in, or a timed lockout expiring into the next tier).
+  failedLoginAttempts Int        @default(0)
+  /// How many timed lockout tiers ([5, 15, 60] minutes) have already been
+  /// used since the last successful sign-in — the 4th violation blocks
+  /// the account permanently instead of issuing a 4th timer.
+  lockoutStage   Int             @default(0)
+  lockedUntil    DateTime?
   createdAt      DateTime        @default(now())
   updatedAt    DateTime    @updatedAt
 }

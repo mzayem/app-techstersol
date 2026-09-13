@@ -47,6 +47,7 @@ export default async function UsersPage() {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Role / Team member / Client profile(s)</TableHead>
               <TableHead className="w-0" />
             </TableRow>
@@ -54,7 +55,7 @@ export default async function UsersPage() {
           <TableBody>
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No users yet.
                 </TableCell>
               </TableRow>
@@ -79,6 +80,16 @@ export default async function UsersPage() {
                         ? "Team login"
                         : "Client login"}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-0.5">
+                      <StatusPill status={user.status} />
+                      {user.lockedMinutesRemaining !== null && (
+                        <span className="text-xs text-muted-foreground">
+                          Locked {user.lockedMinutesRemaining} min
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {user.role?.name ??
                       user.teamMember?.name ??
@@ -94,6 +105,7 @@ export default async function UsersPage() {
                           name: user.name,
                           email: user.email,
                           kind: user.kind,
+                          status: user.status,
                           roleId: user.roleId,
                           teamMemberId: user.teamMemberId,
                           clientIds: ownClientOptions.map((c) => c.id),
@@ -111,5 +123,22 @@ export default async function UsersPage() {
         </Table>
       </div>
     </div>
+  );
+}
+
+function StatusPill({ status }: { status: "ACTIVE" | "SUSPENDED" | "BLOCKED" }) {
+  const styles = {
+    ACTIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    SUSPENDED: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    BLOCKED: "bg-red-500/10 text-red-600 dark:text-red-400",
+  } as const;
+  const labels = { ACTIVE: "Active", SUSPENDED: "Suspended", BLOCKED: "Blocked" } as const;
+
+  return (
+    <span
+      className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[status]}`}
+    >
+      {labels[status]}
+    </span>
   );
 }

@@ -34,12 +34,14 @@ export type RoleOption = { id: string; name: string };
 export type TeamMemberOption = { id: string; name: string };
 export type ClientOption = { id: string; name: string };
 type UserKind = "DASHBOARD_HANDLER" | "TEAM" | "CLIENT";
+type UserStatus = "ACTIVE" | "SUSPENDED" | "BLOCKED";
 
 export type EditableUser = {
   id: string;
   name: string;
   email: string;
   kind: UserKind;
+  status: UserStatus;
   roleId: string | null;
   teamMemberId: string | null;
   clientIds: string[];
@@ -69,6 +71,7 @@ export function UserDialog({
   const formRef = React.useRef<HTMLFormElement>(null);
 
   const [kind, setKind] = React.useState<UserKind>(user?.kind ?? "DASHBOARD_HANDLER");
+  const [status, setStatus] = React.useState<UserStatus>(user?.status ?? "ACTIVE");
   const [roleId, setRoleId] = React.useState(user?.roleId ?? "");
   const [teamMemberId, setTeamMemberId] = React.useState(user?.teamMemberId ?? "");
   const [clientId, setClientId] = React.useState(user?.clientIds[0] ?? "");
@@ -81,6 +84,7 @@ export function UserDialog({
 
   function resetFields() {
     setKind("DASHBOARD_HANDLER");
+    setStatus("ACTIVE");
     setRoleId("");
     setTeamMemberId("");
     setClientId("");
@@ -169,6 +173,21 @@ export function UserDialog({
               defaultValue={user?.email}
             />
           </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="text-muted-foreground">Status</span>
+            <Select value={status} onValueChange={(v) => v && setStatus(v as UserStatus)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="BLOCKED">Blocked</SelectItem>
+              </SelectContent>
+            </Select>
+            <input type="hidden" name="status" value={status} />
+          </label>
+
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">
               {isEdit ? "New password" : "Password"}
