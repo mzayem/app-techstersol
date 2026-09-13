@@ -43,7 +43,7 @@ async function authorizeContractChat(contractId: string) {
 
 export type ContractMessageEntry = {
   id: string;
-  authorUserId: string;
+  isMine: boolean;
   authorName: string;
   body: string;
   createdAt: Date;
@@ -67,8 +67,9 @@ export async function listContractMessages(
     orderBy: { createdAt: "asc" },
   });
 
-  return messages.map(({ authorKind, ...m }) => ({
+  return messages.map(({ authorUserId, authorKind, ...m }) => ({
     ...m,
+    isMine: authorUserId === appUser.id,
     authorName: appUser.kind === "TEAM" && authorKind === "CLIENT" ? "Client" : m.authorName,
   }));
 }
@@ -100,7 +101,6 @@ export async function createContractMessage(
     },
     select: {
       id: true,
-      authorUserId: true,
       authorName: true,
       body: true,
       createdAt: true,
@@ -128,5 +128,29 @@ export async function createContractMessage(
   revalidatePath("/projects/contracts");
   revalidatePath("/portal/projects");
   revalidatePath("/client-portal/contracts");
-  return message;
+  return { ...message, isMine: true };
+}
+
+export async function deleteContractMessage(
+  contractId: string,
+  messageId: string,
+): Promise<void> {
+  const appUser = await authorizeContractChat(contractId);
+
+  const message = await prisma.contractMessage.findUnique({
+    where: { id: messageId },
+    select: { contractId: true, authorUserId: true },
+  });
+  if (!message || message.contractId !== contractId) {
+    throw new Error("Message not found");
+  }
+  if (message.authorUserId !== appUser.id) {
+    throw new Error("You can only delete your own messages");
+  }
+
+  await prisma.contractMessage.delete({ where: { id: messageId } });
+
+  revalidatePath("/projects/contracts");
+  revalidatePath("/portal/projects");
+  revalidatePath("/client-portal/contracts");
 }

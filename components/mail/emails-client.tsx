@@ -1230,7 +1230,7 @@ function RichBodyEditor({
   }
 
   return (
-    <div className="flex min-h-52 flex-1 flex-col overflow-hidden rounded-md ring-1 ring-foreground/10">
+    <div className="flex h-64 max-h-64 min-h-52 flex-col overflow-hidden rounded-md ring-1 ring-foreground/10">
       <div className="flex items-center gap-1 border-b border-border/60 px-2 py-1.5">
         <ToolbarButton label="Bold" onClick={() => exec("bold")}>
           <BoldIcon className="size-4" />
@@ -1265,7 +1265,7 @@ function RichBodyEditor({
         onInput={emit}
         data-placeholder={placeholder}
         dangerouslySetInnerHTML={{ __html: initialHtml }}
-        className="min-h-40 flex-1 overflow-y-auto px-3 py-2.5 text-sm outline-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)]"
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-2.5 text-sm outline-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)]"
       />
     </div>
   );

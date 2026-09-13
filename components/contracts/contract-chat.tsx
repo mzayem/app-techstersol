@@ -7,6 +7,7 @@ import {
   MessageSquareTextIcon,
   RefreshCwIcon,
   SendIcon,
+  Trash2Icon,
   XIcon,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ import {
 import { toast } from "@/components/ui/toast";
 import {
   createContractMessage,
+  deleteContractMessage,
   listContractMessages,
   type ContractMessageEntry,
 } from "@/actions/contracts/messages";
@@ -133,6 +135,8 @@ function ContractChatSheet({
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [body, setBody] = React.useState("");
   const [sending, startSending] = React.useTransition();
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [, startDeleting] = React.useTransition();
   const listRef = React.useRef<HTMLDivElement>(null);
 
   const load = React.useCallback(() => {
@@ -172,6 +176,25 @@ function ContractChatSheet({
             error instanceof Error ? error.message : "Couldn't send message",
           type: "error",
         });
+      }
+    });
+  }
+
+  function handleDelete(messageId: string) {
+    if (deletingId) return;
+    setDeletingId(messageId);
+    startDeleting(async () => {
+      try {
+        await deleteContractMessage(contractId, messageId);
+        setMessages((prev) => prev?.filter((m) => m.id !== messageId) ?? prev);
+      } catch (error) {
+        toast.add({
+          title:
+            error instanceof Error ? error.message : "Couldn't delete message",
+          type: "error",
+        });
+      } finally {
+        setDeletingId(null);
       }
     });
   }
@@ -267,7 +290,7 @@ function ContractChatSheet({
           )}
 
           {messages?.map((message) => (
-              <div key={message.id} className="flex flex-col gap-1">
+              <div key={message.id} className="group flex flex-col gap-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-sm font-medium">
                     {message.authorName}
@@ -275,6 +298,28 @@ function ContractChatSheet({
                   <span className="text-xs text-muted-foreground">
                     {formatMessageTime(message.createdAt)}
                   </span>
+                  {message.isMine && (
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            aria-label="Delete message"
+                            className="ml-auto text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+                            disabled={deletingId === message.id}
+                            onClick={() => handleDelete(message.id)}
+                          />
+                        }
+                      >
+                        {deletingId === message.id ? (
+                          <Loader2Icon className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2Icon className="size-3.5" />
+                        )}
+                      </TooltipTrigger>
+                      <TooltipContent>Delete message</TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
                 <div className="w-fit max-w-full rounded-lg bg-muted px-3 py-2 text-sm whitespace-pre-wrap wrap-break-word">
                   {linkify(message.body)}
@@ -292,7 +337,7 @@ function ContractChatSheet({
           <div className="flex flex-col gap-1 rounded-2xl bg-muted p-2">
             <Textarea
               placeholder="Write a note for this project…"
-              className="min-h-9 resize-none border-none bg-transparent px-2 py-1.5 text-sm shadow-none focus-visible:ring-0"
+              className="min-h-9 max-h-40 resize-none overflow-y-auto border-none bg-transparent px-2 py-1.5 text-sm shadow-none focus-visible:ring-0"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               onKeyDown={handleKeyDown}
