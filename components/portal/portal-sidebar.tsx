@@ -8,6 +8,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   ReceiptText,
+  Settings,
   UserCircle,
 } from "lucide-react";
 
@@ -33,6 +34,7 @@ const PORTAL_NAV = [
   { title: "Work Diary", url: "/portal/work-diary", icon: CalendarDays, hourlyOnly: true },
   { title: "Payslips", url: "/portal/payslips", icon: ReceiptText },
   { title: "Profile", url: "/portal/profile/settings", icon: UserCircle },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function PortalSidebar({

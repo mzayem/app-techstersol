@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toast";
 import { SyncProvider } from "@/components/sync/sync-provider";
+import { OfflineModeController } from "@/components/offline/offline-mode-controller";
 import { Providers } from "@/app/providers";
 import NextTopLoader from "nextjs-toploader";
 import { ThemeProvider } from "@/components/ui/theme-provider";
@@ -100,6 +101,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </main>
             <Toaster />
             <SyncProvider />
+            <OfflineModeController />
           </Providers>
         </ThemeProvider>
       </body>

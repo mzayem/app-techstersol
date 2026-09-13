@@ -10,8 +10,11 @@ export const config = {
   // fetching the manifest gets redirected to the sign-in page instead of
   // returning JSON. images/* (public/images) must be excluded too, since
   // the sign-in page itself renders a logo from there before a session
-  // exists.
+  // exists. sw.js needs the same treatment: service worker registration
+  // requires the script response to actually be JS, not a redirect to the
+  // sign-in page — this can be hit signed-out too (e.g. a stale service
+  // worker checking for updates after the session ends).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|verify|credentials|manifest.webmanifest|icon.png|apple-icon.png|icons/|images/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|verify|credentials|manifest.webmanifest|icon.png|apple-icon.png|icons/|images/|sw.js).*)",
   ],
 };

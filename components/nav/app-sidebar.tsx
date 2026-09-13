@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { navGroups, navMain } from "@/components/nav/nav-data";
+import { navGroups, navMain, navSettings } from "@/components/nav/nav-data";
 import { NavUser } from "@/components/nav/nav-user";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import type { PageKey } from "@/lib/rbac/pages";
@@ -106,6 +106,24 @@ export function AppSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={
+                    pathname === navSettings.url || pathname.startsWith(`${navSettings.url}/`)
+                  }
+                  tooltip={navSettings.title}
+                  render={<Link href={navSettings.url} onClick={closeOnMobile} />}
+                >
+                  <navSettings.icon />
+                  <span>{navSettings.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

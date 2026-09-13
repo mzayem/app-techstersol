@@ -43,3 +43,7 @@ next-env.d.ts
 
 # prisma
 /generated/prisma
+
+# serwist — generated at build time from app/sw.ts, tied to that build's hash
+/public/sw.js
+/public/sw.js.map

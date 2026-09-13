@@ -10,6 +10,7 @@ import {
   Receipt,
   ReceiptText,
   ScrollText,
+  Settings,
   Share2,
   ShieldCheck,
   TrendingUp,
@@ -24,6 +25,13 @@ export const navMain = {
   title: "Overview",
   url: "/",
   icon: LayoutDashboard,
+};
+
+// Static, not RBAC-driven — every role sees Settings (see app/settings).
+export const navSettings = {
+  title: "Settings",
+  url: "/settings",
+  icon: Settings,
 };
 
 export const navGroups = [
