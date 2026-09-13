@@ -37,16 +37,12 @@ type SendMailInput = {
   attachments?: MailAttachment[];
 };
 
-/** Hostinger's SMTP submission doesn't auto-file a copy into Sent (verified
- * — a self-test send left INBOX.Sent empty), so the admin Emails page's
- * "Sent" tab would otherwise always be empty for anything this app sends.
- * This builds the exact same message as raw MIME (via a buffering
- * streamTransport, never actually sent) and IMAP-appends it to Sent,
- * marked \Seen since we authored it. Best-effort — a failure here doesn't
- * fail the real send, which has already succeeded by this point. */
 async function appendToSentFolder(mail: SendMailOptions) {
   try {
-    const builder = nodemailer.createTransport({ streamTransport: true, buffer: true });
+    const builder = nodemailer.createTransport({
+      streamTransport: true,
+      buffer: true,
+    });
     const built = await builder.sendMail(mail);
     const raw = built.message as Buffer;
 
@@ -54,7 +50,10 @@ async function appendToSentFolder(mail: SendMailOptions) {
       host: process.env.EMAIL_IMAP_HOST!,
       port: Number(process.env.EMAIL_IMAP_PORT ?? 993),
       secure: true,
-      auth: { user: process.env.EMAIL_ACCOUNT!, pass: process.env.EMAIL_PASSWORD! },
+      auth: {
+        user: process.env.EMAIL_ACCOUNT!,
+        pass: process.env.EMAIL_PASSWORD!,
+      },
       logger: false,
     });
     await client.connect();
@@ -68,7 +67,14 @@ async function appendToSentFolder(mail: SendMailOptions) {
   }
 }
 
-export async function sendMail({ to, cc, bcc, subject, html, attachments }: SendMailInput) {
+export async function sendMail({
+  to,
+  cc,
+  bcc,
+  subject,
+  html,
+  attachments,
+}: SendMailInput) {
   const mail: SendMailOptions = {
     from: `"Techstersol" <${process.env.EMAIL_ACCOUNT}>`,
     to,
@@ -81,4 +87,47 @@ export async function sendMail({ to, cc, bcc, subject, html, attachments }: Send
 
   await transport.sendMail(mail);
   await appendToSentFolder(mail);
+}
+
+export async function saveDraft({
+  to,
+  cc,
+  bcc,
+  subject,
+  html,
+  attachments,
+}: Partial<SendMailInput>) {
+  const mail: SendMailOptions = {
+    from: `"Techstersol" <${process.env.EMAIL_ACCOUNT}>`,
+    to: to || undefined,
+    cc,
+    bcc,
+    subject: subject || "(no subject)",
+    html: html || "",
+    attachments,
+  };
+
+  const builder = nodemailer.createTransport({
+    streamTransport: true,
+    buffer: true,
+  });
+  const built = await builder.sendMail(mail);
+  const raw = built.message as Buffer;
+
+  const client = new ImapFlow({
+    host: process.env.EMAIL_IMAP_HOST!,
+    port: Number(process.env.EMAIL_IMAP_PORT ?? 993),
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_ACCOUNT!,
+      pass: process.env.EMAIL_PASSWORD!,
+    },
+    logger: false,
+  });
+  await client.connect();
+  try {
+    await client.append("INBOX.Drafts", raw, ["\\Draft"]);
+  } finally {
+    await client.logout();
+  }
 }

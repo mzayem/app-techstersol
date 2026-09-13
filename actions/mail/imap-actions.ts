@@ -9,7 +9,7 @@ import {
   toggleFlagged,
   type MailFolder,
 } from "@/lib/mail/imap";
-import { sendMail, type MailAttachment } from "@/lib/mail/transport";
+import { saveDraft, sendMail, type MailAttachment } from "@/lib/mail/transport";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
 /** Everything here talks directly to the live Hostinger mailbox over
@@ -39,6 +39,11 @@ export async function readMailMessage(folder: MailFolder, uid: number) {
 export async function setMessageFlagged(folder: MailFolder, uid: number, flagged: boolean) {
   await requirePagePermission("emails", "edit");
   await toggleFlagged(folder, uid, flagged);
+}
+
+export async function setMessageSeen(folder: MailFolder, uid: number, seen: boolean) {
+  await requirePagePermission("emails", "edit");
+  await markSeen(folder, uid, seen);
 }
 
 export async function removeMailMessage(folder: MailFolder, uid: number) {
@@ -71,20 +76,23 @@ function str(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function composeEmail(formData: FormData) {
-  await requirePagePermission("emails", "create");
+/** Strips the handful of tags/attributes that don't belong in an outbound
+ * email (or a stored draft) — the body comes from an admin's own
+ * contentEditable composer, not untrusted input, so this is a safety net
+ * against accidental script/style tags rather than a hostile-input filter. */
+function sanitizeBodyHtml(value: string): string {
+  return value
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, "")
+    .replace(/\son\w+="[^"]*"/gi, "")
+    .replace(/\son\w+='[^']*'/gi, "");
+}
 
-  const to = str(formData, "to");
-  const subject = str(formData, "subject");
-  const bodyText = str(formData, "bodyText");
-  if (!to || !EMAIL_RE.test(to)) {
-    throw new Error("Enter a valid recipient email address");
-  }
-  if (!subject) throw new Error("Subject is required");
-  if (!bodyText) throw new Error("Message can't be empty");
-
+async function readComposeFormData(formData: FormData) {
   const cc = parseAddressList(str(formData, "cc"), "Cc");
   const bcc = parseAddressList(str(formData, "bcc"), "Bcc");
+  const subject = str(formData, "subject");
+  const bodyHtml = str(formData, "bodyHtml");
+  const bodyText = str(formData, "bodyText");
 
   const files = formData.getAll("attachments").filter(
     (entry): entry is File => entry instanceof File && entry.size > 0,
@@ -97,7 +105,37 @@ export async function composeEmail(formData: FormData) {
     })),
   );
 
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#111;white-space:pre-wrap;">${escapeHtml(bodyText)}</div>`;
+  const html = bodyHtml
+    ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#111;">${sanitizeBodyHtml(bodyHtml)}</div>`
+    : bodyText
+      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#111;white-space:pre-wrap;">${escapeHtml(bodyText)}</div>`
+      : "";
+
+  return { cc, bcc, subject, html, attachments, hasBody: !!(bodyHtml || bodyText) };
+}
+
+/** Deletes the draft a message was composed from, once it's been sent or
+ * re-saved as a new draft — best-effort, since the send/save it follows has
+ * already succeeded by this point. */
+async function deleteSourceDraft(formData: FormData) {
+  const draftFolder = str(formData, "sourceDraftFolder") as MailFolder | "";
+  const draftUid = str(formData, "sourceDraftUid");
+  if (draftFolder && draftUid) {
+    await deleteMessage(draftFolder, Number(draftUid)).catch(() => {});
+  }
+}
+
+export async function composeEmail(formData: FormData) {
+  await requirePagePermission("emails", "create");
+
+  const to = str(formData, "to");
+  if (!to || !EMAIL_RE.test(to)) {
+    throw new Error("Enter a valid recipient email address");
+  }
+  const { cc, bcc, subject, html, attachments, hasBody } = await readComposeFormData(formData);
+  if (!subject) throw new Error("Subject is required");
+  if (!hasBody) throw new Error("Message can't be empty");
+
   await sendMail({
     to,
     cc,
@@ -106,6 +144,32 @@ export async function composeEmail(formData: FormData) {
     html,
     attachments: attachments.length > 0 ? attachments : undefined,
   });
+
+  await deleteSourceDraft(formData);
+}
+
+/** Files the composer's current contents into Drafts without sending —
+ * `to`/subject/body can all be empty, since a draft is by definition
+ * unfinished. */
+export async function saveDraftEmail(formData: FormData) {
+  await requirePagePermission("emails", "create");
+
+  const to = str(formData, "to");
+  if (to && !EMAIL_RE.test(to)) {
+    throw new Error("Enter a valid recipient email address");
+  }
+  const { cc, bcc, subject, html, attachments } = await readComposeFormData(formData);
+
+  await saveDraft({
+    to: to || undefined,
+    cc,
+    bcc,
+    subject,
+    html,
+    attachments: attachments.length > 0 ? attachments : undefined,
+  });
+
+  await deleteSourceDraft(formData);
 }
 
 function escapeHtml(value: string): string {

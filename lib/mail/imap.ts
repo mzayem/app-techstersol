@@ -12,11 +12,15 @@ export type MailListItem = {
   seen: boolean;
   flagged: boolean;
   hasAttachment: boolean;
+  size: number;
 };
 
 export type MailDetail = MailListItem & {
   html: string | null;
   text: string | null;
+  /** Plain address (no display name) to prefill a Reply — prefers
+   * Reply-To when the sender set one, falling back to From. */
+  replyToAddress: string;
 };
 
 function client() {
@@ -94,7 +98,7 @@ export async function listMessages(
     const messages: MailListItem[] = [];
     for await (const msg of c.fetch(
       { seq: `${start}:${end}` },
-      { envelope: true, uid: true, flags: true, bodyStructure: true },
+      { envelope: true, uid: true, flags: true, bodyStructure: true, size: true },
     )) {
       messages.push({
         uid: msg.uid,
@@ -105,6 +109,7 @@ export async function listMessages(
         seen: msg.flags?.has("\\Seen") ?? false,
         flagged: msg.flags?.has("\\Flagged") ?? false,
         hasAttachment: findsAttachment(msg.bodyStructure),
+        size: msg.size ?? 0,
       });
     }
     messages.reverse(); // newest first
@@ -121,7 +126,8 @@ export async function getMessage(folder: MailFolder, uid: number): Promise<MailD
 
     const chunks: Buffer[] = [];
     for await (const chunk of raw.content) chunks.push(chunk as Buffer);
-    const parsed = await simpleParser(Buffer.concat(chunks));
+    const buffer = Buffer.concat(chunks);
+    const parsed = await simpleParser(buffer);
 
     return {
       uid,
@@ -134,8 +140,11 @@ export async function getMessage(folder: MailFolder, uid: number): Promise<MailD
       seen: envelopeMsg ? (envelopeMsg.flags?.has("\\Seen") ?? true) : true,
       flagged: envelopeMsg?.flags?.has("\\Flagged") ?? false,
       hasAttachment: findsAttachment(envelopeMsg?.bodyStructure),
+      size: buffer.length,
       html: typeof parsed.html === "string" ? parsed.html : null,
       text: parsed.text ?? null,
+      replyToAddress:
+        parsed.replyTo?.value?.[0]?.address ?? parsed.from?.value?.[0]?.address ?? "",
     };
   });
 }
