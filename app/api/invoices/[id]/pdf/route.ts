@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { auth } from "@/lib/auth/server";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatInvoiceFileNumber } from "@/lib/invoices/constants";
 import { renderInvoicePdf } from "@/lib/invoices/pdf";
+import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
 import { getInvoiceForPdf } from "@/actions/invoices/queries";
 
 export const runtime = "nodejs";
@@ -13,8 +13,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { data } = await auth.getSession();
-  if (!data?.user) {
+  const appUser = await getCurrentAppUser();
+  if (!appUser) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
@@ -22,6 +22,18 @@ export async function GET(
   const invoice = await getInvoiceForPdf(id);
   if (!invoice) {
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  }
+
+  // Not found (not forbidden) for an owned-data mismatch, so a guessed id
+  // doesn't confirm another party's invoice exists.
+  if (appUser.kind === "CLIENT" && invoice.clientId !== appUser.client?.id) {
+    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  }
+  if (appUser.kind === "TEAM") {
+    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  }
+  if (appUser.kind === "DASHBOARD_HANDLER" && !checkPermission(appUser, "invoices", "view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const origin = new URL(request.url).origin;

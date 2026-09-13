@@ -22,6 +22,17 @@ async function authorizeContractChat(contractId: string) {
     return appUser;
   }
 
+  if (appUser.kind === "CLIENT") {
+    const contract = await prisma.contract.findUnique({
+      where: { id: contractId },
+      select: { clientId: true },
+    });
+    if (!contract || contract.clientId !== appUser.client?.id) {
+      throw new Error("Project not found");
+    }
+    return appUser;
+  }
+
   if (!checkPermission(appUser, "contracts", "view")) {
     throw new Error("You don't have access to this project");
   }
@@ -86,5 +97,6 @@ export async function createContractMessage(
 
   revalidatePath("/projects/contracts");
   revalidatePath("/portal/projects");
+  revalidatePath("/client-portal/contracts");
   return message;
 }

@@ -11,16 +11,18 @@ import { requirePagePermission } from "@/lib/rbac/permissions";
 import { listAppUsers } from "@/actions/rbac/user-queries";
 import { listRoleOptions } from "@/actions/rbac/role-queries";
 import { listTeamMemberOptions } from "@/actions/team/queries";
+import { listClientOptions } from "@/actions/contracts/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
   await requirePagePermission("users");
 
-  const [users, roles, teamMembers] = await Promise.all([
+  const [users, roles, teamMembers, clients] = await Promise.all([
     listAppUsers(),
     listRoleOptions(),
     listTeamMemberOptions(),
+    listClientOptions(),
   ]);
 
   return (
@@ -30,12 +32,13 @@ export default async function UsersPage() {
           <h1 className="text-lg font-medium">Users</h1>
           <p className="text-sm text-muted-foreground">
             Sign-up is disabled — this is the only way to create a new
-            account, dashboard handler or team login.
+            account: dashboard handler, team login, or client login.
           </p>
         </div>
         <UserDialog
           roles={roles}
           teamMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
+          clients={clients.map((c) => ({ id: c.id, name: c.name }))}
         />
       </div>
 
@@ -63,10 +66,14 @@ export default async function UsersPage() {
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell className="text-muted-foreground">{user.email}</TableCell>
                 <TableCell>
-                  {user.kind === "DASHBOARD_HANDLER" ? "Dashboard handler" : "Team login"}
+                  {user.kind === "DASHBOARD_HANDLER"
+                    ? "Dashboard handler"
+                    : user.kind === "TEAM"
+                      ? "Team login"
+                      : "Client login"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {user.role?.name ?? user.teamMember?.name ?? "—"}
+                  {user.role?.name ?? user.teamMember?.name ?? user.client?.name ?? "—"}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end">

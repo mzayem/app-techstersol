@@ -64,6 +64,7 @@ enum TeamMemberType {
 enum UserKind {
   DASHBOARD_HANDLER
   TEAM
+  CLIENT
 }
 
 model Role {
@@ -93,9 +94,10 @@ model RolePermission {
 
 /// Our own record of an authenticated identity, keyed to Neon Auth's user
 /// id (authUserId). kind decides which half of the app they get:
-/// DASHBOARD_HANDLER (roleId required) or TEAM (teamMemberId required,
+/// DASHBOARD_HANDLER (roleId required), TEAM (teamMemberId required,
 /// linking to an existing TeamMember so a team login only ever sees their
-/// own data).
+/// own data), or CLIENT (clientId required, linking to an existing Client
+/// so a client login only ever sees their own contracts/invoices).
 model AppUser {
   id           String      @id @default(cuid())
   authUserId   String      @unique
@@ -106,6 +108,8 @@ model AppUser {
   role         Role?       @relation(fields: [roleId], references: [id])
   teamMemberId String?     @unique
   teamMember   TeamMember? @relation(fields: [teamMemberId], references: [id])
+  clientId     String?     @unique
+  client       Client?     @relation(fields: [clientId], references: [id])
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }
@@ -172,6 +176,7 @@ model Client {
   updatedAt       DateTime        @updatedAt
   contracts       Contract[]
   invoices        Invoice[]
+  appUser         AppUser?
 
   @@index([status])
   @@index([name])

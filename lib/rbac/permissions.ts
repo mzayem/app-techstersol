@@ -33,6 +33,7 @@ export async function getCurrentAppUser() {
     include: {
       role: { include: { permissions: true } },
       teamMember: { select: { id: true, name: true, type: true } },
+      client: { select: { id: true, name: true, email: true, currency: true, status: true } },
     },
   });
 }
@@ -69,14 +70,16 @@ export function checkPermission(
 }
 
 /** Call as the first statement in every dashboard page. Redirects a
- * TEAM-kind login to the portal, and redirects anyone whose role lacks
- * the given action on this page back to Overview. Returns the AppUser and
- * its resolved permission for this page, so a page can also use it to
- * conditionally render create/edit/delete controls. */
+ * TEAM-kind login to the portal, a CLIENT-kind login to the client portal,
+ * and redirects anyone whose role lacks the given action on this page back
+ * to Overview. Returns the AppUser and its resolved permission for this
+ * page, so a page can also use it to conditionally render create/edit/delete
+ * controls. */
 export async function requirePagePermission(page: PageKey, action: PermissionAction = "view") {
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/auth/sign-in");
   if (appUser.kind === "TEAM") redirect("/portal");
+  if (appUser.kind === "CLIENT") redirect("/client-portal");
 
   const permission = resolvePermission(appUser, page);
   const allowed = {
@@ -98,6 +101,19 @@ export async function requireTeamUser() {
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/auth/sign-in");
   if (appUser.kind !== "TEAM" || !appUser.teamMember) redirect("/");
+  return appUser;
+}
+
+/** Call as the first statement in every client-portal page. Redirects
+ * anyone who isn't a CLIENT-kind login (or has no linked, still-active
+ * Client) back to the main dashboard — a churned client's login stops
+ * working here even if nobody remembered to delete the AppUser. */
+export async function requireClientUser() {
+  const appUser = await getCurrentAppUser();
+  if (!appUser) redirect("/auth/sign-in");
+  if (appUser.kind !== "CLIENT" || !appUser.client || appUser.client.status !== "ACTIVE") {
+    redirect("/");
+  }
   return appUser;
 }
 

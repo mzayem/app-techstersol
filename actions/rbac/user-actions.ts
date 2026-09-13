@@ -87,6 +87,28 @@ export async function createTeamUser(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
+export async function createClientUser(formData: FormData) {
+  await requirePagePermission("users", "create");
+
+  const name = str(formData, "name");
+  const email = str(formData, "email");
+  const password = str(formData, "password");
+  const clientId = str(formData, "clientId");
+  validateBasics(name, email, password);
+  if (!clientId) throw new Error("Client is required");
+
+  const client = await prisma.client.findUnique({ where: { id: clientId } });
+  if (!client) throw new Error("Selected client no longer exists");
+
+  const authUserId = await createAuthAccount(name, email, password);
+
+  await prisma.appUser.create({
+    data: { authUserId, email, name, kind: "CLIENT", clientId },
+  });
+
+  revalidatePath("/admin/users");
+}
+
 /** Revokes dashboard/portal access by removing our own record — this
  * does not delete the underlying Neon Auth account, so if they ever sign
  * in again they'll simply have no AppUser and be treated as unauthorized. */

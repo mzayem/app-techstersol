@@ -5,6 +5,7 @@ export async function listAppUsers() {
     include: {
       role: { select: { id: true, name: true } },
       teamMember: { select: { id: true, name: true } },
+      client: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });

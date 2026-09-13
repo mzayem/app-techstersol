@@ -21,19 +21,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createDashboardUser, createTeamUser, deleteAppUser } from "@/actions/rbac/user-actions";
+import {
+  createClientUser,
+  createDashboardUser,
+  createTeamUser,
+  deleteAppUser,
+} from "@/actions/rbac/user-actions";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
 export type RoleOption = { id: string; name: string };
 export type TeamMemberOption = { id: string; name: string };
-type UserKind = "DASHBOARD_HANDLER" | "TEAM";
+export type ClientOption = { id: string; name: string };
+type UserKind = "DASHBOARD_HANDLER" | "TEAM" | "CLIENT";
 
 export function UserDialog({
   roles,
   teamMembers,
+  clients,
 }: {
   roles: RoleOption[];
   teamMembers: TeamMemberOption[];
+  clients: ClientOption[];
 }) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
@@ -42,6 +50,7 @@ export function UserDialog({
   const [kind, setKind] = React.useState<UserKind>("DASHBOARD_HANDLER");
   const [roleId, setRoleId] = React.useState("");
   const [teamMemberId, setTeamMemberId] = React.useState("");
+  const [clientId, setClientId] = React.useState("");
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -49,12 +58,15 @@ export function UserDialog({
       try {
         if (kind === "DASHBOARD_HANDLER") {
           await createDashboardUser(formData);
-        } else {
+        } else if (kind === "TEAM") {
           await createTeamUser(formData);
+        } else {
+          await createClientUser(formData);
         }
         formRef.current?.reset();
         setRoleId("");
         setTeamMemberId("");
+        setClientId("");
         setOpen(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
@@ -82,6 +94,7 @@ export function UserDialog({
               <SelectContent>
                 <SelectItem value="DASHBOARD_HANDLER">Dashboard handler</SelectItem>
                 <SelectItem value="TEAM">Team member login</SelectItem>
+                <SelectItem value="CLIENT">Client login</SelectItem>
               </SelectContent>
             </Select>
           </label>
@@ -118,7 +131,7 @@ export function UserDialog({
               />
               <input type="hidden" name="roleId" value={roleId} />
             </label>
-          ) : (
+          ) : kind === "TEAM" ? (
             <label className="flex flex-col gap-1.5 text-sm">
               <span className="text-muted-foreground">Team member</span>
               <Combobox
@@ -130,6 +143,19 @@ export function UserDialog({
                 emptyText="No team members found."
               />
               <input type="hidden" name="teamMemberId" value={teamMemberId} />
+            </label>
+          ) : (
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="text-muted-foreground">Client</span>
+              <Combobox
+                value={clientId}
+                onValueChange={setClientId}
+                options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="Select client"
+                searchPlaceholder="Search clients…"
+                emptyText="No clients found."
+              />
+              <input type="hidden" name="clientId" value={clientId} />
             </label>
           )}
 

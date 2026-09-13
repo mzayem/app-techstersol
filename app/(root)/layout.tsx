@@ -18,6 +18,7 @@ export default async function DashboardLayout({
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/auth/sign-in");
   if (appUser.kind === "TEAM") redirect("/portal");
+  if (appUser.kind === "CLIENT") redirect("/client-portal");
 
   const visiblePages = getVisiblePages(appUser);
 
