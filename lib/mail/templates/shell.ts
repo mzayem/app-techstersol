@@ -22,6 +22,25 @@ const FONT_STACK = "'Outfit', Arial, Helvetica, sans-serif";
  * required here since these need to beat each element's own inline
  * (light-mode-default) style once the media query matches. Kept in one
  * place so every template shares exactly the same dark palette. */
+/** Same status→color mapping as the dashboard's pills (`StatusPill` in
+ * `components/contracts/contract-table.tsx` for contracts, the one in
+ * `app/(root)/(routes)/projects/invoices/page.tsx` for invoices) — Tailwind
+ * classes there, hex here since email can't rely on a stylesheet resolving
+ * theme tokens. Light value mirrors that component's base `text-*-600`,
+ * dark value mirrors its `dark:text-*-400`; the background tint (~12%
+ * alpha) is the same in both modes there, so it stays constant here too. */
+export type StatusTone = "neutral" | "violet" | "emerald" | "amber" | "orange" | "sky" | "red";
+
+const STATUS_TONES: Record<StatusTone, { rgb: string; light: string; dark: string }> = {
+  neutral: { rgb: "100,116,139", light: "#475569", dark: "#94a3b8" },
+  violet: { rgb: "139,92,246", light: "#7c3aed", dark: "#a78bfa" },
+  emerald: { rgb: "16,185,129", light: "#059669", dark: "#34d399" },
+  amber: { rgb: "245,158,11", light: "#d97706", dark: "#fbbf24" },
+  orange: { rgb: "249,115,22", light: "#ea580c", dark: "#fb923c" },
+  sky: { rgb: "14,165,233", light: "#0284c7", dark: "#38bdf8" },
+  red: { rgb: "239,68,68", light: "#dc2626", dark: "#f87171" },
+};
+
 const DARK_MODE_STYLE = `
   @media (prefers-color-scheme: dark) {
     .em-panel { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.14) !important; }
@@ -30,6 +49,9 @@ const DARK_MODE_STYLE = `
     .em-muted { color: #8f8d88 !important; }
     .em-divider { border-color: rgba(255,255,255,0.12) !important; }
     .em-footer { color: rgba(255,255,255,0.4) !important; }
+    ${Object.entries(STATUS_TONES)
+      .map(([tone, c]) => `.em-status-${tone} { color: ${c.dark} !important; }`)
+      .join("\n    ")}
   }
 `;
 
@@ -75,18 +97,30 @@ export function emailButton(label: string, href: string) {
   `;
 }
 
+/** A colored status pill matching the dashboard's own status badges (see
+ * `StatusTone` above for the exact mapping). */
+export function emailStatusBadge(label: string, tone: StatusTone) {
+  const c = STATUS_TONES[tone];
+  return `
+    <span class="em-status-${tone}" style="display:inline-block;background:rgba(${c.rgb},0.12);color:${c.light};font-size:12px;font-weight:700;padding:5px 14px;border-radius:100px;font-family:${FONT_STACK};">
+      ${escapeHtml(label)}
+    </span>
+  `;
+}
+
 /** A two-column "Field / Details" row, mirroring `.tsv-verify-row`. `label`
  * is always a static string we control; `value` is often user-supplied
- * (a project/client name) so it's escaped here rather than trusting every
- * call site to remember. */
-export function emailInfoRow(label: string, value: string) {
+ * (a project/client name) so it's escaped by default — pass `raw: true`
+ * only for HTML we built ourselves (e.g. a status badge), never for
+ * anything that echoes back user input. */
+export function emailInfoRow(label: string, value: string, options?: { raw?: boolean }) {
   return `
     <tr>
       <td class="em-heading em-divider" style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.08);border-right:1px solid rgba(0,0,0,0.08);color:#18181b;font-size:13px;font-weight:600;font-family:${FONT_STACK};white-space:nowrap;">
         ${label}
       </td>
       <td class="em-text em-divider" style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.08);color:#4b4b52;font-size:14px;font-weight:300;font-family:${FONT_STACK};">
-        ${escapeHtml(value)}
+        ${options?.raw ? value : escapeHtml(value)}
       </td>
     </tr>
   `;

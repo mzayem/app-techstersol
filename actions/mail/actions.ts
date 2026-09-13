@@ -13,7 +13,7 @@ import { requirePagePermission } from "@/lib/rbac/permissions";
 import {
   renderContractDetailsEmail,
 } from "@/lib/mail/templates/contract";
-import { renderInvoiceCreatedEmail } from "@/lib/mail/templates/invoice";
+import { renderInvoiceCreatedEmail, renderInvoicePaidEmail } from "@/lib/mail/templates/invoice";
 import { renderPayslipIssuedEmail } from "@/lib/mail/templates/payslip";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -93,15 +93,27 @@ export async function sendInvoiceEmail(to: string, invoiceId: string) {
   const total = pdfData.items.reduce((sum, item) => sum + item.amount, 0);
   const balanceDue = total - pdfData.discount;
 
+  // Reflect the invoice's real current status — a manually resent PAID
+  // invoice should show "Paid", not always the "just created" template.
+  const html =
+    invoice.status === "PAID"
+      ? renderInvoicePaidEmail({
+          invoiceNumber: formatInvoiceNumber(invoice.number),
+          amount: formatContractAmount(balanceDue, pdfData.currency),
+          paidOn: invoice.paidOn ? formatDate(invoice.paidOn) : formatDate(new Date()),
+          verifyUrl: `${appUrl()}/verify/${invoice.id}`,
+        })
+      : renderInvoiceCreatedEmail({
+          invoiceNumber: formatInvoiceNumber(invoice.number),
+          amount: formatContractAmount(balanceDue, pdfData.currency),
+          dueDate: formatDate(invoice.dueDate),
+          verifyUrl: `${appUrl()}/verify/${invoice.id}`,
+        });
+
   await sendMail({
     to: recipient,
     subject: `Invoice ${formatInvoiceNumber(invoice.number)}`,
-    html: renderInvoiceCreatedEmail({
-      invoiceNumber: formatInvoiceNumber(invoice.number),
-      amount: formatContractAmount(balanceDue, pdfData.currency),
-      dueDate: formatDate(invoice.dueDate),
-      verifyUrl: `${appUrl()}/verify/${invoice.id}`,
-    }),
+    html,
     attachments: [
       {
         filename: `Invoice-${formatInvoiceNumber(invoice.number)}.pdf`,

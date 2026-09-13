@@ -30,6 +30,8 @@ export type MailAttachment = {
 
 type SendMailInput = {
   to: string | string[];
+  cc?: string | string[];
+  bcc?: string | string[];
   subject: string;
   html: string;
   attachments?: MailAttachment[];
@@ -66,10 +68,12 @@ async function appendToSentFolder(mail: SendMailOptions) {
   }
 }
 
-export async function sendMail({ to, subject, html, attachments }: SendMailInput) {
+export async function sendMail({ to, cc, bcc, subject, html, attachments }: SendMailInput) {
   const mail: SendMailOptions = {
     from: `"Techstersol" <${process.env.EMAIL_ACCOUNT}>`,
     to,
+    cc,
+    bcc,
     subject,
     html,
     attachments,

@@ -123,6 +123,7 @@ model AppUser {
   teamMember     TeamMember?     @relation(fields: [teamMemberId], references: [id])
   clientProfiles ClientProfile[]
   credentialViewLinks CredentialViewLink[]
+  passwordResetCodes PasswordResetCode[]
   status         AppUserStatus   @default(ACTIVE)
   /// Consecutive wrong-password attempts since the last reset (a correct
   /// sign-in, or a timed lockout expiring into the next tier).
@@ -219,6 +220,23 @@ model CredentialViewLink {
   expiresAt          DateTime
   usedAt             DateTime?
   createdAt          DateTime  @default(now())
+
+  @@index([appUserId])
+}
+
+/// A "forgot password" one-time 6-digit code — hashed at rest, short-lived,
+/// and attempt-limited so a 6-digit space isn't brute-forceable within its
+/// window. A fresh request invalidates any prior unused code for the same
+/// user (see requestPasswordResetCode).
+model PasswordResetCode {
+  id        String    @id @default(cuid())
+  appUserId String
+  appUser   AppUser   @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([appUserId])
 }

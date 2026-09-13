@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2Icon, PlusIcon, RefreshCwIcon } from "lucide-react";
+import { Loader2Icon, PaperclipIcon, PlusIcon, RefreshCwIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -230,23 +230,61 @@ export function EmailsClient() {
   );
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function ComposeDialog() {
   const [open, setOpen] = React.useState(false);
   const [to, setTo] = React.useState("");
+  const [showCcBcc, setShowCcBcc] = React.useState(false);
+  const [cc, setCc] = React.useState("");
+  const [bcc, setBcc] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
+  const [files, setFiles] = React.useState<File[]>([]);
+  const [fileInputKey, setFileInputKey] = React.useState(0);
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
+
+  function resetForm() {
+    setTo("");
+    setShowCcBcc(false);
+    setCc("");
+    setBcc("");
+    setSubject("");
+    setBody("");
+    setFiles([]);
+    setFileInputKey((k) => k + 1);
+  }
+
+  function addFiles(list: FileList | null) {
+    if (!list) return;
+    setFiles((prev) => [...prev, ...Array.from(list)]);
+    setFileInputKey((k) => k + 1); // reset the picker so choosing the same file again still fires onChange
+  }
+
+  function removeFile(index: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
 
   function handleSend() {
     setError(null);
     startTransition(async () => {
       try {
-        await composeEmail({ to, subject, bodyText: body });
+        const formData = new FormData();
+        formData.set("to", to);
+        formData.set("cc", cc);
+        formData.set("bcc", bcc);
+        formData.set("subject", subject);
+        formData.set("bodyText", body);
+        for (const file of files) formData.append("attachments", file);
+
+        await composeEmail(formData);
         toast.add({ title: `Email sent to ${to}`, type: "success" });
-        setTo("");
-        setSubject("");
-        setBody("");
+        resetForm();
         setOpen(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't send email");
@@ -266,7 +304,18 @@ function ComposeDialog() {
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-muted-foreground">To</span>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">To</span>
+              {!showCcBcc && (
+                <button
+                  type="button"
+                  onClick={() => setShowCcBcc(true)}
+                  className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  Add Cc/Bcc
+                </button>
+              )}
+            </div>
             <Input
               type="email"
               value={to}
@@ -274,6 +323,26 @@ function ComposeDialog() {
               placeholder="name@example.com"
             />
           </label>
+          {showCcBcc && (
+            <>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-muted-foreground">Cc</span>
+                <Input
+                  value={cc}
+                  onChange={(e) => setCc(e.target.value)}
+                  placeholder="name@example.com, another@example.com"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-muted-foreground">Bcc</span>
+                <Input
+                  value={bcc}
+                  onChange={(e) => setBcc(e.target.value)}
+                  placeholder="name@example.com, another@example.com"
+                />
+              </label>
+            </>
+          )}
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Subject</span>
             <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
@@ -282,6 +351,44 @@ function ComposeDialog() {
             <span className="text-muted-foreground">Message</span>
             <Textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} />
           </label>
+
+          <div className="flex flex-col gap-2">
+            <label className="flex w-fit cursor-pointer items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+              <PaperclipIcon className="size-3.5" />
+              Attach files
+              <input
+                key={fileInputKey}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => addFiles(e.target.files)}
+              />
+            </label>
+            {files.length > 0 && (
+              <ul className="flex flex-col gap-1.5">
+                {files.map((file, index) => (
+                  <li
+                    key={`${file.name}-${index}`}
+                    className="flex items-center justify-between gap-2 rounded-md bg-muted px-2.5 py-1.5 text-xs"
+                  >
+                    <span className="truncate">{file.name}</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-muted-foreground">{formatFileSize(file.size)}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${file.name}`}
+                        onClick={() => removeFile(index)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <XIcon className="size-3.5" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>

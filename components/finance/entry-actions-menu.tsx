@@ -22,10 +22,14 @@ export function EntryActionsMenu({
   id,
   onEdit,
   onDelete,
+  canEdit = true,
+  canDelete = true,
 }: {
   id: string;
   onEdit: () => void;
   onDelete: () => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -47,15 +51,19 @@ export function EntryActionsMenu({
             <CopyIcon />
             Copy ID
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onEdit}>
-            <PencilIcon />
-            Update
-          </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" onClick={onDelete}>
-            <Trash2Icon />
-            Delete
-          </DropdownMenuItem>
+          {(canEdit || canDelete) && <DropdownMenuSeparator />}
+          {canEdit && (
+            <DropdownMenuItem onClick={onEdit}>
+              <PencilIcon />
+              Update
+            </DropdownMenuItem>
+          )}
+          {canDelete && (
+            <DropdownMenuItem variant="destructive" onClick={onDelete}>
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

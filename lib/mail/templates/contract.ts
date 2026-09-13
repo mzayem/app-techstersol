@@ -4,9 +4,29 @@ import {
   emailButton,
   emailInfoRow,
   emailInfoTable,
+  emailStatusBadge,
   escapeHtml,
   renderEmailShell,
+  type StatusTone,
 } from "./shell";
+
+/** Mirrors `StatusPill`'s tone-per-status in
+ * `components/contracts/contract-table.tsx` — keep these two in sync if
+ * that mapping ever changes. */
+const CONTRACT_STATUS_TONE: Record<ContractStatus, StatusTone> = {
+  PROPOSED: "neutral",
+  UPFRONT_PAYMENT: "violet",
+  ACTIVE: "emerald",
+  PENDING_PAYMENT: "amber",
+  PARTIALLY_PAID: "orange",
+  COMPLETED: "sky",
+  PAUSED: "neutral",
+  CANCELLED: "red",
+};
+
+function contractStatusBadge(status: ContractStatus) {
+  return emailStatusBadge(CONTRACT_STATUS_LABELS[status], CONTRACT_STATUS_TONE[status]);
+}
 
 export function renderProposalNotificationEmail({
   clientName,
@@ -46,7 +66,7 @@ export function renderContractCreatedEmail({
     </p>
     ${emailInfoTable(
       emailInfoRow("Project", projectName) +
-        emailInfoRow("Status", CONTRACT_STATUS_LABELS[status]) +
+        emailInfoRow("Status", contractStatusBadge(status), { raw: true }) +
         emailInfoRow("Deadline", deadline),
     )}
   `;
@@ -75,7 +95,7 @@ export function renderContractDetailsEmail({
         : ""
     }
     ${emailInfoTable(
-      emailInfoRow("Status", CONTRACT_STATUS_LABELS[status]) +
+      emailInfoRow("Status", contractStatusBadge(status), { raw: true }) +
         emailInfoRow("Deadline", deadline) +
         (amount ? emailInfoRow("Amount", amount) : ""),
     )}
@@ -96,7 +116,7 @@ export function renderContractStatusEmail({
     <p class="em-muted" style="margin:0 0 24px 0;font-size:14px;line-height:1.8;color:#5b5b62;font-weight:300;">
       Here's the latest status for your project with Techstersol.
     </p>
-    ${emailInfoTable(emailInfoRow("Project", projectName) + emailInfoRow("New status", CONTRACT_STATUS_LABELS[status]))}
+    ${emailInfoTable(emailInfoRow("Project", projectName) + emailInfoRow("New status", contractStatusBadge(status), { raw: true }))}
   `;
   return renderEmailShell({ title: "Project status update", bodyHtml });
 }

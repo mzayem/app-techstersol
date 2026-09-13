@@ -16,10 +16,16 @@ import {
 export function ContractActionsMenu({
   onEdit,
   onDelete,
+  canEdit = true,
+  canDelete = true,
 }: {
   onEdit: () => void;
   onDelete: () => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
+  if (!canEdit && !canDelete) return null;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -36,15 +42,19 @@ export function ContractActionsMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onClick={onEdit}>
-            <PencilIcon />
-            Update
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={onDelete}>
-            <Trash2Icon />
-            Delete
-          </DropdownMenuItem>
+          {canEdit && (
+            <DropdownMenuItem onClick={onEdit}>
+              <PencilIcon />
+              Update
+            </DropdownMenuItem>
+          )}
+          {canEdit && canDelete && <DropdownMenuSeparator />}
+          {canDelete && (
+            <DropdownMenuItem variant="destructive" onClick={onDelete}>
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

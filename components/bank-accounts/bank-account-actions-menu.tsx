@@ -22,10 +22,14 @@ export function BankAccountActionsMenu({
   onCopy,
   onEdit,
   onDelete,
+  canEdit = true,
+  canDelete = true,
 }: {
   onCopy: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -47,15 +51,19 @@ export function BankAccountActionsMenu({
             <CopyIcon />
             Copy bank details
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onEdit}>
-            <PencilIcon />
-            Update
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={onDelete}>
-            <Trash2Icon />
-            Delete
-          </DropdownMenuItem>
+          {(canEdit || canDelete) && <DropdownMenuSeparator />}
+          {canEdit && (
+            <DropdownMenuItem onClick={onEdit}>
+              <PencilIcon />
+              Update
+            </DropdownMenuItem>
+          )}
+          {canDelete && (
+            <DropdownMenuItem variant="destructive" onClick={onDelete}>
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -5,6 +5,7 @@ import { PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -114,7 +115,12 @@ export function RoleDialog({
             />
           </label>
 
-          <div className="max-h-80 overflow-y-auto rounded-md ring-1 ring-foreground/10">
+          <div
+            className={cn(
+              "max-h-80 overflow-y-auto rounded-md ring-1 ring-foreground/10",
+              locked && "pointer-events-none opacity-60",
+            )}
+          >
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">

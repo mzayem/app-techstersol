@@ -55,12 +55,16 @@ export function ClientDialog({
   onOpenChange: onOpenChangeProp,
   locked = false,
   onUnlock,
+  canEdit = true,
 }: {
   client?: ClientEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
   onUnlock?: () => void;
+  /** Whether the viewer is allowed to unlock this dialog at all — a
+   * view-only role never gets the "Update" button, not even disabled. */
+  canEdit?: boolean;
 }) {
   const isEdit = !!client;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -215,8 +219,8 @@ export function ClientDialog({
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            {locked ? (
+          {locked && canEdit && (
+            <DialogFooter>
               <Button
                 key="update"
                 type="button"
@@ -227,12 +231,15 @@ export function ClientDialog({
               >
                 Update
               </Button>
-            ) : (
+            </DialogFooter>
+          )}
+          {!locked && (
+            <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save client"}
               </Button>
-            )}
-          </DialogFooter>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>

@@ -1,7 +1,7 @@
-import { ImapFlow, type MessageAddressObject } from "imapflow";
+import { ImapFlow, type MessageAddressObject, type MessageStructureObject } from "imapflow";
 import { simpleParser } from "mailparser";
 
-export type MailFolder = "INBOX" | "INBOX.Sent";
+export type MailFolder = "INBOX" | "INBOX.Sent" | "INBOX.Drafts" | "INBOX.Trash";
 
 export type MailListItem = {
   uid: number;
@@ -10,7 +10,8 @@ export type MailListItem = {
   to: string;
   date: Date | null;
   seen: boolean;
-  snippet: string;
+  flagged: boolean;
+  hasAttachment: boolean;
 };
 
 export type MailDetail = MailListItem & {
@@ -46,9 +47,34 @@ async function withMailbox<T>(folder: MailFolder, fn: (c: ImapFlow) => Promise<T
   }
 }
 
+async function withClient<T>(fn: (c: ImapFlow) => Promise<T>): Promise<T> {
+  const c = client();
+  await c.connect();
+  try {
+    return await fn(c);
+  } finally {
+    await c.logout();
+  }
+}
+
 function addressLine(list?: MessageAddressObject[]): string {
   if (!list || list.length === 0) return "";
   return list.map((a) => a.name || a.address).join(", ");
+}
+
+function findsAttachment(node?: MessageStructureObject): boolean {
+  if (!node) return false;
+  if (node.disposition?.toLowerCase() === "attachment") return true;
+  return node.childNodes?.some(findsAttachment) ?? false;
+}
+
+/** Unseen-message count for the Inbox sidebar badge — a plain STATUS
+ * command, no mailbox lock/message fetch needed. */
+export async function getUnseenCount(folder: MailFolder): Promise<number> {
+  return withClient(async (c) => {
+    const status = await c.status(folder, { unseen: true });
+    return status.unseen ?? 0;
+  });
 }
 
 /** Newest-first, envelope-only — cheap enough to list a whole page without
@@ -77,7 +103,8 @@ export async function listMessages(
         to: addressLine(msg.envelope?.to),
         date: msg.envelope?.date ? new Date(msg.envelope.date) : null,
         seen: msg.flags?.has("\\Seen") ?? false,
-        snippet: "",
+        flagged: msg.flags?.has("\\Flagged") ?? false,
+        hasAttachment: findsAttachment(msg.bodyStructure),
       });
     }
     messages.reverse(); // newest first
@@ -87,6 +114,8 @@ export async function listMessages(
 
 export async function getMessage(folder: MailFolder, uid: number): Promise<MailDetail | null> {
   return withMailbox(folder, async (c) => {
+    const envelopeMsg =
+      (await c.fetchOne(String(uid), { envelope: true, flags: true, bodyStructure: true }, { uid: true })) || undefined;
     const raw = await c.download(String(uid), undefined, { uid: true });
     if (!raw) return null;
 
@@ -102,10 +131,37 @@ export async function getMessage(folder: MailFolder, uid: number): Promise<MailD
         ? parsed.to.map((t) => t.text).join(", ")
         : (parsed.to?.text ?? ""),
       date: parsed.date instanceof Date ? parsed.date : null,
-      seen: true,
-      snippet: "",
+      seen: envelopeMsg ? (envelopeMsg.flags?.has("\\Seen") ?? true) : true,
+      flagged: envelopeMsg?.flags?.has("\\Flagged") ?? false,
+      hasAttachment: findsAttachment(envelopeMsg?.bodyStructure),
       html: typeof parsed.html === "string" ? parsed.html : null,
       text: parsed.text ?? null,
     };
+  });
+}
+
+export async function markSeen(folder: MailFolder, uid: number, seen: boolean): Promise<void> {
+  await withMailbox(folder, async (c) => {
+    if (seen) await c.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true });
+    else await c.messageFlagsRemove(String(uid), ["\\Seen"], { uid: true });
+  });
+}
+
+export async function toggleFlagged(folder: MailFolder, uid: number, flagged: boolean): Promise<void> {
+  await withMailbox(folder, async (c) => {
+    if (flagged) await c.messageFlagsAdd(String(uid), ["\\Flagged"], { uid: true });
+    else await c.messageFlagsRemove(String(uid), ["\\Flagged"], { uid: true });
+  });
+}
+
+/** Moves to Trash from anywhere else; permanently deletes if it's already
+ * in Trash — the same two-stage behavior as most mail clients. */
+export async function deleteMessage(folder: MailFolder, uid: number): Promise<void> {
+  await withMailbox(folder, async (c) => {
+    if (folder === "INBOX.Trash") {
+      await c.messageDelete(String(uid), { uid: true });
+    } else {
+      await c.messageMove(String(uid), "INBOX.Trash", { uid: true });
+    }
   });
 }
