@@ -115,7 +115,99 @@ function formatFileSize(bytes: number) {
 }
 
 function escapeHtmlClient(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// --- Local cache: the live IMAP server is slow, so each folder/page's last
+// known contents are kept in localStorage. A folder switch shows that
+// instantly, then a background fetch silently reconciles it — the same
+// stale-while-revalidate pattern most mail apps use.
+const CACHE_PREFIX = "techstersol-mail-v1:";
+
+type CachedMailListItem = Omit<MailListItem, "date"> & { date: string | null };
+
+function cacheKey(folder: MailFolder, page: number) {
+  return `${CACHE_PREFIX}${folder}:${page}`;
+}
+
+function readCache(
+  folder: MailFolder,
+  page: number,
+): { messages: MailListItem[]; total: number } | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(folder, page));
+    if (!raw) return null;
+    const parsed: { messages: CachedMailListItem[]; total: number } =
+      JSON.parse(raw);
+    return {
+      messages: parsed.messages.map((m) => ({
+        ...m,
+        date: m.date ? new Date(m.date) : null,
+      })),
+      total: parsed.total,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(
+  folder: MailFolder,
+  page: number,
+  messages: MailListItem[],
+  total: number,
+) {
+  try {
+    const payload = {
+      messages: messages.map((m) => ({
+        ...m,
+        date: m.date ? m.date.toISOString() : null,
+      })),
+      total,
+    };
+    localStorage.setItem(cacheKey(folder, page), JSON.stringify(payload));
+  } catch {
+    // Private browsing / full storage — the cache is a pure optimization,
+    // never required for correctness, so just skip it.
+  }
+}
+
+/** Keeps a cached page in sync with an optimistic local mutation (star,
+ * delete, mark read/unread) so a folder switch doesn't briefly show
+ * already-undone state before the next background refresh catches up. */
+function patchCache(
+  folder: MailFolder,
+  page: number,
+  updater: (list: MailListItem[]) => MailListItem[],
+  totalDelta = 0,
+) {
+  const cached = readCache(folder, page);
+  if (!cached) return;
+  writeCache(
+    folder,
+    page,
+    updater(cached.messages),
+    Math.max(0, cached.total + totalDelta),
+  );
+}
+
+function clearFolderCache(folder: MailFolder) {
+  try {
+    const prefix = `${CACHE_PREFIX}${folder}:`;
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(prefix)) toRemove.push(key);
+    }
+    toRemove.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // Same as above — best-effort only.
+  }
 }
 
 /** Best-effort "Name <email>" → "email" extraction for prefilling the To
@@ -125,7 +217,7 @@ function extractEmail(raw: string): string {
   const angle = raw.match(/<([^>]+)>/);
   if (angle) return angle[1].trim();
   const bare = raw.trim();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bare) ? bare : "";
+  return EMAIL_RE.test(bare) ? bare : "";
 }
 
 function replySubject(subject: string) {
@@ -159,41 +251,60 @@ type ComposeTarget = {
 export function EmailsClient() {
   const [folder, setFolder] = React.useState<MailFolder>("INBOX");
   const [page, setPage] = React.useState(1);
-  const [messages, setMessages] = React.useState<MailListItem[] | null>(null);
-  const [total, setTotal] = React.useState(0);
+  const [messages, setMessages] = React.useState<MailListItem[] | null>(
+    () => readCache("INBOX", 1)?.messages ?? null,
+  );
+  const [total, setTotal] = React.useState<number>(
+    () => readCache("INBOX", 1)?.total ?? 0,
+  );
   const [listError, setListError] = React.useState<string | null>(null);
-  const [loadingList, startLoadingList] = React.useTransition();
-  const [bulkAction, setBulkAction] = React.useState<"read" | "unread" | "delete" | null>(null);
-  const [pendingDeleteUids, setPendingDeleteUids] = React.useState<Set<number>>(new Set());
+  const [fetchingList, startFetchTransition] = React.useTransition();
+  const listRequestIdRef = React.useRef(0);
 
   const [view, setView] = React.useState<"list" | "detail">("list");
   const [selectedUid, setSelectedUid] = React.useState<number | null>(null);
   const [detail, setDetail] = React.useState<MailDetail | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [loadingDetail, startLoadingDetail] = React.useTransition();
-  const [openingDraftUid, setOpeningDraftUid] = React.useState<number | null>(null);
+  const [openingDraftUid, setOpeningDraftUid] = React.useState<number | null>(
+    null,
+  );
 
   const [filter, setFilter] = React.useState<FilterKey>("all");
-  const [selectedUids, setSelectedUids] = React.useState<Set<number>>(new Set());
+  const [selectedUids, setSelectedUids] = React.useState<Set<number>>(
+    new Set(),
+  );
   const [sortKey, setSortKey] = React.useState<SortKey>("newest");
   const [unseenCount, setUnseenCount] = React.useState(0);
 
   const [compose, setCompose] = React.useState<ComposeTarget | null>(null);
   const composeKeyRef = React.useRef(0);
 
-  const loadList = React.useCallback((f: MailFolder, p: number) => {
-    startLoadingList(async () => {
-      try {
-        const result = await listMailbox(f, p);
-        setMessages(result.messages);
-        setTotal(result.total);
-        setListError(null);
-        setSelectedUids(new Set());
-      } catch (err) {
-        setListError(err instanceof Error ? err.message : "Couldn't load mailbox");
-      }
-    });
-  }, []);
+  const fetchList = React.useCallback(
+    (f: MailFolder, p: number, opts: { background: boolean }) => {
+      const requestId = ++listRequestIdRef.current;
+      startFetchTransition(async () => {
+        try {
+          const result = await listMailbox(f, p);
+          writeCache(f, p, result.messages, result.total);
+          if (listRequestIdRef.current !== requestId) return;
+          setMessages(result.messages);
+          setTotal(result.total);
+          setListError(null);
+        } catch (err) {
+          if (listRequestIdRef.current !== requestId) return;
+          if (opts.background) {
+            toast.add({ title: "Couldn't refresh mailbox", type: "error" });
+          } else {
+            setListError(
+              err instanceof Error ? err.message : "Couldn't load mailbox",
+            );
+          }
+        }
+      });
+    },
+    [],
+  );
 
   const refreshUnseenCount = React.useCallback(() => {
     getInboxUnseenCount()
@@ -202,7 +313,8 @@ export function EmailsClient() {
   }, []);
 
   React.useEffect(() => {
-    loadList(folder, page);
+    const cached = readCache(folder, page);
+    fetchList(folder, page, { background: !!cached });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folder, page]);
 
@@ -214,19 +326,27 @@ export function EmailsClient() {
     if (f === folder) return;
     setFolder(f);
     setPage(1);
-    setMessages(null);
+    const cached = readCache(f, 1);
+    setMessages(cached?.messages ?? null);
+    setTotal(cached?.total ?? 0);
+    setListError(null);
     setView("list");
     setSelectedUid(null);
     setDetail(null);
+    setSelectedUids(new Set());
     setFilter("all");
   }
 
   function goToPage(p: number) {
     setPage(p);
-    setMessages(null);
+    const cached = readCache(folder, p);
+    setMessages(cached?.messages ?? null);
+    setTotal(cached?.total ?? 0);
+    setListError(null);
     setView("list");
     setSelectedUid(null);
     setDetail(null);
+    setSelectedUids(new Set());
   }
 
   function openCompose(target: Omit<ComposeTarget, "key">) {
@@ -254,12 +374,17 @@ export function EmailsClient() {
         setDetailError(null);
         if (result && !m.seen) {
           setMessages(
-            (prev) => prev?.map((msg) => (msg.uid === m.uid ? { ...msg, seen: true } : msg)) ?? prev,
+            (prev) =>
+              prev?.map((msg) =>
+                msg.uid === m.uid ? { ...msg, seen: true } : msg,
+              ) ?? prev,
           );
           if (folder === "INBOX") refreshUnseenCount();
         }
       } catch (err) {
-        setDetailError(err instanceof Error ? err.message : "Couldn't load message");
+        setDetailError(
+          err instanceof Error ? err.message : "Couldn't load message",
+        );
       }
     });
   }
@@ -300,96 +425,115 @@ export function EmailsClient() {
     else openMessage(m);
   }
 
-  async function toggleStar(uid: number, next: boolean) {
-    setMessages((prev) => prev?.map((m) => (m.uid === uid ? { ...m, flagged: next } : m)) ?? prev);
+  // Every action below updates the UI (and the cache) instantly, then fires
+  // the real request in the background — the IMAP server is slow enough
+  // that waiting for it before reacting would make the app feel stuck. A
+  // failure just reverts by silently re-syncing from the server, plus a
+  // toast explaining what happened.
+
+  function toggleStar(uid: number, next: boolean) {
+    setMessages(
+      (prev) =>
+        prev?.map((m) => (m.uid === uid ? { ...m, flagged: next } : m)) ?? prev,
+    );
     setDetail((d) => (d && d.uid === uid ? { ...d, flagged: next } : d));
-    try {
-      await setMessageFlagged(folder, uid, next);
-    } catch {
+    patchCache(folder, page, (list) =>
+      list.map((m) => (m.uid === uid ? { ...m, flagged: next } : m)),
+    );
+    setMessageFlagged(folder, uid, next).catch(() => {
       toast.add({ title: "Couldn't update star", type: "error" });
-      loadList(folder, page);
-    }
+      fetchList(folder, page, { background: true });
+    });
   }
 
-  async function deleteOne(uid: number) {
-    setPendingDeleteUids((prev) => new Set(prev).add(uid));
-    try {
-      await removeMailMessage(folder, uid);
-      setMessages((prev) => prev?.filter((m) => m.uid !== uid) ?? prev);
-      setTotal((t) => Math.max(0, t - 1));
-      setSelectedUids((prev) => {
-        if (!prev.has(uid)) return prev;
-        const next = new Set(prev);
-        next.delete(uid);
-        return next;
+  function deleteOne(uid: number) {
+    const wasUnseen = messages?.find((m) => m.uid === uid)?.seen === false;
+    setMessages((prev) => prev?.filter((m) => m.uid !== uid) ?? prev);
+    setTotal((t) => Math.max(0, t - 1));
+    setSelectedUids((prev) => {
+      if (!prev.has(uid)) return prev;
+      const next = new Set(prev);
+      next.delete(uid);
+      return next;
+    });
+    if (selectedUid === uid) backToList();
+    patchCache(folder, page, (list) => list.filter((m) => m.uid !== uid), -1);
+    toast.add({
+      title: folder === "INBOX.Trash" ? "Message deleted" : "Moved to Trash",
+      type: "success",
+    });
+    if (folder === "INBOX" && wasUnseen)
+      setUnseenCount((c) => Math.max(0, c - 1));
+    removeMailMessage(folder, uid)
+      .then(() => {
+        if (folder === "INBOX") refreshUnseenCount();
+      })
+      .catch((err) => {
+        toast.add({
+          title:
+            err instanceof Error
+              ? err.message
+              : "Couldn't delete message — restoring it",
+          type: "error",
+        });
+        fetchList(folder, page, { background: true });
       });
-      if (selectedUid === uid) backToList();
-      toast.add({
-        title: folder === "INBOX.Trash" ? "Message deleted" : "Moved to Trash",
-        type: "success",
-      });
-      if (folder === "INBOX") refreshUnseenCount();
-    } catch (err) {
-      toast.add({
-        title: err instanceof Error ? err.message : "Couldn't delete message",
-        type: "error",
-      });
-    } finally {
-      setPendingDeleteUids((prev) => {
-        if (!prev.has(uid)) return prev;
-        const next = new Set(prev);
-        next.delete(uid);
-        return next;
-      });
-    }
   }
 
   function deleteSelected() {
     const uids = Array.from(selectedUids);
     if (uids.length === 0) return;
-    setBulkAction("delete");
-    (async () => {
-      try {
-        await Promise.all(uids.map((uid) => removeMailMessage(folder, uid)));
-        setMessages((prev) => prev?.filter((m) => !uids.includes(m.uid)) ?? prev);
-        setTotal((t) => Math.max(0, t - uids.length));
-        setSelectedUids(new Set());
-        toast.add({ title: `${uids.length} message(s) deleted`, type: "success" });
-        if (folder === "INBOX") refreshUnseenCount();
-      } catch (err) {
+    const removedSet = new Set(uids);
+    const anyUnseen =
+      messages?.some((m) => removedSet.has(m.uid) && !m.seen) ?? false;
+    setMessages((prev) => prev?.filter((m) => !removedSet.has(m.uid)) ?? prev);
+    setTotal((t) => Math.max(0, t - uids.length));
+    setSelectedUids(new Set());
+    patchCache(
+      folder,
+      page,
+      (list) => list.filter((m) => !removedSet.has(m.uid)),
+      -uids.length,
+    );
+    toast.add({ title: `${uids.length} message(s) deleted`, type: "success" });
+    if (folder === "INBOX" && anyUnseen) refreshUnseenCount();
+    Promise.all(uids.map((uid) => removeMailMessage(folder, uid))).catch(
+      (err) => {
         toast.add({
-          title: err instanceof Error ? err.message : "Couldn't delete messages",
+          title:
+            err instanceof Error
+              ? err.message
+              : "Some messages couldn't be deleted",
           type: "error",
         });
-        loadList(folder, page);
-      } finally {
-        setBulkAction(null);
-      }
-    })();
+        fetchList(folder, page, { background: true });
+      },
+    );
   }
 
   function markSelectedSeen(seen: boolean) {
     const uids = Array.from(selectedUids);
     if (uids.length === 0) return;
-    setBulkAction(seen ? "read" : "unread");
-    (async () => {
-      try {
-        await Promise.all(uids.map((uid) => setMessageSeen(folder, uid, seen)));
-        setMessages(
-          (prev) => prev?.map((m) => (uids.includes(m.uid) ? { ...m, seen } : m)) ?? prev,
-        );
-        setSelectedUids(new Set());
-        if (folder === "INBOX") refreshUnseenCount();
-      } catch (err) {
+    const uidSet = new Set(uids);
+    setMessages(
+      (prev) =>
+        prev?.map((m) => (uidSet.has(m.uid) ? { ...m, seen } : m)) ?? prev,
+    );
+    setSelectedUids(new Set());
+    patchCache(folder, page, (list) =>
+      list.map((m) => (uidSet.has(m.uid) ? { ...m, seen } : m)),
+    );
+    if (folder === "INBOX") refreshUnseenCount();
+    Promise.all(uids.map((uid) => setMessageSeen(folder, uid, seen))).catch(
+      (err) => {
         toast.add({
-          title: err instanceof Error ? err.message : "Couldn't update messages",
+          title:
+            err instanceof Error ? err.message : "Couldn't update messages",
           type: "error",
         });
-        loadList(folder, page);
-      } finally {
-        setBulkAction(null);
-      }
-    })();
+        fetchList(folder, page, { background: true });
+      },
+    );
   }
 
   function toggleSelect(uid: number) {
@@ -409,16 +553,21 @@ export function EmailsClient() {
     // `list` is newest-first as returned by the server — only sort when the
     // chosen order actually differs from that.
     if (sortKey === "oldest") list = [...list].reverse();
-    else if (sortKey === "largest") list = [...list].sort((a, b) => b.size - a.size);
-    else if (sortKey === "smallest") list = [...list].sort((a, b) => a.size - b.size);
+    else if (sortKey === "largest")
+      list = [...list].sort((a, b) => b.size - a.size);
+    else if (sortKey === "smallest")
+      list = [...list].sort((a, b) => a.size - b.size);
     return list;
   }, [messages, filter, sortKey]);
 
   function toggleSelectAllVisible() {
     setSelectedUids((prev) => {
       const allSelected =
-        visibleMessages.length > 0 && visibleMessages.every((m) => prev.has(m.uid));
-      return allSelected ? new Set() : new Set(visibleMessages.map((m) => m.uid));
+        visibleMessages.length > 0 &&
+        visibleMessages.every((m) => prev.has(m.uid));
+      return allSelected
+        ? new Set()
+        : new Set(visibleMessages.map((m) => m.uid));
     });
   }
 
@@ -444,6 +593,48 @@ export function EmailsClient() {
     });
   }
 
+  /** Clears a folder's cache and, only if it's the one currently on screen,
+   * kicks off a quiet background refetch so the view catches up too. */
+  function invalidateFolder(f: MailFolder) {
+    clearFolderCache(f);
+    if (folder === f) fetchList(f, page, { background: true });
+  }
+
+  // Sending/saving a draft closes the drawer immediately and lets the real
+  // request run in the background — a `toast.promise` tracks it (loading →
+  // success/error) so the admin can keep working instead of staring at a
+  // spinner while the slow IMAP/SMTP round trip finishes.
+
+  function handleComposeSend(target: ComposeTarget, formData: FormData) {
+    const recipient = String(formData.get("to") || "").trim() || "recipient";
+    closeCompose();
+    const sendPromise = composeEmail(formData);
+    toast.promise(sendPromise, {
+      loading: `Sending to ${recipient}…`,
+      success: `Email sent to ${recipient}`,
+      error: (err) =>
+        err instanceof Error ? err.message : "Couldn't send email",
+    });
+    sendPromise
+      .then(() => {
+        invalidateFolder("INBOX.Sent");
+        if (target.sourceDraft) invalidateFolder("INBOX.Drafts");
+      })
+      .catch(() => {});
+  }
+
+  function handleComposeSaveDraft(formData: FormData) {
+    closeCompose();
+    const savePromise = saveDraftEmail(formData);
+    toast.promise(savePromise, {
+      loading: "Saving draft…",
+      success: "Draft saved",
+      error: (err) =>
+        err instanceof Error ? err.message : "Couldn't save draft",
+    });
+    savePromise.then(() => invalidateFolder("INBOX.Drafts")).catch(() => {});
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / 25));
 
   return (
@@ -461,7 +652,7 @@ export function EmailsClient() {
         <nav className="flex flex-col gap-0.5">
           {FOLDERS.map(({ key, label, icon: Icon }) => {
             const isActive = folder === key;
-            const isLoading = isActive && loadingList;
+            const isLoading = isActive && fetchingList;
             return (
               <button
                 key={key}
@@ -501,22 +692,33 @@ export function EmailsClient() {
               size="sm"
               className="gap-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={() =>
-                openCompose({ to: "", cc: "", bcc: "", subject: "", bodyHtml: "" })
+                openCompose({
+                  to: "",
+                  cc: "",
+                  bcc: "",
+                  subject: "",
+                  bodyHtml: "",
+                })
               }
             >
               <SquarePenIcon className="size-4" />
               New
             </Button>
           </div>
-          <Tabs value={folder} onValueChange={(v) => v && selectFolder(v as MailFolder)}>
+          <Tabs
+            value={folder}
+            onValueChange={(v) => v && selectFolder(v as MailFolder)}
+          >
             <TabsList className="w-full">
               {FOLDERS.map(({ key, label }) => (
                 <TabsTrigger key={key} value={key} className="flex-1 gap-1.5">
-                  {folder === key && loadingList && (
+                  {folder === key && fetchingList && (
                     <Loader2Icon className="size-3.5 animate-spin" />
                   )}
                   {label}
-                  {key === "INBOX" && unseenCount > 0 ? ` (${unseenCount})` : ""}
+                  {key === "INBOX" && unseenCount > 0
+                    ? ` (${unseenCount})`
+                    : ""}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -529,7 +731,7 @@ export function EmailsClient() {
             folderLabel={FOLDER_LABEL[folder]}
             messages={messages}
             visibleMessages={visibleMessages}
-            loading={loadingList}
+            loading={fetchingList}
             error={listError}
             filter={filter}
             setFilter={setFilter}
@@ -538,19 +740,19 @@ export function EmailsClient() {
             selectedUids={selectedUids}
             toggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAllVisible}
-            bulkAction={bulkAction}
             onDeleteSelected={deleteSelected}
             onMarkSelectedSeen={markSelectedSeen}
             onOpenRow={handleRowOpen}
             onToggleStar={toggleStar}
             onDeleteOne={deleteOne}
-            pendingDeleteUids={pendingDeleteUids}
             openingDraftUid={openingDraftUid}
             page={page}
             totalPages={totalPages}
             onPrevPage={() => goToPage(page - 1)}
             onNextPage={() => goToPage(page + 1)}
-            onRefresh={() => loadList(folder, page)}
+            onRefresh={() =>
+              fetchList(folder, page, { background: messages !== null })
+            }
           />
         ) : (
           <MailDetailPane
@@ -558,7 +760,6 @@ export function EmailsClient() {
             detail={detail}
             loading={loadingDetail}
             error={detailError}
-            deleting={!!detail && pendingDeleteUids.has(detail.uid)}
             onBack={backToList}
             onToggleStar={toggleStar}
             onDelete={deleteOne}
@@ -579,11 +780,8 @@ export function EmailsClient() {
             key={compose.key}
             target={compose}
             onClose={closeCompose}
-            onSent={() => {
-              closeCompose();
-              loadList(folder, page);
-              refreshUnseenCount();
-            }}
+            onSend={(formData) => handleComposeSend(compose, formData)}
+            onSaveDraft={handleComposeSaveDraft}
           />
         )}
       </Sheet>
@@ -605,13 +803,11 @@ function MailList({
   selectedUids,
   toggleSelect,
   onToggleSelectAll,
-  bulkAction,
   onDeleteSelected,
   onMarkSelectedSeen,
   onOpenRow,
   onToggleStar,
   onDeleteOne,
-  pendingDeleteUids,
   openingDraftUid,
   page,
   totalPages,
@@ -632,13 +828,11 @@ function MailList({
   selectedUids: Set<number>;
   toggleSelect: (uid: number) => void;
   onToggleSelectAll: () => void;
-  bulkAction: "read" | "unread" | "delete" | null;
   onDeleteSelected: () => void;
   onMarkSelectedSeen: (seen: boolean) => void;
   onOpenRow: (m: MailListItem) => void;
   onToggleStar: (uid: number, next: boolean) => void;
   onDeleteOne: (uid: number) => void;
-  pendingDeleteUids: Set<number>;
   openingDraftUid: number | null;
   page: number;
   totalPages: number;
@@ -647,7 +841,8 @@ function MailList({
   onRefresh: () => void;
 }) {
   const allSelected =
-    visibleMessages.length > 0 && visibleMessages.every((m) => selectedUids.has(m.uid));
+    visibleMessages.length > 0 &&
+    visibleMessages.every((m) => selectedUids.has(m.uid));
   const showAsTo = folder === "INBOX.Sent" || folder === "INBOX.Drafts";
 
   return (
@@ -657,7 +852,13 @@ function MailList({
         <div className="flex items-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon-sm" aria-label="Sort messages" />}
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Sort messages"
+                />
+              }
             >
               <ArrowUpDownIcon className="size-4" />
             </DropdownMenuTrigger>
@@ -674,8 +875,15 @@ function MailList({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="ghost" size="icon-sm" aria-label="Refresh" onClick={onRefresh}>
-            <RefreshCwIcon className={cn("size-4", loading && "animate-spin")} />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Refresh"
+            onClick={onRefresh}
+          >
+            <RefreshCwIcon
+              className={cn("size-4", loading && "animate-spin")}
+            />
           </Button>
           <div className="ml-1 flex items-center gap-1 text-xs text-muted-foreground">
             <Button
@@ -713,36 +921,25 @@ function MailList({
         />
         {selectedUids.size > 0 ? (
           <div className="flex flex-1 flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">{selectedUids.size} selected</span>
+            <span className="text-sm text-muted-foreground">
+              {selectedUids.size} selected
+            </span>
             <Button
               variant="outline"
               size="sm"
-              disabled={bulkAction !== null}
               onClick={() => onMarkSelectedSeen(true)}
             >
-              {bulkAction === "read" && <Loader2Icon className="size-3.5 animate-spin" />}
               Mark read
             </Button>
             <Button
               variant="outline"
               size="sm"
-              disabled={bulkAction !== null}
               onClick={() => onMarkSelectedSeen(false)}
             >
-              {bulkAction === "unread" && <Loader2Icon className="size-3.5 animate-spin" />}
               Mark unread
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={bulkAction !== null}
-              onClick={onDeleteSelected}
-            >
-              {bulkAction === "delete" ? (
-                <Loader2Icon className="size-3.5 animate-spin" />
-              ) : (
-                <Trash2Icon className="size-3.5" />
-              )}
+            <Button variant="outline" size="sm" onClick={onDeleteSelected}>
+              <Trash2Icon className="size-3.5" />
               Delete
             </Button>
           </div>
@@ -773,10 +970,16 @@ function MailList({
             <Loader2Icon className="size-5 animate-spin" />
           </div>
         )}
-        {error && <div className="px-4 py-8 text-center text-sm text-destructive">{error}</div>}
+        {error && (
+          <div className="px-4 py-8 text-center text-sm text-destructive">
+            {error}
+          </div>
+        )}
         {messages && visibleMessages.length === 0 && (
           <div className="px-4 py-16 text-center text-sm text-muted-foreground">
-            {filter === "all" ? "No messages in this folder." : "No messages match this filter."}
+            {filter === "all"
+              ? "No messages in this folder."
+              : "No messages match this filter."}
           </div>
         )}
         {visibleMessages.map((m) => (
@@ -791,10 +994,13 @@ function MailList({
             className={cn(
               "group flex cursor-pointer items-center gap-3 border-b border-border/60 px-4 py-3 hover:bg-muted/50",
               selectedUids.has(m.uid) && "bg-primary/10",
-              (openingDraftUid === m.uid || pendingDeleteUids.has(m.uid)) && "opacity-60",
+              openingDraftUid === m.uid && "opacity-60",
             )}
           >
-            <div onClick={(e) => e.stopPropagation()} className="flex shrink-0 items-center gap-2">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="flex shrink-0 items-center gap-2"
+            >
               <Checkbox
                 checked={selectedUids.has(m.uid)}
                 onCheckedChange={() => toggleSelect(m.uid)}
@@ -809,15 +1015,21 @@ function MailList({
                 <StarIcon
                   className={cn(
                     "size-4",
-                    m.flagged ? "fill-primary text-primary" : "text-muted-foreground",
+                    m.flagged
+                      ? "fill-primary text-primary"
+                      : "text-muted-foreground",
                   )}
                 />
               </button>
             </div>
-            {!m.seen && <span className="size-2 shrink-0 rounded-full bg-primary" />}
+            {!m.seen && (
+              <span className="size-2 shrink-0 rounded-full bg-primary" />
+            )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <span className={cn("truncate text-sm", !m.seen && "font-semibold")}>
+                <span
+                  className={cn("truncate text-sm", !m.seen && "font-semibold")}
+                >
                   {showAsTo ? m.to || "(no recipient)" : m.from}
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">
@@ -825,7 +1037,9 @@ function MailList({
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={cn("truncate text-sm", !m.seen && "font-medium")}>
+                <span
+                  className={cn("truncate text-sm", !m.seen && "font-medium")}
+                >
                   {m.subject}
                 </span>
                 {m.hasAttachment && (
@@ -837,20 +1051,12 @@ function MailList({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (!pendingDeleteUids.has(m.uid)) onDeleteOne(m.uid);
+                onDeleteOne(m.uid);
               }}
-              disabled={pendingDeleteUids.has(m.uid)}
               aria-label="Delete"
-              className={cn(
-                "shrink-0 rounded-md p-1.5 text-muted-foreground transition-opacity hover:bg-muted hover:text-destructive focus-visible:opacity-100",
-                pendingDeleteUids.has(m.uid) ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-              )}
+              className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-destructive focus-visible:opacity-100"
             >
-              {pendingDeleteUids.has(m.uid) ? (
-                <Loader2Icon className="size-4 animate-spin" />
-              ) : (
-                <Trash2Icon className="size-4" />
-              )}
+              <Trash2Icon className="size-4" />
             </button>
           </div>
         ))}
@@ -864,7 +1070,6 @@ function MailDetailPane({
   detail,
   loading,
   error,
-  deleting,
   onBack,
   onToggleStar,
   onDelete,
@@ -875,7 +1080,6 @@ function MailDetailPane({
   detail: MailDetail | null;
   loading: boolean;
   error: string | null;
-  deleting: boolean;
   onBack: () => void;
   onToggleStar: (uid: number, next: boolean) => void;
   onDelete: (uid: number) => void;
@@ -885,7 +1089,12 @@ function MailDetailPane({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-1 border-b border-border px-3 py-2.5">
-        <Button variant="ghost" size="icon-sm" aria-label="Back to list" onClick={onBack}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Back to list"
+          onClick={onBack}
+        >
           <ArrowLeftIcon className="size-4" />
         </Button>
         {detail && (
@@ -897,21 +1106,23 @@ function MailDetailPane({
               onClick={() => onToggleStar(detail.uid, !detail.flagged)}
             >
               <StarIcon
-                className={cn("size-4", detail.flagged && "fill-primary text-primary")}
+                className={cn(
+                  "size-4",
+                  detail.flagged && "fill-primary text-primary",
+                )}
               />
             </Button>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={folder === "INBOX.Trash" ? "Delete permanently" : "Move to Trash"}
-              disabled={deleting}
+              aria-label={
+                folder === "INBOX.Trash"
+                  ? "Delete permanently"
+                  : "Move to Trash"
+              }
               onClick={() => onDelete(detail.uid)}
             >
-              {deleting ? (
-                <Loader2Icon className="size-4 animate-spin" />
-              ) : (
-                <Trash2Icon className="size-4" />
-              )}
+              <Trash2Icon className="size-4" />
             </Button>
           </>
         )}
@@ -928,9 +1139,13 @@ function MailDetailPane({
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
             <div className="flex flex-col gap-1 border-b border-border pb-4">
               <h2 className="text-lg font-medium">{detail.subject}</h2>
-              <p className="text-sm text-muted-foreground">From: {detail.from}</p>
+              <p className="text-sm text-muted-foreground">
+                From: {detail.from}
+              </p>
               <p className="text-sm text-muted-foreground">To: {detail.to}</p>
-              <p className="text-xs text-muted-foreground">{formatFullDate(detail.date)}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatFullDate(detail.date)}
+              </p>
             </div>
             {detail.html ? (
               <iframe
@@ -1068,11 +1283,13 @@ function RichBodyEditor({
 function ComposeDrawer({
   target,
   onClose,
-  onSent,
+  onSend,
+  onSaveDraft,
 }: {
   target: ComposeTarget;
   onClose: () => void;
-  onSent: () => void;
+  onSend: (formData: FormData) => void;
+  onSaveDraft: (formData: FormData) => void;
 }) {
   const [to, setTo] = React.useState(target.to);
   const [showCcBcc, setShowCcBcc] = React.useState(!!(target.cc || target.bcc));
@@ -1082,8 +1299,6 @@ function ComposeDrawer({
   const bodyHtmlRef = React.useRef(target.bodyHtml);
   const [files, setFiles] = React.useState<File[]>([]);
   const [fileInputKey, setFileInputKey] = React.useState(0);
-  const [sending, startSending] = React.useTransition();
-  const [savingDraft, startSavingDraft] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
 
   function addFiles(list: FileList | null) {
@@ -1111,38 +1326,39 @@ function ComposeDrawer({
     return formData;
   }
 
+  // Sending/saving is handed off to the parent, which closes this drawer
+  // and runs the actual request in the background (the IMAP/SMTP round
+  // trip is slow) — only cheap, instant client-side validation happens
+  // here, since that's the one thing worth blocking on.
   function handleSend() {
+    const recipient = to.trim();
+    if (!recipient || !EMAIL_RE.test(recipient)) {
+      setError("Enter a valid recipient email address");
+      return;
+    }
+    if (!subject.trim()) {
+      setError("Subject is required");
+      return;
+    }
+    if (bodyHtmlRef.current.replace(/<[^>]*>/g, "").trim() === "") {
+      setError("Message can't be empty");
+      return;
+    }
     setError(null);
-    startSending(async () => {
-      try {
-        await composeEmail(buildFormData());
-        toast.add({ title: `Email sent to ${to}`, type: "success" });
-        onSent();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Couldn't send email");
-      }
-    });
+    onSend(buildFormData());
   }
 
   function handleSaveDraft() {
     setError(null);
-    startSavingDraft(async () => {
-      try {
-        await saveDraftEmail(buildFormData());
-        toast.add({ title: "Draft saved", type: "success" });
-        onSent();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Couldn't save draft");
-      }
-    });
+    onSaveDraft(buildFormData());
   }
-
-  const pending = sending || savingDraft;
 
   return (
     <SheetContent className="flex w-full flex-col gap-0 p-0 data-[side=right]:sm:max-w-xl!">
       <SheetHeader className="border-b border-border">
-        <SheetTitle>{target.sourceDraft ? "Edit draft" : "New message"}</SheetTitle>
+        <SheetTitle>
+          {target.sourceDraft ? "Edit draft" : "New message"}
+        </SheetTitle>
       </SheetHeader>
 
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
@@ -1164,7 +1380,6 @@ function ComposeDrawer({
             value={to}
             onChange={(e) => setTo(e.target.value)}
             placeholder="name@example.com"
-            disabled={pending}
           />
         </label>
         {showCcBcc && (
@@ -1174,7 +1389,6 @@ function ComposeDrawer({
               <Input
                 value={cc}
                 onChange={(e) => setCc(e.target.value)}
-                disabled={pending}
                 placeholder="name@example.com, another@example.com"
               />
             </label>
@@ -1183,7 +1397,6 @@ function ComposeDrawer({
               <Input
                 value={bcc}
                 onChange={(e) => setBcc(e.target.value)}
-                disabled={pending}
                 placeholder="name@example.com, another@example.com"
               />
             </label>
@@ -1191,7 +1404,7 @@ function ComposeDrawer({
         )}
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-muted-foreground">Subject</span>
-          <Input value={subject} onChange={(e) => setSubject(e.target.value)} disabled={pending} />
+          <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
         </label>
 
         <RichBodyEditor
@@ -1203,12 +1416,7 @@ function ComposeDrawer({
         />
 
         <div className="flex flex-col gap-2">
-          <label
-            className={cn(
-              "flex w-fit cursor-pointer items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground",
-              pending && "pointer-events-none opacity-50",
-            )}
-          >
+          <label className="flex w-fit cursor-pointer items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
             <PaperclipIcon className="size-3.5" />
             Attach files
             <input
@@ -1228,7 +1436,9 @@ function ComposeDrawer({
                 >
                   <span className="truncate">{file.name}</span>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-muted-foreground">{formatFileSize(file.size)}</span>
+                    <span className="text-muted-foreground">
+                      {formatFileSize(file.size)}
+                    </span>
                     <button
                       type="button"
                       aria-label={`Remove ${file.name}`}
@@ -1248,20 +1458,23 @@ function ComposeDrawer({
       </div>
 
       <SheetFooter className="flex-row items-center justify-between border-t border-border">
-        <Button variant="ghost" size="icon-sm" aria-label="Discard" disabled={pending} onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Discard"
+          onClick={onClose}
+        >
           <Trash2Icon className="size-4" />
         </Button>
         <div className="flex items-center gap-2">
-          <Button variant="outline" disabled={pending} loading={savingDraft} onClick={handleSaveDraft}>
-            {savingDraft ? "Saving…" : "Save draft"}
+          <Button variant="outline" onClick={handleSaveDraft}>
+            Save draft
           </Button>
           <Button
             className="bg-primary text-primary-foreground hover:bg-primary/90"
-            disabled={pending}
-            loading={sending}
             onClick={handleSend}
           >
-            {sending ? "Sending…" : "Send"}
+            Send
           </Button>
         </div>
       </SheetFooter>
