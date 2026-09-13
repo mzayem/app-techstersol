@@ -10,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import {
@@ -60,6 +62,7 @@ export default async function InvoicesPage({
     bankName: b.bankName,
     accountHolderName: b.accountHolderName,
   }));
+  const paginated = paginate(invoices, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -94,7 +97,7 @@ export default async function InvoicesPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={8}
@@ -104,7 +107,7 @@ export default async function InvoicesPage({
                 </TableCell>
               </TableRow>
             )}
-            {invoices.map((invoice) => {
+            {paginated.items.map((invoice) => {
               const currency = invoice.currency as PaymentCurrency;
               const status = invoice.status as InvoiceStatus;
               const total = invoice.items.reduce(
@@ -155,6 +158,12 @@ export default async function InvoicesPage({
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

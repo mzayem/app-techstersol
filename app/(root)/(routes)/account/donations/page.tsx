@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { resolveDateRange } from "@/lib/finance/date-range";
 import { formatPkr } from "@/lib/finance/constants";
 import {
@@ -42,6 +44,7 @@ export default async function DonationsPage({
     }),
     getBucketBalances(),
   ]);
+  const paginated = paginate(donations, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -73,7 +76,7 @@ export default async function DonationsPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {donations.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={4}
@@ -83,7 +86,7 @@ export default async function DonationsPage({
                 </TableCell>
               </TableRow>
             )}
-            {donations.map((donation) => (
+            {paginated.items.map((donation) => (
               <DonationRowActions
                 key={donation.id}
                 entry={{
@@ -104,6 +107,12 @@ export default async function DonationsPage({
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

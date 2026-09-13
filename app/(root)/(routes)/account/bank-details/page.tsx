@@ -11,6 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import {
   BANK_FIELD_LABELS,
@@ -37,6 +39,7 @@ export default async function BankDetailsPage({
     currency: params.currency as PaymentCurrency | undefined,
     sort: params.sort as SortOption | undefined,
   });
+  const paginated = paginate(bankAccounts, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -60,7 +63,7 @@ export default async function BankDetailsPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {bankAccounts.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -70,7 +73,7 @@ export default async function BankDetailsPage({
                 </TableCell>
               </TableRow>
             )}
-            {bankAccounts.map((account) => {
+            {paginated.items.map((account) => {
               const currency = account.currency as PaymentCurrency;
               const entry = {
                 id: account.id,
@@ -108,6 +111,12 @@ export default async function BankDetailsPage({
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

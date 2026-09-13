@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { resolveDateRange } from "@/lib/finance/date-range";
 import {
   BUCKET_LABELS,
@@ -51,6 +53,7 @@ export default async function ExpensesPage({
     }),
     getBucketBalances(),
   ]);
+  const paginated = paginate(expenses, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -83,7 +86,7 @@ export default async function ExpensesPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {expenses.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -93,7 +96,7 @@ export default async function ExpensesPage({
                 </TableCell>
               </TableRow>
             )}
-            {expenses.map((expense) => (
+            {paginated.items.map((expense) => (
               <ExpenseRowActions
                 key={expense.id}
                 entry={{
@@ -118,6 +121,12 @@ export default async function ExpensesPage({
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

@@ -6,15 +6,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatPkr } from "@/lib/finance/constants";
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { listTeamPayments } from "@/actions/team/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function TeamPaymentsPage() {
+export default async function TeamPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
   const payments = await listTeamPayments();
   const total = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const paginated = paginate(payments, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -43,7 +51,7 @@ export default async function TeamPaymentsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {payments.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={4}
@@ -53,7 +61,7 @@ export default async function TeamPaymentsPage() {
                 </TableCell>
               </TableRow>
             )}
-            {payments.map((payment) => (
+            {paginated.items.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell className="text-muted-foreground">
                   {formatDate(payment.date)}
@@ -73,6 +81,12 @@ export default async function TeamPaymentsPage() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

@@ -10,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import {
   TEAM_MEMBER_TYPE_LABELS,
@@ -20,9 +22,15 @@ import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
-export default async function TeamPage() {
+export default async function TeamPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const { permission } = await requirePagePermission("team");
+  const params = await searchParams;
   const members = await listTeamMembers({});
+  const paginated = paginate(members, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -45,14 +53,14 @@ export default async function TeamPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {members.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   No team members yet.
                 </TableCell>
               </TableRow>
             )}
-            {members.map((member) => {
+            {paginated.items.map((member) => {
               const type = member.type as TeamMemberType;
               const entry = {
                 id: member.id,
@@ -91,6 +99,12 @@ export default async function TeamPage() {
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

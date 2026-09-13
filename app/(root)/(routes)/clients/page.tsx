@@ -12,6 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import {
   CLIENT_STATUS_LABELS,
   type ClientStatus,
@@ -35,6 +37,7 @@ export default async function ClientsPage({
     status: params.status as ClientStatus | undefined,
     sort: params.sort as SortOption | undefined,
   });
+  const paginated = paginate(clients, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -62,7 +65,7 @@ export default async function ClientsPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clients.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -72,7 +75,7 @@ export default async function ClientsPage({
                 </TableCell>
               </TableRow>
             )}
-            {clients.map((client) => {
+            {paginated.items.map((client) => {
               const entry = {
                 id: client.id,
                 name: client.name,
@@ -105,6 +108,12 @@ export default async function ClientsPage({
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

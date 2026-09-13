@@ -21,19 +21,35 @@ export type ListFilters = {
 function orderBy(sort: SortOption | undefined) {
   switch (sort) {
     case "date-asc":
-      return { date: "asc" as const };
-    case "deadline-asc":
-      return { deadline: "asc" as const };
+      return [{ date: "asc" as const }];
     case "deadline-desc":
-      return { deadline: "desc" as const };
+      return [{ deadline: "desc" as const }];
     case "name-asc":
-      return { projectName: "asc" as const };
+      return [{ projectName: "asc" as const }];
     case "name-desc":
-      return { projectName: "desc" as const };
+      return [{ projectName: "desc" as const }];
     case "date-desc":
+      return [{ date: "desc" as const }];
+    case "deadline-asc":
     default:
-      return { date: "desc" as const };
+      // Default view: soonest deadline first, newest as a tiebreak.
+      return [{ deadline: "asc" as const }, { date: "desc" as const }];
   }
+}
+
+/** The default view (no sort explicitly chosen, or "deadline soonest"
+ * explicitly picked) additionally floats non-completed projects above
+ * completed ones — active/working contracts are what you're checking on,
+ * finished ones are just history. Any other explicit sort (by name, by
+ * start date) is left as a plain flat sort with no grouping. */
+function groupsActiveFirst(sort: SortOption | undefined) {
+  return sort === undefined || sort === "deadline-asc";
+}
+
+function sortActiveFirst<T extends { status: string }>(contracts: T[]): T[] {
+  const active = contracts.filter((c) => c.status !== "COMPLETED");
+  const completed = contracts.filter((c) => c.status === "COMPLETED");
+  return [...active, ...completed];
 }
 
 export async function listContracts(filters: ListFilters) {
@@ -61,10 +77,14 @@ export async function listContracts(filters: ListFilters) {
 
   const paidAmounts = await paidAmountsByContract(contracts.map((c) => c.id));
 
-  return contracts.map((contract) => ({
+  const withPaidAmount = contracts.map((contract) => ({
     ...contract,
     paidAmount: paidAmounts.get(contract.id) ?? 0,
   }));
+
+  return groupsActiveFirst(filters.sort)
+    ? sortActiveFirst(withPaidAmount)
+    : withPaidAmount;
 }
 
 /** Sum of PAID invoice items billed against each contract, regardless of

@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { resolveDateRange } from "@/lib/finance/date-range";
 import {
   CURRENCY_SYMBOLS,
@@ -46,6 +48,7 @@ export default async function EarningPage({
     }),
     getBucketBalances(),
   ]);
+  const paginated = paginate(earnings, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -80,7 +83,7 @@ export default async function EarningPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {earnings.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -90,7 +93,7 @@ export default async function EarningPage({
                 </TableCell>
               </TableRow>
             )}
-            {earnings.map((earning) => {
+            {paginated.items.map((earning) => {
               const amount = Number(earning.amount);
               const teamPay = Number(earning.teamPay);
               const entry = {
@@ -133,6 +136,12 @@ export default async function EarningPage({
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

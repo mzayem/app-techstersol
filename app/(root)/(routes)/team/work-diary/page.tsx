@@ -12,6 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatPkr } from "@/lib/finance/constants";
 import type { TeamMemberType } from "@/lib/team/constants";
@@ -55,6 +57,7 @@ export default async function WorkDiaryPage({
   const totalHours = entries.reduce((sum, e) => sum + Number(e.hours), 0);
   const totalAmount = entries.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
   const periodLabel = resolveWorkDiaryPeriod(period, params.from, params.to).label;
+  const paginated = paginate(entries, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -103,14 +106,14 @@ export default async function WorkDiaryPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entries.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No work diary entries for this filter.
                 </TableCell>
               </TableRow>
             )}
-            {entries.map((e) => {
+            {paginated.items.map((e) => {
               const entry = {
                 id: e.id,
                 teamMemberId: e.teamMemberId,
@@ -147,6 +150,12 @@ export default async function WorkDiaryPage({
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

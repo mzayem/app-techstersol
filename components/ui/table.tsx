@@ -5,16 +5,67 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const stickyRef = React.useRef<HTMLDivElement>(null);
+  const [scrollWidth, setScrollWidth] = React.useState(0);
+  const [showSticky, setShowSticky] = React.useState(false);
+
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const update = () => {
+      setScrollWidth(el.scrollWidth);
+      setShowSticky(el.scrollWidth > el.clientWidth + 1);
+    };
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  function handleMainScroll() {
+    const from = scrollRef.current;
+    const to = stickyRef.current;
+    if (!from || !to || to.scrollLeft === from.scrollLeft) return;
+    to.scrollLeft = from.scrollLeft;
+  }
+
+  function handleStickyScroll() {
+    const from = stickyRef.current;
+    const to = scrollRef.current;
+    if (!from || !to || to.scrollLeft === from.scrollLeft) return;
+    to.scrollLeft = from.scrollLeft;
+  }
+
   return (
-    <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto"
-    >
-      <table
-        data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
-        {...props}
-      />
+    <div data-slot="table-container" className="relative w-full">
+      <div
+        ref={scrollRef}
+        onScroll={handleMainScroll}
+        className="table-scroll-area w-full overflow-x-auto"
+      >
+        <table
+          data-slot="table"
+          className={cn("w-full caption-bottom text-sm", className)}
+          {...props}
+        />
+      </div>
+      {/* Mirrors the real horizontal scrollbar but stays pinned to the
+          bottom of the viewport (via `sticky`) while the table is in view,
+          so it's reachable without scrolling all the way to the table's
+          own bottom edge first. */}
+      {showSticky && (
+        <div
+          ref={stickyRef}
+          onScroll={handleStickyScroll}
+          aria-hidden
+          className="sticky-hscroll sticky bottom-0 z-10 overflow-x-auto overflow-y-hidden"
+        >
+          <div style={{ width: scrollWidth, height: 1 }} />
+        </div>
+      )}
     </div>
   );
 }

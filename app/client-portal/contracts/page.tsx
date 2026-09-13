@@ -11,6 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import { getActiveClientProfiles, requireClientUser } from "@/lib/rbac/permissions";
 import { getClientOverview, listMyContracts } from "@/actions/client-portal/queries";
@@ -31,6 +33,7 @@ export default async function ClientContractsPage({
     getClientOverview(profiles),
     listMyContracts(profiles, { search: params.q, profileClientId: params.profile }),
   ]);
+  const paginated = paginate(contracts, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -86,7 +89,7 @@ export default async function ClientContractsPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {contracts.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={isMultiProfile ? 6 : 5}
@@ -96,7 +99,7 @@ export default async function ClientContractsPage({
                 </TableCell>
               </TableRow>
             )}
-            {contracts.map((contract) => {
+            {paginated.items.map((contract) => {
               const total =
                 contract.paymentType === "PROJECT"
                   ? (contract.amount ?? 0)
@@ -134,6 +137,12 @@ export default async function ClientContractsPage({
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

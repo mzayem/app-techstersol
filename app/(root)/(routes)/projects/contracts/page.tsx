@@ -5,6 +5,7 @@ import {
   type ContractListItem,
 } from "@/components/contracts/contract-table";
 import { ExportReportDialog } from "@/components/reports/export-report-dialog";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import type {
   ContractPaymentType,
@@ -79,6 +80,7 @@ export default async function ContractsPage({
       paidAmount: contract.paidAmount,
     };
   });
+  const paginated = paginate(items, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -95,11 +97,17 @@ export default async function ContractsPage({
       <ContractFilterBar />
 
       <ContractTable
-        contracts={items}
+        contracts={paginated.items}
         clients={clientOptions}
         teamMembers={teamMembers}
         canEdit={permission.canEdit}
         canDelete={permission.canDelete}
+        pagination={{
+          page: paginated.page,
+          totalPages: paginated.totalPages,
+          totalItems: paginated.totalItems,
+          pageSize: paginated.pageSize,
+        }}
       />
     </div>
   );

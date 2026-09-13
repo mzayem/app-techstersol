@@ -7,16 +7,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { PAGE_REGISTRY } from "@/lib/rbac/pages";
 import { listRoles } from "@/actions/rbac/role-queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function RolesPage() {
+export default async function RolesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const { permission } = await requirePagePermission("roles");
+  const params = await searchParams;
 
   const roles = await listRoles();
+  const paginated = paginate(roles, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -42,14 +50,14 @@ export default async function RolesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {roles.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   No roles yet.
                 </TableCell>
               </TableRow>
             )}
-            {roles.map((role) => {
+            {paginated.items.map((role) => {
               const entry = {
                 id: role.id,
                 name: role.name,
@@ -76,6 +84,12 @@ export default async function RolesPage() {
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

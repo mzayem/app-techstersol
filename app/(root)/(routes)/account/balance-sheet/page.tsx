@@ -8,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatPkr } from "@/lib/finance/constants";
 import { getLedgerBalance, listLedgerEntries } from "@/actions/ledger/queries";
 import { requirePagePermission } from "@/lib/rbac/permissions";
@@ -21,14 +23,20 @@ const TYPE_LABELS: Record<string, string> = {
   TEAM_PAYMENT: "Team Payment",
 };
 
-export default async function BalanceSheetPage() {
+export default async function BalanceSheetPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   await requirePagePermission("balance-sheet");
+  const params = await searchParams;
   const [balance, chronological] = await Promise.all([
     getLedgerBalance(),
     listLedgerEntries({ sort: "date-asc" }),
   ]);
 
   const rows = withRunningBalance(chronological).reverse();
+  const paginated = paginate(rows, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -89,7 +97,7 @@ export default async function BalanceSheetPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -99,7 +107,7 @@ export default async function BalanceSheetPage() {
                 </TableCell>
               </TableRow>
             )}
-            {rows.map((entry) => (
+            {paginated.items.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell className="text-muted-foreground">
                   {TYPE_LABELS[entry.type] ?? entry.type}
@@ -128,6 +136,12 @@ export default async function BalanceSheetPage() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

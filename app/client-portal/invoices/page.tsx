@@ -9,6 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import { formatInvoiceNumber, INVOICE_STATUS_LABELS } from "@/lib/invoices/constants";
 import { getActiveClientProfiles, requireClientUser } from "@/lib/rbac/permissions";
@@ -16,11 +18,17 @@ import { listMyInvoices } from "@/actions/client-portal/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientInvoicesPage() {
+export default async function ClientInvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const appUser = await requireClientUser();
+  const params = await searchParams;
   const profiles = getActiveClientProfiles(appUser);
   const isMultiProfile = profiles.length > 1;
   const invoices = await listMyInvoices(profiles);
+  const paginated = paginate(invoices, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -45,7 +53,7 @@ export default async function ClientInvoicesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={isMultiProfile ? 7 : 6}
@@ -55,7 +63,7 @@ export default async function ClientInvoicesPage() {
                 </TableCell>
               </TableRow>
             )}
-            {invoices.map((invoice) => (
+            {paginated.items.map((invoice) => (
               <TableRow key={invoice.id}>
                 <TableCell className="font-medium">
                   {formatInvoiceNumber(invoice.number)}
@@ -87,6 +95,12 @@ export default async function ClientInvoicesPage() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

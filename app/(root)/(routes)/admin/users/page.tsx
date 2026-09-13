@@ -7,6 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { listAppUsers, listAvailableClientOptions } from "@/actions/rbac/user-queries";
 import { listRoleOptions } from "@/actions/rbac/role-queries";
@@ -14,8 +16,13 @@ import { listTeamMemberOptions } from "@/actions/team/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function UsersPage() {
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   await requirePagePermission("users");
+  const params = await searchParams;
 
   const [users, roles, teamMembers, availableClients] = await Promise.all([
     listAppUsers(),
@@ -26,6 +33,7 @@ export default async function UsersPage() {
 
   const teamMemberOptions = teamMembers.map((m) => ({ id: m.id, name: m.name }));
   const availableClientOptions = availableClients.map((c) => ({ id: c.id, name: c.name }));
+  const paginated = paginate(users, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -53,14 +61,14 @@ export default async function UsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No users yet.
                 </TableCell>
               </TableRow>
             )}
-            {users.map((user) => {
+            {paginated.items.map((user) => {
               const ownClientOptions = user.clientProfiles.map((p) => p.client);
               const editClientOptions = [
                 ...ownClientOptions,
@@ -121,6 +129,12 @@ export default async function UsersPage() {
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

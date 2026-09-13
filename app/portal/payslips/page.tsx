@@ -9,6 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatPkr } from "@/lib/finance/constants";
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { requireTeamUser } from "@/lib/rbac/permissions";
@@ -16,9 +18,15 @@ import { listMyPayslips } from "@/actions/portal/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function PortalPayslipsPage() {
+export default async function PortalPayslipsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const appUser = await requireTeamUser();
+  const params = await searchParams;
   const payslips = await listMyPayslips(appUser.teamMember!.id);
+  const paginated = paginate(payslips, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -42,14 +50,14 @@ export default async function PortalPayslipsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {payslips.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No payslips issued yet.
                 </TableCell>
               </TableRow>
             )}
-            {payslips.map((payslip) => (
+            {paginated.items.map((payslip) => (
               <TableRow key={payslip.id}>
                 <TableCell className="font-medium">
                   {formatPayslipNumber(payslip.number)}
@@ -84,6 +92,12 @@ export default async function PortalPayslipsPage() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

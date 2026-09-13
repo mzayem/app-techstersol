@@ -10,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatPkr } from "@/lib/finance/constants";
 import type { TeamMemberType } from "@/lib/team/constants";
@@ -23,8 +25,13 @@ import { listWorkDiaryEntries } from "@/actions/team/work-diary-queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function PortalWorkDiaryPage() {
+export default async function PortalWorkDiaryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const appUser = await requireTeamUser();
+  const params = await searchParams;
   if (appUser.teamMember!.type !== "HOURLY") redirect("/portal");
   const teamMemberId = appUser.teamMember!.id;
 
@@ -46,6 +53,7 @@ export default async function PortalWorkDiaryPage() {
       currency: member.currency as PaymentCurrency,
     },
   ];
+  const paginated = paginate(entries, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -71,14 +79,14 @@ export default async function PortalWorkDiaryPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entries.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   No entries yet.
                 </TableCell>
               </TableRow>
             )}
-            {entries.map((e) => {
+            {paginated.items.map((e) => {
               const entry = {
                 id: e.id,
                 teamMemberId: e.teamMemberId,
@@ -112,6 +120,12 @@ export default async function PortalWorkDiaryPage() {
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );

@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   CONTRACT_STATUSES,
   CONTRACT_STATUS_LABELS,
@@ -46,12 +47,19 @@ export function ContractTable({
   teamMembers,
   canEdit = true,
   canDelete = true,
+  pagination,
 }: {
   contracts: ContractListItem[];
   clients: ClientOption[];
   teamMembers: TeamMemberOption[];
   canEdit?: boolean;
   canDelete?: boolean;
+  pagination?: {
+    page: number;
+    totalPages: number;
+    totalItems: number;
+    pageSize: number;
+  };
 }) {
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [anchorIndex, setAnchorIndex] = React.useState<number | null>(null);
@@ -247,6 +255,14 @@ export function ContractTable({
             })}
           </TableBody>
         </Table>
+        {pagination && (
+          <TablePagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+          />
+        )}
       </div>
     </div>
   );

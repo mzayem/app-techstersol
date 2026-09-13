@@ -129,3 +129,30 @@
     @apply font-sans;
   }
 }
+
+/* Sticky bottom scrollbar for wide tables (components/ui/table.tsx) — kept
+   a fixed, thin height across browsers so it stays easy to grab instead of
+   relying on the OS's native (and inconsistently sized) scrollbar. */
+.sticky-hscroll {
+  scrollbar-width: thin;
+}
+.sticky-hscroll::-webkit-scrollbar {
+  height: 10px;
+}
+.sticky-hscroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sticky-hscroll::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+}
+
+/* The table's own scroll container stays scrollable (wheel/trackpad/touch,
+   and programmatic scrollLeft sync) but hides its native scrollbar — the
+   .sticky-hscroll bar above is the only one shown, so they don't stack. */
+.table-scroll-area {
+  scrollbar-width: none;
+}
+.table-scroll-area::-webkit-scrollbar {
+  display: none;
+}

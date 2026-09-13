@@ -6,6 +6,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { requireTeamUser } from "@/lib/rbac/permissions";
 import { listMyProjects } from "@/actions/portal/queries";
 import { ContractChatButton } from "@/components/contracts/contract-chat";
@@ -23,9 +25,15 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelled",
 };
 
-export default async function PortalProjectsPage() {
+export default async function PortalProjectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const appUser = await requireTeamUser();
+  const params = await searchParams;
   const projects = await listMyProjects(appUser.teamMember!.id);
+  const paginated = paginate(projects, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -47,14 +55,14 @@ export default async function PortalProjectsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projects.length === 0 && (
+            {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   No projects assigned to you yet.
                 </TableCell>
               </TableRow>
             )}
-            {projects.map((project) => (
+            {paginated.items.map((project) => (
               <TableRow key={project.id}>
                 <TableCell className="font-medium">{project.projectName}</TableCell>
                 <TableCell className="text-muted-foreground">
@@ -72,6 +80,12 @@ export default async function PortalProjectsPage() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          page={paginated.page}
+          totalPages={paginated.totalPages}
+          totalItems={paginated.totalItems}
+          pageSize={paginated.pageSize}
+        />
       </div>
     </div>
   );
