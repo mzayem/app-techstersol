@@ -103,6 +103,8 @@ export default async function ExpensesPage({
                   name: expense.name,
                   amount: Number(expense.amount),
                 }}
+                canEdit={permission.canEdit}
+                canDelete={permission.canDelete}
               >
                 <TableCell>{formatDate(expense.date)}</TableCell>
                 <TableCell className="text-muted-foreground">

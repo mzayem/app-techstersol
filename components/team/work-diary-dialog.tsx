@@ -55,6 +55,7 @@ export function WorkDiaryDialog({
   onOpenChange: onOpenChangeProp,
   locked = false,
   onUnlock,
+  canEdit = true,
 }: {
   teamMembers: TeamMemberOption[];
   ratesToPkr: Record<PaymentCurrency, number>;
@@ -63,6 +64,9 @@ export function WorkDiaryDialog({
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
   onUnlock?: () => void;
+  /** Whether the viewer is allowed to unlock this dialog at all — a
+   * view-only role never gets the "Update" button, not even disabled. */
+  canEdit?: boolean;
 }) {
   const isEdit = !!entry;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -175,8 +179,8 @@ export function WorkDiaryDialog({
           </Field>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            {locked ? (
+          {locked && canEdit && (
+            <DialogFooter>
               <Button
                 key="update"
                 type="button"
@@ -187,12 +191,15 @@ export function WorkDiaryDialog({
               >
                 Update
               </Button>
-            ) : (
+            </DialogFooter>
+          )}
+          {!locked && (
+            <DialogFooter>
               <Button key="save" type="submit" disabled={!teamMemberId} loading={pending}>
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save entry"}
               </Button>
-            )}
-          </DialogFooter>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>
@@ -204,11 +211,15 @@ export function WorkDiaryRowActions({
   teamMembers,
   ratesToPkr,
   children,
+  canEdit = true,
+  canDelete = true,
 }: {
   entry: WorkDiaryEntry;
   teamMembers: TeamMemberOption[];
   ratesToPkr: Record<PaymentCurrency, number>;
   children: React.ReactNode;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [locked, setLocked] = React.useState(true);
@@ -230,7 +241,12 @@ export function WorkDiaryRowActions({
         {children}
         <TableCell onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-end">
-            <TeamActionsMenu onEdit={openEdit} onDelete={() => setDeleteOpen(true)} />
+            <TeamActionsMenu
+              onEdit={openEdit}
+              onDelete={() => setDeleteOpen(true)}
+              canEdit={canEdit}
+              canDelete={canDelete}
+            />
           </div>
         </TableCell>
       </TableRow>
@@ -242,6 +258,7 @@ export function WorkDiaryRowActions({
         onOpenChange={setDialogOpen}
         locked={locked}
         onUnlock={() => setLocked(false)}
+        canEdit={canEdit}
       />
       <DeleteEntryDialog
         open={deleteOpen}

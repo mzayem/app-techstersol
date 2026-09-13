@@ -106,7 +106,12 @@ export default async function EarningPage({
                   earning.referenceCurrency as ReferenceCurrency | null,
               };
               return (
-                <EarningRowActions key={earning.id} entry={entry}>
+                <EarningRowActions
+                  key={earning.id}
+                  entry={entry}
+                  canEdit={permission.canEdit}
+                  canDelete={permission.canDelete}
+                >
                   <TableCell>{formatDate(earning.date)}</TableCell>
                   <TableCell className="font-medium">{earning.name}</TableCell>
                   <TableCell className="text-right tabular-nums">

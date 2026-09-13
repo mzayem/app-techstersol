@@ -87,12 +87,16 @@ export function BankAccountDialog({
   onOpenChange: onOpenChangeProp,
   locked = false,
   onUnlock,
+  canEdit = true,
 }: {
   bankAccount?: BankAccountEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
   onUnlock?: () => void;
+  /** Whether the viewer is allowed to unlock this dialog at all — a
+   * view-only role never gets the "Update" button, not even disabled. */
+  canEdit?: boolean;
 }) {
   const isEdit = !!bankAccount;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -222,8 +226,8 @@ export function BankAccountDialog({
           </Field>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            {locked ? (
+          {locked && canEdit && (
+            <DialogFooter>
               <Button
                 key="update"
                 type="button"
@@ -234,7 +238,10 @@ export function BankAccountDialog({
               >
                 Update
               </Button>
-            ) : (
+            </DialogFooter>
+          )}
+          {!locked && (
+            <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
                 {pending
                   ? "Saving…"
@@ -242,8 +249,8 @@ export function BankAccountDialog({
                     ? "Save changes"
                     : "Save bank account"}
               </Button>
-            )}
-          </DialogFooter>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>
@@ -253,9 +260,13 @@ export function BankAccountDialog({
 export function BankAccountRowActions({
   entry,
   children,
+  canEdit = true,
+  canDelete = true,
 }: {
   entry: BankAccountEntry;
   children: React.ReactNode;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [locked, setLocked] = React.useState(true);
@@ -290,6 +301,8 @@ export function BankAccountRowActions({
               onCopy={handleCopy}
               onEdit={openEdit}
               onDelete={() => setDeleteOpen(true)}
+              canEdit={canEdit}
+              canDelete={canDelete}
             />
           </div>
         </TableCell>
@@ -300,6 +313,7 @@ export function BankAccountRowActions({
         onOpenChange={setDialogOpen}
         locked={locked}
         onUnlock={() => setLocked(false)}
+        canEdit={canEdit}
       />
       <DeleteEntryDialog
         open={deleteOpen}

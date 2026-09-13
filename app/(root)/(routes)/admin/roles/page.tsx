@@ -14,7 +14,7 @@ import { listRoles } from "@/actions/rbac/role-queries";
 export const dynamic = "force-dynamic";
 
 export default async function RolesPage() {
-  await requirePagePermission("roles");
+  const { permission } = await requirePagePermission("roles");
 
   const roles = await listRoles();
 
@@ -28,7 +28,7 @@ export default async function RolesPage() {
             can create, edit, or delete on each one.
           </p>
         </div>
-        <RoleDialog />
+        {permission.canCreate && <RoleDialog />}
       </div>
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">
@@ -57,7 +57,12 @@ export default async function RolesPage() {
                 userCount: role._count.users,
               };
               return (
-                <RoleRowActions key={role.id} entry={entry}>
+                <RoleRowActions
+                  key={role.id}
+                  entry={entry}
+                  canEdit={permission.canEdit}
+                  canDelete={permission.canDelete}
+                >
                   <TableCell className="font-medium">{role.name}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {role.permissions.filter((p) => p.canView).length} of{" "}

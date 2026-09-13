@@ -94,7 +94,13 @@ export default async function ContractsPage({
 
       <ContractFilterBar />
 
-      <ContractTable contracts={items} clients={clientOptions} teamMembers={teamMembers} />
+      <ContractTable
+        contracts={items}
+        clients={clientOptions}
+        teamMembers={teamMembers}
+        canEdit={permission.canEdit}
+        canDelete={permission.canDelete}
+      />
     </div>
   );
 }

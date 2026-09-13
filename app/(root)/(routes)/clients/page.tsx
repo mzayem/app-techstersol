@@ -84,7 +84,12 @@ export default async function ClientsPage({
                 emailNotificationsEnabled: client.emailNotificationsEnabled,
               };
               return (
-                <ClientRowActions key={client.id} entry={entry}>
+                <ClientRowActions
+                  key={client.id}
+                  entry={entry}
+                  canEdit={permission.canEdit}
+                  canDelete={permission.canDelete}
+                >
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.phone}</TableCell>
                   <TableCell className="text-muted-foreground">

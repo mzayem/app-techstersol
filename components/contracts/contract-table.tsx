@@ -44,10 +44,14 @@ export function ContractTable({
   contracts,
   clients,
   teamMembers,
+  canEdit = true,
+  canDelete = true,
 }: {
   contracts: ContractListItem[];
   clients: ClientOption[];
   teamMembers: TeamMemberOption[];
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [anchorIndex, setAnchorIndex] = React.useState<number | null>(null);
@@ -115,7 +119,7 @@ export function ContractTable({
 
   return (
     <div className="flex flex-col gap-3">
-      {visibleSelectedIds.length > 0 && (
+      {canEdit && visibleSelectedIds.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-md bg-muted p-3">
           <span className="text-sm font-medium">
             {visibleSelectedIds.length} selected
@@ -188,6 +192,8 @@ export function ContractTable({
                   teamMembers={teamMembers}
                   selected={isSelected}
                   onRowClick={(e) => onRowClick(index, contract.id, e)}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox

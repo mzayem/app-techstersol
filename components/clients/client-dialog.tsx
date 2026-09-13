@@ -249,9 +249,13 @@ export function ClientDialog({
 export function ClientRowActions({
   entry,
   children,
+  canEdit = true,
+  canDelete = true,
 }: {
   entry: ClientEntry;
   children: React.ReactNode;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [locked, setLocked] = React.useState(true);
@@ -276,6 +280,8 @@ export function ClientRowActions({
             <ClientActionsMenu
               onEdit={openEdit}
               onDelete={() => setDeleteOpen(true)}
+              canEdit={canEdit}
+              canDelete={canDelete}
             />
           </div>
         </TableCell>
@@ -286,6 +292,7 @@ export function ClientRowActions({
         onOpenChange={setDialogOpen}
         locked={locked}
         onUnlock={() => setLocked(false)}
+        canEdit={canEdit}
       />
       <DeleteEntryDialog
         open={deleteOpen}

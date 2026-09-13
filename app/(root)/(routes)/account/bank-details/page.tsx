@@ -86,7 +86,12 @@ export default async function BankDetailsPage({
                 bsbCode: account.bsbCode,
               };
               return (
-                <BankAccountRowActions key={account.id} entry={entry}>
+                <BankAccountRowActions
+                  key={account.id}
+                  entry={entry}
+                  canEdit={permission.canEdit}
+                  canDelete={permission.canDelete}
+                >
                   <TableCell className="font-medium">{currency}</TableCell>
                   <TableCell>{account.bankName}</TableCell>
                   <TableCell>{account.accountHolderName}</TableCell>

@@ -49,12 +49,16 @@ export function EarningDialog({
   onOpenChange: onOpenChangeProp,
   locked = false,
   onUnlock,
+  canEdit = true,
 }: {
   earning?: EarningEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
   onUnlock?: () => void;
+  /** Whether the viewer is allowed to unlock this dialog at all — a
+   * view-only role never gets the "Update" button, not even disabled. */
+  canEdit?: boolean;
 }) {
   const isEdit = !!earning;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -172,8 +176,8 @@ export function EarningDialog({
             </Field>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            {locked ? (
+          {locked && canEdit && (
+            <DialogFooter>
               <Button
                 key="update"
                 type="button"
@@ -184,12 +188,15 @@ export function EarningDialog({
               >
                 Update
               </Button>
-            ) : (
+            </DialogFooter>
+          )}
+          {!locked && (
+            <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save earning"}
               </Button>
-            )}
-          </DialogFooter>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>
@@ -199,9 +206,13 @@ export function EarningDialog({
 export function EarningRowActions({
   entry,
   children,
+  canEdit = true,
+  canDelete = true,
 }: {
   entry: EarningEntry;
   children: React.ReactNode;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [locked, setLocked] = React.useState(true);
@@ -227,6 +238,8 @@ export function EarningRowActions({
               id={entry.id}
               onEdit={openEdit}
               onDelete={() => setDeleteOpen(true)}
+              canEdit={canEdit}
+              canDelete={canDelete}
             />
           </div>
         </TableCell>
@@ -237,6 +250,7 @@ export function EarningRowActions({
         onOpenChange={setDialogOpen}
         locked={locked}
         onUnlock={() => setLocked(false)}
+        canEdit={canEdit}
       />
       <DeleteEntryDialog
         open={deleteOpen}

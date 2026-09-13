@@ -126,6 +126,8 @@ export default async function WorkDiaryPage({
                   entry={entry}
                   teamMembers={teamMembers}
                   ratesToPkr={ratesToPkr}
+                  canEdit={permission.canEdit}
+                  canDelete={permission.canDelete}
                 >
                   <TableCell className="font-medium">{e.teamMember.name}</TableCell>
                   <TableCell className="text-muted-foreground">

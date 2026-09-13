@@ -67,7 +67,12 @@ export default async function TeamPage() {
                 payslipEmailsEnabled: member.payslipEmailsEnabled,
               };
               return (
-                <TeamMemberRowActions key={member.id} entry={entry}>
+                <TeamMemberRowActions
+                  key={member.id}
+                  entry={entry}
+                  canEdit={permission.canEdit}
+                  canDelete={permission.canDelete}
+                >
                   <TableCell className="font-medium">{member.name}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {TEAM_MEMBER_TYPE_LABELS[type]}

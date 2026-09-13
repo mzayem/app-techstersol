@@ -95,6 +95,7 @@ export function ContractDialog({
   onOpenChange: onOpenChangeProp,
   locked = false,
   onUnlock,
+  canEdit = true,
 }: {
   contract?: ContractEntry;
   clients: ClientOption[];
@@ -103,6 +104,9 @@ export function ContractDialog({
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
   onUnlock?: () => void;
+  /** Whether the viewer is allowed to unlock this dialog at all — a
+   * view-only role never gets the "Update" button, not even disabled. */
+  canEdit?: boolean;
 }) {
   const isEdit = !!contract;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -521,8 +525,8 @@ export function ContractDialog({
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            {locked ? (
+          {locked && canEdit && (
+            <DialogFooter>
               <Button
                 key="update"
                 type="button"
@@ -533,12 +537,15 @@ export function ContractDialog({
               >
                 Update
               </Button>
-            ) : (
+            </DialogFooter>
+          )}
+          {!locked && (
+            <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save contract"}
               </Button>
-            )}
-          </DialogFooter>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>
@@ -552,6 +559,8 @@ export function ContractRowActions({
   children,
   selected,
   onRowClick,
+  canEdit = true,
+  canDelete = true,
 }: {
   entry: ContractEntry;
   clients: ClientOption[];
@@ -559,6 +568,8 @@ export function ContractRowActions({
   children: React.ReactNode;
   selected?: boolean;
   onRowClick?: (e: React.MouseEvent) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [locked, setLocked] = React.useState(true);
@@ -603,6 +614,8 @@ export function ContractRowActions({
             <ContractActionsMenu
               onEdit={openEdit}
               onDelete={() => setDeleteOpen(true)}
+              canEdit={canEdit}
+              canDelete={canDelete}
             />
           </div>
         </TableCell>
@@ -615,6 +628,7 @@ export function ContractRowActions({
         onOpenChange={setDialogOpen}
         locked={locked}
         onUnlock={() => setLocked(false)}
+        canEdit={canEdit}
       />
       <DeleteEntryDialog
         open={deleteOpen}

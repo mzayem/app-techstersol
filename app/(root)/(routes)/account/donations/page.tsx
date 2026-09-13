@@ -92,6 +92,8 @@ export default async function DonationsPage({
                   name: donation.name,
                   amount: Number(donation.amount),
                 }}
+                canEdit={permission.canEdit}
+                canDelete={permission.canDelete}
               >
                 <TableCell>{formatDate(donation.date)}</TableCell>
                 <TableCell className="font-medium">{donation.name}</TableCell>

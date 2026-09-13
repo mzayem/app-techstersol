@@ -59,12 +59,16 @@ export function RoleDialog({
   onOpenChange: onOpenChangeProp,
   locked = false,
   onUnlock,
+  canEdit = true,
 }: {
   role?: RoleEntry;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
   onUnlock?: () => void;
+  /** Whether the viewer is allowed to unlock this dialog at all — a
+   * view-only role never gets the "Update" button, not even disabled. */
+  canEdit?: boolean;
 }) {
   const isEdit = !!role;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -155,8 +159,8 @@ export function RoleDialog({
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            {locked ? (
+          {locked && canEdit && (
+            <DialogFooter>
               <Button
                 key="update"
                 type="button"
@@ -167,12 +171,15 @@ export function RoleDialog({
               >
                 Update
               </Button>
-            ) : (
+            </DialogFooter>
+          )}
+          {!locked && (
+            <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save role"}
               </Button>
-            )}
-          </DialogFooter>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>
@@ -182,9 +189,13 @@ export function RoleDialog({
 export function RoleRowActions({
   entry,
   children,
+  canEdit = true,
+  canDelete = true,
 }: {
   entry: RoleEntry;
   children: React.ReactNode;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [locked, setLocked] = React.useState(true);
@@ -206,7 +217,12 @@ export function RoleRowActions({
         {children}
         <TableCell onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-end">
-            <TeamActionsMenu onEdit={openEdit} onDelete={() => setDeleteOpen(true)} />
+            <TeamActionsMenu
+              onEdit={openEdit}
+              onDelete={() => setDeleteOpen(true)}
+              canEdit={canEdit}
+              canDelete={canDelete}
+            />
           </div>
         </TableCell>
       </TableRow>
@@ -216,6 +232,7 @@ export function RoleRowActions({
         onOpenChange={setDialogOpen}
         locked={locked}
         onUnlock={() => setLocked(false)}
+        canEdit={canEdit}
       />
       <DeleteEntryDialog
         open={deleteOpen}
