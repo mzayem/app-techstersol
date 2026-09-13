@@ -96,21 +96,22 @@ model RolePermission {
 /// id (authUserId). kind decides which half of the app they get:
 /// DASHBOARD_HANDLER (roleId required), TEAM (teamMemberId required,
 /// linking to an existing TeamMember so a team login only ever sees their
-/// own data), or CLIENT (clientId required, linking to an existing Client
-/// so a client login only ever sees their own contracts/invoices).
+/// own data), or CLIENT (one or more linked Client profiles via
+/// ClientProfile — a client login sees the combined data of every profile
+/// linked to it, e.g. someone with both a personal and a company Client
+/// record under one login).
 model AppUser {
-  id           String      @id @default(cuid())
-  authUserId   String      @unique
-  email        String      @unique
-  name         String
-  kind         UserKind
-  roleId       String?
-  role         Role?       @relation(fields: [roleId], references: [id])
-  teamMemberId String?     @unique
-  teamMember   TeamMember? @relation(fields: [teamMemberId], references: [id])
-  clientId     String?     @unique
-  client       Client?     @relation(fields: [clientId], references: [id])
-  createdAt    DateTime    @default(now())
+  id             String          @id @default(cuid())
+  authUserId     String          @unique
+  email          String          @unique
+  name           String
+  kind           UserKind
+  roleId         String?
+  role           Role?           @relation(fields: [roleId], references: [id])
+  teamMemberId   String?         @unique
+  teamMember     TeamMember?     @relation(fields: [teamMemberId], references: [id])
+  clientProfiles ClientProfile[]
+  createdAt      DateTime        @default(now())
   updatedAt    DateTime    @updatedAt
 }
 
@@ -176,10 +177,26 @@ model Client {
   updatedAt       DateTime        @updatedAt
   contracts       Contract[]
   invoices        Invoice[]
-  appUser         AppUser?
+  clientProfiles  ClientProfile[]
 
   @@index([status])
   @@index([name])
+}
+
+/// Links one CLIENT-kind AppUser to one Client record it can act as. A
+/// login can have several of these (e.g. a personal-project profile and a
+/// separate company profile) — the client portal always shows the union
+/// of every linked, still-ACTIVE Client's data.
+model ClientProfile {
+  id        String   @id @default(cuid())
+  appUserId String
+  appUser   AppUser  @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([appUserId, clientId])
+  @@index([clientId])
 }
 
 model Contract {

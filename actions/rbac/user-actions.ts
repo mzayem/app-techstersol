@@ -93,18 +93,119 @@ export async function createClientUser(formData: FormData) {
   const name = str(formData, "name");
   const email = str(formData, "email");
   const password = str(formData, "password");
-  const clientId = str(formData, "clientId");
+  const clientIds = [...new Set(formData.getAll("clientId").map((v) => String(v).trim()))].filter(
+    Boolean,
+  );
   validateBasics(name, email, password);
-  if (!clientId) throw new Error("Client is required");
+  if (clientIds.length === 0) throw new Error("At least one client profile is required");
 
-  const client = await prisma.client.findUnique({ where: { id: clientId } });
-  if (!client) throw new Error("Selected client no longer exists");
+  const clients = await prisma.client.findMany({
+    where: { id: { in: clientIds } },
+    include: { clientProfiles: true },
+  });
+  if (clients.length !== clientIds.length) {
+    throw new Error("One or more selected clients no longer exist");
+  }
+  if (clients.some((c) => c.clientProfiles.length > 0)) {
+    throw new Error("One or more selected clients already have a login");
+  }
 
   const authUserId = await createAuthAccount(name, email, password);
 
-  await prisma.appUser.create({
-    data: { authUserId, email, name, kind: "CLIENT", clientId },
+  await prisma.$transaction(async (tx) => {
+    const appUser = await tx.appUser.create({
+      data: { authUserId, email, name, kind: "CLIENT" },
+    });
+    await tx.clientProfile.createMany({
+      data: clientIds.map((clientId) => ({ appUserId: appUser.id, clientId })),
+    });
   });
+
+  revalidatePath("/admin/users");
+}
+
+/** Edits name/email/password and the kind-specific link (role, team
+ * member, or client profile set) of an existing login. The user's `kind`
+ * itself never changes here — switching kinds would mean re-deriving a
+ * different relational shape entirely, so that's a delete-and-recreate,
+ * not an edit. */
+export async function updateAppUser(id: string, formData: FormData) {
+  await requirePagePermission("users", "edit");
+
+  const appUser = await prisma.appUser.findUnique({ where: { id } });
+  if (!appUser) throw new Error("User not found");
+
+  const name = str(formData, "name");
+  const email = str(formData, "email");
+  const password = str(formData, "password");
+  if (!name || !email) throw new Error("Name and email are required");
+  if (!EMAIL_RE.test(email)) throw new Error("Enter a valid email address");
+  if (password && password.length < 8) {
+    throw new Error("Password must be at least 8 characters");
+  }
+
+  if (name !== appUser.name || email !== appUser.email) {
+    const { error } = await auth.admin.updateUser({
+      userId: appUser.authUserId,
+      data: { name, email },
+    });
+    if (error) throw new Error(error.message ?? "Could not update the account");
+  }
+  if (password) {
+    const { error } = await auth.admin.setUserPassword({
+      userId: appUser.authUserId,
+      newPassword: password,
+    });
+    if (error) throw new Error(error.message ?? "Could not set the new password");
+  }
+
+  if (appUser.kind === "DASHBOARD_HANDLER") {
+    const roleId = str(formData, "roleId");
+    if (!roleId) throw new Error("Role is required");
+    const role = await prisma.role.findUnique({ where: { id: roleId } });
+    if (!role) throw new Error("Selected role no longer exists");
+    await prisma.appUser.update({ where: { id }, data: { name, email, roleId } });
+  } else if (appUser.kind === "TEAM") {
+    const teamMemberId = str(formData, "teamMemberId");
+    if (!teamMemberId) throw new Error("Team member is required");
+    const teamMember = await prisma.teamMember.findUnique({ where: { id: teamMemberId } });
+    if (!teamMember) throw new Error("Selected team member no longer exists");
+    await prisma.appUser.update({ where: { id }, data: { name, email, teamMemberId } });
+  } else {
+    const clientIds = [
+      ...new Set(formData.getAll("clientId").map((v) => String(v).trim())),
+    ].filter(Boolean);
+    if (clientIds.length === 0) throw new Error("At least one client profile is required");
+
+    const clients = await prisma.client.findMany({
+      where: { id: { in: clientIds } },
+      include: { clientProfiles: true },
+    });
+    if (clients.length !== clientIds.length) {
+      throw new Error("One or more selected clients no longer exist");
+    }
+    if (clients.some((c) => c.clientProfiles.some((p) => p.appUserId !== id))) {
+      throw new Error("One or more selected clients already have a login");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.appUser.update({ where: { id }, data: { name, email } });
+      await tx.clientProfile.deleteMany({
+        where: { appUserId: id, clientId: { notIn: clientIds } },
+      });
+      const existing = await tx.clientProfile.findMany({
+        where: { appUserId: id },
+        select: { clientId: true },
+      });
+      const existingIds = new Set(existing.map((e) => e.clientId));
+      const toAdd = clientIds.filter((cid) => !existingIds.has(cid));
+      if (toAdd.length > 0) {
+        await tx.clientProfile.createMany({
+          data: toAdd.map((clientId) => ({ appUserId: id, clientId })),
+        });
+      }
+    });
+  }
 
   revalidatePath("/admin/users");
 }

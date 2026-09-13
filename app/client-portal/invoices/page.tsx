@@ -11,14 +11,16 @@ import {
 } from "@/components/ui/table";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import { formatInvoiceNumber, INVOICE_STATUS_LABELS } from "@/lib/invoices/constants";
-import { requireClientUser } from "@/lib/rbac/permissions";
+import { getActiveClientProfiles, requireClientUser } from "@/lib/rbac/permissions";
 import { listMyInvoices } from "@/actions/client-portal/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientInvoicesPage() {
   const appUser = await requireClientUser();
-  const invoices = await listMyInvoices(appUser.client!.id);
+  const profiles = getActiveClientProfiles(appUser);
+  const isMultiProfile = profiles.length > 1;
+  const invoices = await listMyInvoices(profiles);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -34,6 +36,7 @@ export default async function ClientInvoicesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Invoice</TableHead>
+              {isMultiProfile && <TableHead>Profile</TableHead>}
               <TableHead>Issue date</TableHead>
               <TableHead>Due date</TableHead>
               <TableHead className="text-right">Amount</TableHead>
@@ -44,7 +47,10 @@ export default async function ClientInvoicesPage() {
           <TableBody>
             {invoices.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={isMultiProfile ? 7 : 6}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No invoices yet.
                 </TableCell>
               </TableRow>
@@ -54,6 +60,9 @@ export default async function ClientInvoicesPage() {
                 <TableCell className="font-medium">
                   {formatInvoiceNumber(invoice.number)}
                 </TableCell>
+                {isMultiProfile && (
+                  <TableCell className="text-muted-foreground">{invoice.clientName}</TableCell>
+                )}
                 <TableCell>{formatDate(invoice.issueDate)}</TableCell>
                 <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                 <TableCell className="text-right tabular-nums">

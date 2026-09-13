@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatInvoiceFileNumber } from "@/lib/invoices/constants";
 import { renderInvoicePdf } from "@/lib/invoices/pdf";
-import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
+import { checkPermission, getActiveClientProfiles, getCurrentAppUser } from "@/lib/rbac/permissions";
 import { getInvoiceForPdf } from "@/actions/invoices/queries";
 
 export const runtime = "nodejs";
@@ -26,7 +26,10 @@ export async function GET(
 
   // Not found (not forbidden) for an owned-data mismatch, so a guessed id
   // doesn't confirm another party's invoice exists.
-  if (appUser.kind === "CLIENT" && invoice.clientId !== appUser.client?.id) {
+  if (
+    appUser.kind === "CLIENT" &&
+    !getActiveClientProfiles(appUser).some((c) => c.id === invoice.clientId)
+  ) {
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
   if (appUser.kind === "TEAM") {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
+import { checkPermission, getActiveClientProfiles, getCurrentAppUser } from "@/lib/rbac/permissions";
 
 const MAX_MESSAGE_LENGTH = 4000;
 
@@ -27,7 +27,8 @@ async function authorizeContractChat(contractId: string) {
       where: { id: contractId },
       select: { clientId: true },
     });
-    if (!contract || contract.clientId !== appUser.client?.id) {
+    const activeClientIds = getActiveClientProfiles(appUser).map((c) => c.id);
+    if (!contract || !activeClientIds.includes(contract.clientId)) {
       throw new Error("Project not found");
     }
     return appUser;

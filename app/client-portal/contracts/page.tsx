@@ -1,5 +1,7 @@
 import { ClientContractRequestDialog } from "@/components/client-portal/client-contract-request-dialog";
+import { ClientContractsFilterBar } from "@/components/client-portal/client-contracts-filter-bar";
 import { ContractStatusStepper } from "@/components/client-portal/contract-status-stepper";
+import { StatTile } from "@/components/client-portal/stat-breakdown";
 import { ContractChatButton } from "@/components/contracts/contract-chat";
 import {
   Table,
@@ -10,14 +12,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatContractAmount } from "@/lib/contracts/constants";
-import { requireClientUser } from "@/lib/rbac/permissions";
-import { listMyContracts } from "@/actions/client-portal/queries";
+import { getActiveClientProfiles, requireClientUser } from "@/lib/rbac/permissions";
+import { getClientOverview, listMyContracts } from "@/actions/client-portal/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientContractsPage() {
+export default async function ClientContractsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const appUser = await requireClientUser();
-  const contracts = await listMyContracts(appUser.client!.id);
+  const profiles = getActiveClientProfiles(appUser);
+  const params = await searchParams;
+  const isMultiProfile = profiles.length > 1;
+
+  const [overview, contracts] = await Promise.all([
+    getClientOverview(profiles),
+    listMyContracts(profiles, { search: params.q, profileClientId: params.profile }),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -28,14 +41,44 @@ export default async function ClientContractsPage() {
             Your projects with us. Add a note any time — our team sees it right away.
           </p>
         </div>
-        <ClientContractRequestDialog />
+        <ClientContractRequestDialog profiles={profiles} />
       </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatTile
+          label="Total projects"
+          value={String(overview.totalProjects)}
+          breakdown={overview.totalProjectsByProfile.map((p) => ({
+            label: p.clientName,
+            value: String(p.value),
+          }))}
+        />
+        <StatTile
+          label="Completed"
+          value={String(overview.completedProjects)}
+          breakdown={overview.completedProjectsByProfile.map((p) => ({
+            label: p.clientName,
+            value: String(p.value),
+          }))}
+        />
+        <StatTile
+          label="Pending"
+          value={String(overview.pendingProjects)}
+          breakdown={overview.pendingProjectsByProfile.map((p) => ({
+            label: p.clientName,
+            value: String(p.value),
+          }))}
+        />
+      </div>
+
+      <ClientContractsFilterBar profiles={profiles} />
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Project</TableHead>
+              {isMultiProfile && <TableHead>Profile</TableHead>}
               <TableHead>Deadline</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Status</TableHead>
@@ -45,8 +88,11 @@ export default async function ClientContractsPage() {
           <TableBody>
             {contracts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                  No projects yet — send us a request to get started.
+                <TableCell
+                  colSpan={isMultiProfile ? 6 : 5}
+                  className="py-8 text-center text-muted-foreground"
+                >
+                  No projects found.
                 </TableCell>
               </TableRow>
             )}
@@ -65,6 +111,9 @@ export default async function ClientContractsPage() {
                       </span>
                     )}
                   </TableCell>
+                  {isMultiProfile && (
+                    <TableCell className="text-muted-foreground">{contract.clientName}</TableCell>
+                  )}
                   <TableCell className="text-muted-foreground">
                     {formatDate(contract.deadline)}
                   </TableCell>

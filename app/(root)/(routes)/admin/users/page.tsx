@@ -8,22 +8,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requirePagePermission } from "@/lib/rbac/permissions";
-import { listAppUsers } from "@/actions/rbac/user-queries";
+import { listAppUsers, listAvailableClientOptions } from "@/actions/rbac/user-queries";
 import { listRoleOptions } from "@/actions/rbac/role-queries";
 import { listTeamMemberOptions } from "@/actions/team/queries";
-import { listClientOptions } from "@/actions/contracts/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
   await requirePagePermission("users");
 
-  const [users, roles, teamMembers, clients] = await Promise.all([
+  const [users, roles, teamMembers, availableClients] = await Promise.all([
     listAppUsers(),
     listRoleOptions(),
     listTeamMemberOptions(),
-    listClientOptions(),
+    listAvailableClientOptions(),
   ]);
+
+  const teamMemberOptions = teamMembers.map((m) => ({ id: m.id, name: m.name }));
+  const availableClientOptions = availableClients.map((c) => ({ id: c.id, name: c.name }));
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -35,11 +37,7 @@ export default async function UsersPage() {
             account: dashboard handler, team login, or client login.
           </p>
         </div>
-        <UserDialog
-          roles={roles}
-          teamMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
-          clients={clients.map((c) => ({ id: c.id, name: c.name }))}
-        />
+        <UserDialog roles={roles} teamMembers={teamMemberOptions} clients={availableClientOptions} />
       </div>
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">
@@ -49,7 +47,7 @@ export default async function UsersPage() {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>Role / Team member</TableHead>
+              <TableHead>Role / Team member / Client profile(s)</TableHead>
               <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
@@ -61,27 +59,54 @@ export default async function UsersPage() {
                 </TableCell>
               </TableRow>
             )}
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                <TableCell>
-                  {user.kind === "DASHBOARD_HANDLER"
-                    ? "Dashboard handler"
-                    : user.kind === "TEAM"
-                      ? "Team login"
-                      : "Client login"}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {user.role?.name ?? user.teamMember?.name ?? user.client?.name ?? "—"}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end">
-                    <UserRowActions id={user.id} name={user.name} />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {users.map((user) => {
+              const ownClientOptions = user.clientProfiles.map((p) => p.client);
+              const editClientOptions = [
+                ...ownClientOptions,
+                ...availableClientOptions.filter(
+                  (c) => !ownClientOptions.some((o) => o.id === c.id),
+                ),
+              ];
+
+              return (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                  <TableCell>
+                    {user.kind === "DASHBOARD_HANDLER"
+                      ? "Dashboard handler"
+                      : user.kind === "TEAM"
+                        ? "Team login"
+                        : "Client login"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.role?.name ??
+                      user.teamMember?.name ??
+                      (ownClientOptions.length > 0
+                        ? ownClientOptions.map((c) => c.name).join(", ")
+                        : "—")}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end">
+                      <UserRowActions
+                        user={{
+                          id: user.id,
+                          name: user.name,
+                          email: user.email,
+                          kind: user.kind,
+                          roleId: user.roleId,
+                          teamMemberId: user.teamMemberId,
+                          clientIds: ownClientOptions.map((c) => c.id),
+                        }}
+                        roles={roles}
+                        teamMembers={teamMemberOptions}
+                        clients={editClientOptions}
+                      />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

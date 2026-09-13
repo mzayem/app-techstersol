@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -26,6 +26,7 @@ import {
   createDashboardUser,
   createTeamUser,
   deleteAppUser,
+  updateAppUser,
 } from "@/actions/rbac/user-actions";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -34,39 +35,88 @@ export type TeamMemberOption = { id: string; name: string };
 export type ClientOption = { id: string; name: string };
 type UserKind = "DASHBOARD_HANDLER" | "TEAM" | "CLIENT";
 
+export type EditableUser = {
+  id: string;
+  name: string;
+  email: string;
+  kind: UserKind;
+  roleId: string | null;
+  teamMemberId: string | null;
+  clientIds: string[];
+};
+
 export function UserDialog({
   roles,
   teamMembers,
   clients,
+  user,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
 }: {
   roles: RoleOption[];
   teamMembers: TeamMemberOption[];
   clients: ClientOption[];
+  user?: EditableUser;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = React.useState(false);
+  const isEdit = !!user;
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const open = isEdit ? (openProp ?? false) : internalOpen;
+  const setOpen = isEdit ? (onOpenChangeProp ?? (() => {})) : setInternalOpen;
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
-  const [kind, setKind] = React.useState<UserKind>("DASHBOARD_HANDLER");
-  const [roleId, setRoleId] = React.useState("");
-  const [teamMemberId, setTeamMemberId] = React.useState("");
-  const [clientId, setClientId] = React.useState("");
+
+  const [kind, setKind] = React.useState<UserKind>(user?.kind ?? "DASHBOARD_HANDLER");
+  const [roleId, setRoleId] = React.useState(user?.roleId ?? "");
+  const [teamMemberId, setTeamMemberId] = React.useState(user?.teamMemberId ?? "");
+  const [clientId, setClientId] = React.useState(user?.clientIds[0] ?? "");
+  const [profileMode, setProfileMode] = React.useState<"single" | "multiple">(
+    (user?.clientIds.length ?? 0) > 1 ? "multiple" : "single",
+  );
+  const [clientIds, setClientIds] = React.useState<string[]>(
+    user?.clientIds.length ? user.clientIds : [""],
+  );
+
+  function resetFields() {
+    setKind("DASHBOARD_HANDLER");
+    setRoleId("");
+    setTeamMemberId("");
+    setClientId("");
+    setProfileMode("single");
+    setClientIds([""]);
+  }
+
+  function updateClientRow(index: number, value: string) {
+    setClientIds((rows) => rows.map((row, i) => (i === index ? value : row)));
+  }
+
+  function addClientRow() {
+    setClientIds((rows) => [...rows, ""]);
+  }
+
+  function removeClientRow(index: number) {
+    setClientIds((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+  }
 
   function onSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
       try {
-        if (kind === "DASHBOARD_HANDLER") {
+        if (isEdit) {
+          await updateAppUser(user.id, formData);
+        } else if (kind === "DASHBOARD_HANDLER") {
           await createDashboardUser(formData);
         } else if (kind === "TEAM") {
           await createTeamUser(formData);
         } else {
           await createClientUser(formData);
         }
-        formRef.current?.reset();
-        setRoleId("");
-        setTeamMemberId("");
-        setClientId("");
+        if (!isEdit) {
+          formRef.current?.reset();
+          resetFields();
+        }
         setOpen(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
@@ -76,18 +126,24 @@ export function UserDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>
-        <PlusIcon />
-        Add user
-      </DialogTrigger>
+      {!isEdit && (
+        <DialogTrigger render={<Button />}>
+          <PlusIcon />
+          Add user
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add user</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit user" : "Add user"}</DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">User type</span>
-            <Select value={kind} onValueChange={(v) => v && setKind(v as UserKind)}>
+            <Select
+              value={kind}
+              onValueChange={(v) => v && setKind(v as UserKind)}
+              disabled={isEdit}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -101,20 +157,28 @@ export function UserDialog({
 
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Name</span>
-            <Input name="name" required placeholder="Full name" />
+            <Input name="name" required placeholder="Full name" defaultValue={user?.name} />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Email</span>
-            <Input type="email" name="email" required placeholder="name@example.com" />
+            <Input
+              type="email"
+              name="email"
+              required
+              placeholder="name@example.com"
+              defaultValue={user?.email}
+            />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-muted-foreground">Password</span>
+            <span className="text-muted-foreground">
+              {isEdit ? "New password" : "Password"}
+            </span>
             <Input
               type="password"
               name="password"
-              required
+              required={!isEdit}
               minLength={8}
-              placeholder="At least 8 characters"
+              placeholder={isEdit ? "Leave blank to keep current password" : "At least 8 characters"}
             />
           </label>
 
@@ -145,24 +209,82 @@ export function UserDialog({
               <input type="hidden" name="teamMemberId" value={teamMemberId} />
             </label>
           ) : (
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-muted-foreground">Client</span>
-              <Combobox
-                value={clientId}
-                onValueChange={setClientId}
-                options={clients.map((c) => ({ value: c.id, label: c.name }))}
-                placeholder="Select client"
-                searchPlaceholder="Search clients…"
-                emptyText="No clients found."
-              />
-              <input type="hidden" name="clientId" value={clientId} />
-            </label>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-muted-foreground">Client profile(s)</span>
+              <div className="inline-flex w-fit overflow-hidden rounded-md ring-1 ring-input">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={profileMode === "single" ? "default" : "ghost"}
+                  className="rounded-none"
+                  onClick={() => setProfileMode("single")}
+                >
+                  Single profile
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={profileMode === "multiple" ? "default" : "ghost"}
+                  className="rounded-none"
+                  onClick={() => setProfileMode("multiple")}
+                >
+                  Multiple profiles
+                </Button>
+              </div>
+
+              {profileMode === "single" ? (
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <Combobox
+                    value={clientId}
+                    onValueChange={setClientId}
+                    options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                    placeholder="Select client"
+                    searchPlaceholder="Search clients…"
+                    emptyText="No clients available — every client already has a login."
+                  />
+                  <input type="hidden" name="clientId" value={clientId} />
+                </label>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {clientIds.map((rowClientId, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Combobox
+                        value={rowClientId}
+                        onValueChange={(v) => updateClientRow(index, v ?? "")}
+                        options={clients
+                          .filter((c) => c.id === rowClientId || !clientIds.includes(c.id))
+                          .map((c) => ({ value: c.id, label: c.name }))}
+                        placeholder={`Profile ${index + 1}`}
+                        searchPlaceholder="Search clients…"
+                        emptyText="No clients available."
+                        className="flex-1"
+                      />
+                      {rowClientId && <input type="hidden" name="clientId" value={rowClientId} />}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Remove profile"
+                        disabled={clientIds.length === 1}
+                        onClick={() => removeClientRow(index)}
+                      >
+                        <XIcon />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addClientRow}>
+                    <PlusIcon />
+                    Add another profile
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="submit" loading={pending}>
-              {pending ? "Creating…" : "Create user"}
+              {pending ? "Saving…" : isEdit ? "Save changes" : "Create user"}
             </Button>
           </DialogFooter>
         </form>
@@ -171,11 +293,30 @@ export function UserDialog({
   );
 }
 
-export function UserRowActions({ id, name }: { id: string; name: string }) {
+export function UserRowActions({
+  user,
+  roles,
+  teamMembers,
+  clients,
+}: {
+  user: EditableUser;
+  roles: RoleOption[];
+  teamMembers: TeamMemberOption[];
+  clients: ClientOption[];
+}) {
+  const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
     <>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Edit user"
+        onClick={() => setEditOpen(true)}
+      >
+        <PencilIcon />
+      </Button>
       <Button
         variant="ghost"
         size="icon-sm"
@@ -184,11 +325,19 @@ export function UserRowActions({ id, name }: { id: string; name: string }) {
       >
         <Trash2Icon />
       </Button>
+      <UserDialog
+        roles={roles}
+        teamMembers={teamMembers}
+        clients={clients}
+        user={user}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        entryLabel={`user "${name}"`}
-        onDelete={deleteAppUser.bind(null, id)}
+        entryLabel={`user "${user.name}"`}
+        onDelete={deleteAppUser.bind(null, user.id)}
       />
     </>
   );

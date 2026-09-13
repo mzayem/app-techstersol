@@ -33,7 +33,13 @@ export async function getCurrentAppUser() {
     include: {
       role: { include: { permissions: true } },
       teamMember: { select: { id: true, name: true, type: true } },
-      client: { select: { id: true, name: true, email: true, currency: true, status: true } },
+      clientProfiles: {
+        include: {
+          client: {
+            select: { id: true, name: true, email: true, currency: true, status: true },
+          },
+        },
+      },
     },
   });
 }
@@ -104,14 +110,22 @@ export async function requireTeamUser() {
   return appUser;
 }
 
+/** The Client profiles a CLIENT-kind login can currently act as — every
+ * linked profile whose own Client record is still ACTIVE. A login can have
+ * several (e.g. a personal-project profile and a separate company profile);
+ * the portal always shows their combined data. */
+export function getActiveClientProfiles(appUser: CurrentAppUser) {
+  return appUser.clientProfiles.map((p) => p.client).filter((c) => c.status === "ACTIVE");
+}
+
 /** Call as the first statement in every client-portal page. Redirects
  * anyone who isn't a CLIENT-kind login (or has no linked, still-active
- * Client) back to the main dashboard — a churned client's login stops
- * working here even if nobody remembered to delete the AppUser. */
+ * Client profile) back to the main dashboard — a login whose only profiles
+ * have all churned stops working here even if nobody deleted the AppUser. */
 export async function requireClientUser() {
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/auth/sign-in");
-  if (appUser.kind !== "CLIENT" || !appUser.client || appUser.client.status !== "ACTIVE") {
+  if (appUser.kind !== "CLIENT" || getActiveClientProfiles(appUser).length === 0) {
     redirect("/");
   }
   return appUser;

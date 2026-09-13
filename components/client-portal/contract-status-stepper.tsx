@@ -9,15 +9,10 @@ import { cn } from "@/lib/utils";
 /** The normal happy-path progression a proposal walks through. PARTIALLY_PAID
  * shares a step with PENDING_PAYMENT — both mean "billed, payment underway" —
  * so the stepper doesn't grow a parallel branch for it. */
-const STEPS = [
-  "PROPOSED",
-  "UPFRONT_PAYMENT",
-  "ACTIVE",
-  "PENDING_PAYMENT",
-  "COMPLETED",
-] as const;
+const STEPS = ["PROPOSED", "ACTIVE", "PENDING_PAYMENT", "COMPLETED"] as const;
 
 function stepIndex(status: ContractStatus): number {
+  if (status === "UPFRONT_PAYMENT") return STEPS.indexOf("ACTIVE");
   if (status === "PARTIALLY_PAID") return STEPS.indexOf("PENDING_PAYMENT");
   return STEPS.indexOf(status as (typeof STEPS)[number]);
 }

@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { PaymentCurrency } from "@/lib/clients/constants";
 import {
   PAYMENT_TYPES,
   PAYMENT_TYPE_LABELS,
@@ -42,10 +43,16 @@ function emptyMilestoneRow(): MilestoneRow {
 
 /** A client's own "request a new project" form — deliberately a separate,
  * lighter component from the dashboard's ContractDialog rather than a mode
- * on it: Client, Currency, Status, and "Handled by" aren't just disabled
- * here, they're absent from the DOM entirely, since the server locks them
- * to the signed-in client/their currency/PROPOSED regardless of input. */
-export function ClientContractRequestDialog() {
+ * on it: Currency, Status, and "Handled by" aren't just disabled here,
+ * they're absent from the DOM entirely, since the server locks them to
+ * PROPOSED/the chosen profile's own currency regardless of input. Client
+ * is auto-selected and locked when there's only one linked profile; with
+ * several, the client genuinely has to say which one this is for. */
+export function ClientContractRequestDialog({
+  profiles,
+}: {
+  profiles: { id: string; name: string; currency: PaymentCurrency }[];
+}) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
@@ -53,10 +60,13 @@ export function ClientContractRequestDialog() {
 
   const [paymentType, setPaymentType] = React.useState<ContractPaymentType>("PROJECT");
   const [milestones, setMilestones] = React.useState<MilestoneRow[]>([emptyMilestoneRow()]);
+  const [profileId, setProfileId] = React.useState(profiles[0]?.id ?? "");
+  const selectedProfile = profiles.find((p) => p.id === profileId);
 
   function resetForm() {
     setPaymentType("PROJECT");
     setMilestones([emptyMilestoneRow()]);
+    setProfileId(profiles[0]?.id ?? "");
   }
 
   function updateMilestone(index: number, patch: Partial<MilestoneRow>) {
@@ -103,6 +113,34 @@ export function ClientContractRequestDialog() {
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
+            {profiles.length > 1 ? (
+              <Field label="Which profile is this for?">
+                <Select
+                  value={profileId}
+                  onValueChange={(v) => setProfileId(v ?? "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profiles.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedProfile && (
+                  <span className="text-xs text-muted-foreground">
+                    Billed in {selectedProfile.currency}
+                  </span>
+                )}
+                <input type="hidden" name="clientId" value={profileId} />
+              </Field>
+            ) : (
+              <input type="hidden" name="clientId" value={profileId} />
+            )}
+
             <Field label="Project name">
               <Input name="projectName" placeholder="Project name" required />
             </Field>

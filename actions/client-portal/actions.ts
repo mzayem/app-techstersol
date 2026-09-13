@@ -8,7 +8,7 @@ import {
   type ContractPaymentType,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
-import { getCurrentAppUser } from "@/lib/rbac/permissions";
+import { getActiveClientProfiles, getCurrentAppUser } from "@/lib/rbac/permissions";
 import { validateMilestones } from "@/lib/contracts/validation";
 
 function str(formData: FormData, key: string) {
@@ -60,16 +60,25 @@ function readClientContractFields(formData: FormData, milestonesInput: Milestone
 }
 
 /** A client's self-service project proposal — always lands as PROPOSED,
- * always billed in the client's own on-file currency, and never assigned
- * to a team member from here; a dashboard user promotes/assigns it from
- * the regular contract edit flow afterwards. */
+ * always billed in the chosen profile's own on-file currency, and never
+ * assigned to a team member from here; a dashboard user promotes/assigns
+ * it from the regular contract edit flow afterwards. The submitted
+ * `clientId` (which profile this is for) is re-validated against the
+ * signed-in login's own active profiles — never trusted from the form
+ * alone, since a client with several profiles genuinely chooses one. */
 export async function createClientContractRequest(
   formData: FormData,
   milestones: MilestoneInput[],
 ) {
   const appUser = await getCurrentAppUser();
-  if (!appUser || appUser.kind !== "CLIENT" || !appUser.client) {
+  if (!appUser || appUser.kind !== "CLIENT") {
     throw new Error("Not authorized");
+  }
+
+  const requestedClientId = str(formData, "clientId");
+  const profile = getActiveClientProfiles(appUser).find((c) => c.id === requestedClientId);
+  if (!profile) {
+    throw new Error("Select which profile this project is for");
   }
 
   const { milestones: validMilestones, ...fields } = readClientContractFields(
@@ -80,8 +89,8 @@ export async function createClientContractRequest(
   await prisma.contract.create({
     data: {
       ...fields,
-      clientId: appUser.client.id,
-      currency: appUser.client.currency,
+      clientId: profile.id,
+      currency: profile.currency,
       status: "PROPOSED",
       teamMemberId: null,
       teamPayAmount: null,
