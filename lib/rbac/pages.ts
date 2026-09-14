@@ -20,7 +20,11 @@ export type PageKey =
   | "partners"
   | "partner-payslips"
   | "partner-ledger"
-  | "reports"
+  | "reports-audit"
+  | "reports-performance"
+  | "reports-annual"
+  | "reports-partners"
+  | "reports-letterhead"
   | "roles"
   | "users"
   | "emails";
@@ -78,7 +82,26 @@ export const PAGE_REGISTRY: PageRegistryEntry[] = [
     url: "/partners/ledger",
     group: "Partners",
   },
-  { key: "reports", label: "Reports", url: "/reports", group: "Reports" },
+  { key: "reports-audit", label: "Audit Reports", url: "/reports/audit", group: "Reports" },
+  {
+    key: "reports-performance",
+    label: "Performance Reports",
+    url: "/reports/performance",
+    group: "Reports",
+  },
+  { key: "reports-annual", label: "Annual Report", url: "/reports/annual", group: "Reports" },
+  {
+    key: "reports-partners",
+    label: "Earnings shared with partners",
+    url: "/reports/partners",
+    group: "Reports",
+  },
+  {
+    key: "reports-letterhead",
+    label: "Letterhead",
+    url: "/reports/letterhead",
+    group: "Reports",
+  },
   { key: "roles", label: "Roles", url: "/admin/roles", group: "Admin" },
   { key: "users", label: "Users", url: "/admin/users", group: "Admin" },
   { key: "emails", label: "Emails", url: "/admin/emails", group: "Admin" },

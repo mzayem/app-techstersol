@@ -1,13 +1,17 @@
 import {
-  BarChart3,
   CalendarDays,
+  ClipboardCheck,
+  FileBarChart,
   FileSignature,
   FileText,
   Gift,
+  HandCoins,
   Landmark,
   LayoutDashboard,
   Handshake,
+  LineChart,
   Mail,
+  Printer,
   Receipt,
   ReceiptText,
   ScrollText,
@@ -122,7 +126,36 @@ export const navGroups = [
   {
     title: "Reports",
     items: [
-      { title: "Reports", url: "/reports", icon: BarChart3, key: "reports" as PageKey },
+      {
+        title: "Audit Reports",
+        url: "/reports/audit",
+        icon: ClipboardCheck,
+        key: "reports-audit" as PageKey,
+      },
+      {
+        title: "Performance Reports",
+        url: "/reports/performance",
+        icon: LineChart,
+        key: "reports-performance" as PageKey,
+      },
+      {
+        title: "Annual Report",
+        url: "/reports/annual",
+        icon: FileBarChart,
+        key: "reports-annual" as PageKey,
+      },
+      {
+        title: "Earnings shared with partners",
+        url: "/reports/partners",
+        icon: HandCoins,
+        key: "reports-partners" as PageKey,
+      },
+      {
+        title: "Letterhead",
+        url: "/reports/letterhead",
+        icon: Printer,
+        key: "reports-letterhead" as PageKey,
+      },
     ],
   },
   {

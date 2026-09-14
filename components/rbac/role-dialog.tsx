@@ -201,8 +201,11 @@ export function RoleRowActions({
   const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
+  // Roles opens straight into edit mode on click, unlike Contracts/Clients
+  // (view-first, Update to unlock) — locked only as a fallback for a viewer
+  // who can't actually edit, so the dialog still renders read-only for them.
   function openView() {
-    setLocked(true);
+    setLocked(!canEdit);
     setDialogOpen(true);
   }
 

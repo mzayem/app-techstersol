@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (!appUser) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
-  if (!checkPermission(appUser, "reports", "view")) {
+  if (!checkPermission(appUser, "reports-letterhead", "view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

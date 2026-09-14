@@ -45,6 +45,7 @@ import {
   type SortOption as ClientSortOption,
 } from "@/actions/clients/queries";
 import { CLIENT_STATUS_LABELS, type ClientStatus } from "@/lib/clients/constants";
+import { getPartnerLedger } from "@/actions/partners/ledger-queries";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -440,6 +441,79 @@ const clients: ReportModuleDef = {
   },
 };
 
+const partners: ReportModuleDef = {
+  pageKey: "partner-ledger",
+  title: "PARTNER EARNINGS REPORT",
+  filename: "partner-earnings-report",
+  async fetch(params) {
+    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
+    const partnerIds = params.partnerIds
+      ? params.partnerIds.split(",").filter(Boolean)
+      : undefined;
+    const rows = await getPartnerLedger({ dateRange, partnerIds });
+
+    let totalRevenue = 0;
+    let totalWorkCost = 0;
+    let totalExpenses = 0;
+    let totalShare = 0;
+    const reportRows = rows.map((row) => {
+      totalRevenue += row.revenueAmount ?? 0;
+      totalWorkCost += row.workCostAmount ?? 0;
+      totalExpenses += row.projectExpensesAmount ?? 0;
+      totalShare += row.amount;
+      return {
+        date: row.date,
+        partner: row.partnerName,
+        project: row.projectName ?? "—",
+        status: row.contractStatus
+          ? CONTRACT_STATUS_LABELS[row.contractStatus]
+          : "—",
+        revenue: row.revenueAmount ?? 0,
+        workCost: row.workCostAmount ?? 0,
+        expenses: row.projectExpensesAmount ?? 0,
+        share: row.amount,
+        paymentStatus: row.issued
+          ? `Paid${row.payslipNumber ? ` (PP-${String(row.payslipNumber).padStart(5, "0")})` : ""}`
+          : "Pending",
+      };
+    });
+
+    return {
+      title: partners.title,
+      subtitle: dateRangeSubtitle(params, {
+        defaultPreset: "all",
+        statusLabel:
+          partnerIds && partnerIds.length > 0 ? `${partnerIds.length} partner(s) selected` : undefined,
+      }),
+      columns: [
+        { key: "date", label: "Date", numFmt: "dd mmm yyyy" },
+        { key: "partner", label: "Partner", flexible: true, flexWeight: 1 },
+        { key: "project", label: "Project", flexible: true, flexWeight: 2 },
+        { key: "status", label: "Status" },
+        { key: "revenue", label: "Revenue", align: "right", numFmt: "#,##0" },
+        { key: "workCost", label: "Work cost", align: "right", numFmt: "#,##0" },
+        { key: "expenses", label: "Expenses", align: "right", numFmt: "#,##0" },
+        { key: "share", label: "Partner share", align: "right", numFmt: "#,##0" },
+        { key: "paymentStatus", label: "Payment status" },
+      ],
+      rows: reportRows,
+      totals: {
+        date: "Total",
+        partner: null,
+        project: null,
+        status: null,
+        revenue: totalRevenue,
+        workCost: totalWorkCost,
+        expenses: totalExpenses,
+        share: totalShare,
+        paymentStatus: null,
+      },
+      groupByDateKey: "date",
+      summaryNoun: "partner payments",
+    };
+  },
+};
+
 export const REPORT_MODULES: Record<string, ReportModuleDef> = {
   earning,
   donations,
@@ -448,4 +522,5 @@ export const REPORT_MODULES: Record<string, ReportModuleDef> = {
   invoices,
   payslips,
   clients,
+  partners,
 };
