@@ -34,6 +34,7 @@ import { toast } from "@/components/ui/toast";
 import {
   createClientUser,
   createDashboardUser,
+  createPartnerUser,
   createTeamUser,
   deleteAppUser,
   sendCredentialsEmail,
@@ -44,7 +45,8 @@ import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 export type RoleOption = { id: string; name: string };
 export type TeamMemberOption = { id: string; name: string };
 export type ClientOption = { id: string; name: string };
-type UserKind = "DASHBOARD_HANDLER" | "TEAM" | "CLIENT";
+export type PartnerOption = { id: string; name: string };
+type UserKind = "DASHBOARD_HANDLER" | "TEAM" | "CLIENT" | "PARTNER";
 type UserStatus = "ACTIVE" | "SUSPENDED" | "BLOCKED";
 
 export type EditableUser = {
@@ -55,6 +57,7 @@ export type EditableUser = {
   status: UserStatus;
   roleId: string | null;
   teamMemberId: string | null;
+  partnerId: string | null;
   clientIds: string[];
 };
 
@@ -62,6 +65,7 @@ export function UserDialog({
   roles,
   teamMembers,
   clients,
+  partners,
   user,
   open: openProp,
   onOpenChange: onOpenChangeProp,
@@ -69,6 +73,7 @@ export function UserDialog({
   roles: RoleOption[];
   teamMembers: TeamMemberOption[];
   clients: ClientOption[];
+  partners: PartnerOption[];
   user?: EditableUser;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -85,6 +90,7 @@ export function UserDialog({
   const [status, setStatus] = React.useState<UserStatus>(user?.status ?? "ACTIVE");
   const [roleId, setRoleId] = React.useState(user?.roleId ?? "");
   const [teamMemberId, setTeamMemberId] = React.useState(user?.teamMemberId ?? "");
+  const [partnerId, setPartnerId] = React.useState(user?.partnerId ?? "");
   const [clientId, setClientId] = React.useState(user?.clientIds[0] ?? "");
   const [profileMode, setProfileMode] = React.useState<"single" | "multiple">(
     (user?.clientIds.length ?? 0) > 1 ? "multiple" : "single",
@@ -98,6 +104,7 @@ export function UserDialog({
     setStatus("ACTIVE");
     setRoleId("");
     setTeamMemberId("");
+    setPartnerId("");
     setClientId("");
     setProfileMode("single");
     setClientIds([""]);
@@ -125,6 +132,8 @@ export function UserDialog({
           await createDashboardUser(formData);
         } else if (kind === "TEAM") {
           await createTeamUser(formData);
+        } else if (kind === "PARTNER") {
+          await createPartnerUser(formData);
         } else {
           await createClientUser(formData);
         }
@@ -165,6 +174,7 @@ export function UserDialog({
               <SelectContent>
                 <SelectItem value="DASHBOARD_HANDLER">Dashboard handler</SelectItem>
                 <SelectItem value="TEAM">Team member login</SelectItem>
+                <SelectItem value="PARTNER">Partner login</SelectItem>
                 <SelectItem value="CLIENT">Client login</SelectItem>
               </SelectContent>
             </Select>
@@ -237,6 +247,19 @@ export function UserDialog({
                 emptyText="No team members found."
               />
               <input type="hidden" name="teamMemberId" value={teamMemberId} />
+            </label>
+          ) : kind === "PARTNER" ? (
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="text-muted-foreground">Partner</span>
+              <Combobox
+                value={partnerId}
+                onValueChange={setPartnerId}
+                options={partners.map((p) => ({ value: p.id, label: p.name }))}
+                placeholder="Select partner"
+                searchPlaceholder="Search partners…"
+                emptyText="No partners found — create one first."
+              />
+              <input type="hidden" name="partnerId" value={partnerId} />
             </label>
           ) : (
             <div className="flex flex-col gap-2">
@@ -328,11 +351,13 @@ export function UserRowActions({
   roles,
   teamMembers,
   clients,
+  partners,
 }: {
   user: EditableUser;
   roles: RoleOption[];
   teamMembers: TeamMemberOption[];
   clients: ClientOption[];
+  partners: PartnerOption[];
 }) {
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
@@ -384,6 +409,7 @@ export function UserRowActions({
         roles={roles}
         teamMembers={teamMembers}
         clients={clients}
+        partners={partners}
         user={user}
         open={editOpen}
         onOpenChange={setEditOpen}

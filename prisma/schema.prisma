@@ -54,6 +54,7 @@ enum LedgerEntryType {
   EXPENSE
   DONATION
   TEAM_PAYMENT
+  PARTNER_PAYMENT
 }
 
 enum TeamMemberType {
@@ -65,6 +66,17 @@ enum UserKind {
   DASHBOARD_HANDLER
   TEAM
   CLIENT
+  PARTNER
+}
+
+enum ContractWorkCostMode {
+  FIXED
+  PERCENTAGE
+}
+
+enum PartnerPaymentSource {
+  AUTO_COMPLETION
+  MANUAL
 }
 
 /// SUSPENDED and BLOCKED both block sign-in identically — they're kept as
@@ -112,29 +124,31 @@ model RolePermission {
 /// linked to it, e.g. someone with both a personal and a company Client
 /// record under one login).
 model AppUser {
-  id             String          @id @default(cuid())
-  authUserId     String          @unique
-  email          String          @unique
-  name           String
-  kind           UserKind
-  roleId         String?
-  role           Role?           @relation(fields: [roleId], references: [id])
-  teamMemberId   String?         @unique
-  teamMember     TeamMember?     @relation(fields: [teamMemberId], references: [id])
-  clientProfiles ClientProfile[]
+  id                  String               @id @default(cuid())
+  authUserId          String               @unique
+  email               String               @unique
+  name                String
+  kind                UserKind
+  roleId              String?
+  role                Role?                @relation(fields: [roleId], references: [id])
+  teamMemberId        String?              @unique
+  teamMember          TeamMember?          @relation(fields: [teamMemberId], references: [id])
+  clientProfiles      ClientProfile[]
+  partnerId           String?              @unique
+  partner             Partner?             @relation(fields: [partnerId], references: [id])
   credentialViewLinks CredentialViewLink[]
-  passwordResetCodes PasswordResetCode[]
-  status         AppUserStatus   @default(ACTIVE)
+  passwordResetCodes  PasswordResetCode[]
+  status              AppUserStatus        @default(ACTIVE)
   /// Consecutive wrong-password attempts since the last reset (a correct
   /// sign-in, or a timed lockout expiring into the next tier).
-  failedLoginAttempts Int        @default(0)
+  failedLoginAttempts Int                  @default(0)
   /// How many timed lockout tiers ([5, 15, 60] minutes) have already been
   /// used since the last successful sign-in — the 4th violation blocks
   /// the account permanently instead of issuing a 4th timer.
-  lockoutStage   Int             @default(0)
-  lockedUntil    DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt    DateTime    @updatedAt
+  lockoutStage        Int                  @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model Earning {
@@ -143,6 +157,14 @@ model Earning {
   name              String
   amount            Decimal          @db.Decimal(14, 2)
   teamPay           Decimal          @default(0) @db.Decimal(14, 2)
+  /// Aggregate partner profit-share booked against this invoice's
+  /// completing contracts (see markInvoicePaid) — same role as teamPay,
+  /// feeding net-earning KPIs. Not attributable back to one partner; use
+  /// PartnerPayment for that.
+  partnerShare      Decimal          @default(0) @db.Decimal(14, 2)
+  /// Aggregate ProjectExpense sum for this invoice's completing contracts
+  /// (every contract, partnered or not) — also nets out of net earning.
+  projectExpenses   Decimal          @default(0) @db.Decimal(14, 2)
   referenceAmount   Decimal?         @db.Decimal(14, 2)
   referenceCurrency PaymentCurrency?
   invoiceId         String?          @unique
@@ -187,21 +209,33 @@ model Donation {
 
 /// A client contact and their payment/status details.
 model Client {
-  id              String          @id @default(cuid())
-  name            String
-  phone           String
-  email           String
-  country         String
-  currency        PaymentCurrency
-  status          ClientStatus    @default(ACTIVE)
- emailNotificationsEnabled Boolean @default(true)
-  createdByUserId String
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  contracts       Contract[]
-  invoices        Invoice[]
-  clientProfiles  ClientProfile[]
+  id                        String          @id @default(cuid())
+  name                      String
+  phone                     String
+  email                     String
+  country                   String
+  currency                  PaymentCurrency
+  status                    ClientStatus    @default(ACTIVE)
+  emailNotificationsEnabled Boolean         @default(true)
+  /// Attribution only — which partner originated this client. Independent
+  /// of Contract.partnerId (the profit-share partner on a given project),
+  /// though a partner-initiated contract normally sets both to the same
+  /// partner.
+  broughtByPartnerId        String?
+  broughtByPartner          Partner?        @relation(fields: [broughtByPartnerId], references: [id])
+  /// Per-client toggles an admin flips on to let the attributed partner
+  /// see this specific client's contact details in the partner portal —
+  /// both default hidden.
+  phoneVisibleToPartner     Boolean         @default(false)
+  emailVisibleToPartner     Boolean         @default(false)
+  createdByUserId           String
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  contracts                 Contract[]
+  invoices                  Invoice[]
+  clientProfiles            ClientProfile[]
 
+  @@index([broughtByPartnerId])
   @@index([status])
   @@index([name])
 }
@@ -258,36 +292,52 @@ model ClientProfile {
 }
 
 model Contract {
-  id              String              @id @default(cuid())
-  clientId        String
-  client          Client              @relation(fields: [clientId], references: [id])
-  date            DateTime            @db.Date
-  deadline        DateTime            @db.Date
-  projectName     String
-  description     String?
-  currency        PaymentCurrency
-  paymentType     ContractPaymentType
-  amount          Decimal?            @db.Decimal(14, 2)
-  status          ContractStatus      @default(PROPOSED)
-  teamMemberId    String?
-  teamMember      TeamMember?         @relation(fields: [teamMemberId], references: [id])
-  teamPayAmount   Decimal?            @db.Decimal(14, 2)
-  statusEmailsEnabled       Boolean   @default(true)
-  chatNotificationsEnabled  Boolean   @default(false)
-  createdByUserId String
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  milestones      Milestone[]
-  invoiceLinks    InvoiceContract[]
-  invoiceItems    InvoiceItem[]
-  payslips        Payslip[]
-  messages        ContractMessage[]
+  id                       String                @id @default(cuid())
+  clientId                 String
+  client                   Client                @relation(fields: [clientId], references: [id])
+  date                     DateTime              @db.Date
+  deadline                 DateTime              @db.Date
+  projectName              String
+  description              String?
+  currency                 PaymentCurrency
+  paymentType              ContractPaymentType
+  amount                   Decimal?              @db.Decimal(14, 2)
+  status                   ContractStatus        @default(PROPOSED)
+  teamMemberId             String?
+  teamMember               TeamMember?           @relation(fields: [teamMemberId], references: [id])
+  /// The resolved work-cost figure in PKR, whichever workCostMode produced
+  /// it — every existing consumer (pending-payment KPIs, markInvoicePaid's
+  /// teamPay sum, payslips) keeps reading this one column unchanged.
+  teamPayAmount            Decimal?              @db.Decimal(14, 2)
+  statusEmailsEnabled      Boolean               @default(true)
+  chatNotificationsEnabled Boolean               @default(false)
+  partnerId                String?
+  partner                  Partner?              @relation(fields: [partnerId], references: [id])
+  /// Only meaningful when partnerId is set. FIXED = teamPayAmount typed
+  /// directly (same as a non-partnered contract); PERCENTAGE = teamPayAmount
+  /// is derived from workCostPercent × revenue at save time.
+  workCostMode             ContractWorkCostMode?
+  workCostPercent          Decimal?              @db.Decimal(5, 2)
+  /// Overrides Partner.sharePercentage for this contract only; null = use
+  /// the partner's default at booking time.
+  partnerSharePercent      Decimal?              @db.Decimal(5, 2)
+  createdByUserId          String
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  milestones               Milestone[]
+  invoiceLinks             InvoiceContract[]
+  invoiceItems             InvoiceItem[]
+  payslips                 Payslip[]
+  messages                 ContractMessage[]
+  projectExpenses          ProjectExpense[]
+  partnerPayments          PartnerPayment[]
+  partnerPayslips          PartnerPayslip[]
 
   @@index([status])
   @@index([clientId])
   @@index([teamMemberId])
+  @@index([partnerId])
 }
-
 
 model ContractMessage {
   id           String   @id @default(cuid())
@@ -302,27 +352,47 @@ model ContractMessage {
   @@index([contractId])
 }
 
-
 model TeamMember {
-  id              String           @id @default(cuid())
-  name            String
-  phone           String?
-  email           String?
-  country         String?
-  currency        PaymentCurrency
-  address         String?
-  type            TeamMemberType   @default(PROJECT_BASED)
-  hourlyRate      Decimal?         @db.Decimal(14, 2)
+  id                   String           @id @default(cuid())
+  name                 String
+  phone                String?
+  email                String?
+  country              String?
+  currency             PaymentCurrency
+  address              String?
+  type                 TeamMemberType   @default(PROJECT_BASED)
+  hourlyRate           Decimal?         @db.Decimal(14, 2)
   /// Send a payslip email (with PDF) when one is issued — meaningless
   /// while email is null; the UI disables the toggle in that case.
-  payslipEmailsEnabled Boolean     @default(true)
-  createdByUserId String
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  contracts       Contract[]
-  payslips        Payslip[]
-  workDiaryEntries WorkDiaryEntry[]
-  appUser         AppUser?
+  payslipEmailsEnabled Boolean          @default(true)
+  createdByUserId      String
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  contracts            Contract[]
+  payslips             Payslip[]
+  workDiaryEntries     WorkDiaryEntry[]
+  appUser              AppUser?
+
+  @@index([name])
+}
+
+model Partner {
+  id                   String           @id @default(cuid())
+  name                 String
+  phone                String?
+  email                String?
+  currency             PaymentCurrency
+  sharePercentage      Decimal          @db.Decimal(5, 2)
+  payslipEmailsEnabled Boolean          @default(true)
+  chatEnabled          Boolean          @default(false)
+  createdByUserId      String
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  contracts            Contract[]
+  clients              Client[]
+  partnerPayments      PartnerPayment[]
+  partnerPayslips      PartnerPayslip[]
+  appUser              AppUser?
 
   @@index([name])
 }
@@ -346,26 +416,25 @@ model WorkDiaryEntry {
 }
 
 model Payslip {
-  id              String      @id @default(cuid())
-  number          Int         @unique
+  id              String       @id @default(cuid())
+  number          Int          @unique
   teamMemberId    String
-  teamMember      TeamMember  @relation(fields: [teamMemberId], references: [id])
+  teamMember      TeamMember   @relation(fields: [teamMemberId], references: [id])
   contractId      String?
-  contract        Contract?   @relation(fields: [contractId], references: [id])
-  periodStart     DateTime    @db.Date
-  periodEnd       DateTime    @db.Date
-  issueDate       DateTime    @db.Date
-  amount          Decimal     @db.Decimal(14, 2)
+  contract        Contract?    @relation(fields: [contractId], references: [id])
+  periodStart     DateTime     @db.Date
+  periodEnd       DateTime     @db.Date
+  issueDate       DateTime     @db.Date
+  amount          Decimal      @db.Decimal(14, 2)
   note            String?
   createdByUserId String
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
   teamPayment     TeamPayment?
 
   @@index([teamMemberId])
   @@index([contractId])
 }
-
 
 model TeamPayment {
   id              String        @id @default(cuid())
@@ -382,23 +451,108 @@ model TeamPayment {
   @@index([date])
 }
 
+/// An ad-hoc, project-level cost the admin logs against a specific
+/// Contract — unlike the top-level Expense bucket, this is scoped to one
+/// project and feeds the profit-split calc as a deduction before the
+/// partner's cut, and net earning generally (every contract, partnered or
+/// not). Booked to the ledger immediately on creation, independent of
+/// when/if the contract's invoices are ever paid.
+model ProjectExpense {
+  id              String        @id @default(cuid())
+  contractId      String
+  contract        Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  date            DateTime      @db.Date
+  name            String
+  /// Always PKR, same convention as team pay / payslips.
+  amount          Decimal       @db.Decimal(14, 2)
+  createdByUserId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  ledgerEntries   LedgerEntry[]
+
+  @@index([contractId])
+  @@index([date])
+}
+
+/// The outgoing-money ledger row for a partner's profit share — unlike
+/// TeamPayment (only attributable back to one person via its Payslip
+/// link), this carries direct partnerId/contractId FKs plus a snapshot of
+/// the calc inputs, so a partner's accrued/paid totals are always
+/// attributable even before any paperwork (PartnerPayslip) is issued.
+model PartnerPayment {
+  id                    String               @id @default(cuid())
+  date                  DateTime             @db.Date
+  name                  String
+  partnerId             String
+  partner               Partner              @relation(fields: [partnerId], references: [id])
+  contractId            String?
+  contract              Contract?            @relation(fields: [contractId], references: [id])
+  amount                Decimal              @db.Decimal(14, 2)
+  source                PartnerPaymentSource @default(MANUAL)
+  /// Audit snapshot of the calc at booking time (all null for a MANUAL,
+  /// no-contract payment) — a later change to Partner.sharePercentage or
+  /// the contract's numbers never rewrites a historical split.
+  revenueAmount         Decimal?             @db.Decimal(14, 2)
+  workCostAmount        Decimal?             @db.Decimal(14, 2)
+  projectExpensesAmount Decimal?             @db.Decimal(14, 2)
+  profitAmount          Decimal?             @db.Decimal(14, 2)
+  sharePercentageUsed   Decimal?             @db.Decimal(5, 2)
+  partnerPayslipId      String?              @unique
+  partnerPayslip        PartnerPayslip?      @relation(fields: [partnerPayslipId], references: [id], onDelete: SetNull)
+  createdByUserId       String
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  ledgerEntries         LedgerEntry[]
+
+  @@index([date])
+  @@index([partnerId])
+  @@index([contractId])
+}
+
+/// The paperwork a partner's share is issued under — mirrors Payslip
+/// exactly (no work-diary equivalent; partners have no hourly concept).
+model PartnerPayslip {
+  id              String          @id @default(cuid())
+  number          Int             @unique
+  partnerId       String
+  partner         Partner         @relation(fields: [partnerId], references: [id])
+  contractId      String?
+  contract        Contract?       @relation(fields: [contractId], references: [id])
+  periodStart     DateTime        @db.Date
+  periodEnd       DateTime        @db.Date
+  issueDate       DateTime        @db.Date
+  amount          Decimal         @db.Decimal(14, 2)
+  note            String?
+  createdByUserId String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  partnerPayment  PartnerPayment?
+
+  @@index([partnerId])
+  @@index([contractId])
+}
+
 model LedgerEntry {
-  id            String          @id @default(cuid())
-  type          LedgerEntryType
-  name          String
-  date          DateTime        @db.Date
-  debit         Decimal         @default(0) @db.Decimal(14, 2)
-  credit        Decimal         @default(0) @db.Decimal(14, 2)
-  earningId     String?
-  earning       Earning?        @relation(fields: [earningId], references: [id], onDelete: Cascade)
-  expenseId     String?
-  expense       Expense?        @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  donationId    String?
-  donation      Donation?       @relation(fields: [donationId], references: [id], onDelete: Cascade)
-  teamPaymentId String?
-  teamPayment   TeamPayment?    @relation(fields: [teamPaymentId], references: [id], onDelete: Cascade)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id               String          @id @default(cuid())
+  type             LedgerEntryType
+  name             String
+  date             DateTime        @db.Date
+  debit            Decimal         @default(0) @db.Decimal(14, 2)
+  credit           Decimal         @default(0) @db.Decimal(14, 2)
+  earningId        String?
+  earning          Earning?        @relation(fields: [earningId], references: [id], onDelete: Cascade)
+  expenseId        String?
+  expense          Expense?        @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  donationId       String?
+  donation         Donation?       @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  teamPaymentId    String?
+  teamPayment      TeamPayment?    @relation(fields: [teamPaymentId], references: [id], onDelete: Cascade)
+  projectExpenseId String?
+  projectExpense   ProjectExpense? @relation(fields: [projectExpenseId], references: [id], onDelete: Cascade)
+  partnerPaymentId String?
+  partnerPayment   PartnerPayment? @relation(fields: [partnerPaymentId], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([date])
   @@index([type])

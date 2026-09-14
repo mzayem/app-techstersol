@@ -21,6 +21,7 @@ import {
 import { createContract, updateContract, deleteContract } from "@/actions/contracts/actions";
 import { createInvoice, deleteInvoice } from "@/actions/invoices/actions";
 import { createPayslip, deletePayslip } from "@/actions/team/payslip-actions";
+import { createPartnerPayslip, deletePartnerPayslip } from "@/actions/partners/payslip-actions";
 import { createClient, updateClient, deleteClient } from "@/actions/clients/actions";
 import {
   createBankAccount,
@@ -89,6 +90,9 @@ export const ACTION_REGISTRY: Record<string, (payload: any) => Promise<unknown>>
 
   createPayslip: (p: FieldsPayload) => createPayslip(toFormData(p)),
   deletePayslip: (p: IdPayload) => deletePayslip(p.id),
+
+  createPartnerPayslip: (p: FieldsPayload) => createPartnerPayslip(toFormData(p)),
+  deletePartnerPayslip: (p: IdPayload) => deletePartnerPayslip(p.id),
 
   createClient: (p: FieldsPayload) => createClient(toFormData(p)),
   updateClient: (p: UpdatePayload) => updateClient(p.id, toFormData(p.formData)),

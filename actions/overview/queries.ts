@@ -32,7 +32,7 @@ function monthKey(date: Date) {
 export async function getMonthlySeries(): Promise<MonthlyPoint[]> {
   const [earnings, expenses, donations, teamPayments] = await Promise.all([
     prisma.earning.findMany({
-      select: { date: true, amount: true, teamPay: true },
+      select: { date: true, amount: true, teamPay: true, partnerShare: true, projectExpenses: true },
     }),
     prisma.expense.findMany({
       select: { date: true, amount: true, category: true },
@@ -62,7 +62,8 @@ export async function getMonthlySeries(): Promise<MonthlyPoint[]> {
   }
 
   for (const e of earnings) {
-    bucket(e.date).earning += Number(e.amount) - Number(e.teamPay);
+    bucket(e.date).earning +=
+      Number(e.amount) - Number(e.teamPay) - Number(e.partnerShare) - Number(e.projectExpenses);
   }
   for (const e of expenses) {
     const point = bucket(e.date);
@@ -329,6 +330,22 @@ export async function getTeamPendingPayments(): Promise<number> {
     0,
   );
   return contractPending + Number(diarySum._sum.amount ?? 0);
+}
+
+/** Partner profit-share (PKR) accrued but not yet issued as a payslip:
+ * every AUTO_COMPLETION PartnerPayment (booked the instant a partnered
+ * contract completes — see markInvoicePaid) that has no PartnerPayslip
+ * linked to it yet. Unlike getTeamPendingPayments (which estimates from
+ * still-open contracts), this is exact and attributable — the money is
+ * already booked, just not paid out — which is why it's the headline
+ * figure rather than an in-progress estimate over open partnered
+ * contracts. Always all-time, same reasoning as getTeamPendingPayments. */
+export async function getPartnerPendingPayments(): Promise<number> {
+  const unpaid = await prisma.partnerPayment.aggregate({
+    where: { source: "AUTO_COMPLETION", partnerPayslipId: null },
+    _sum: { amount: true },
+  });
+  return Number(unpaid._sum.amount ?? 0);
 }
 
 export const OTHER_REVENUE_CLIENT_ID = "__other__";

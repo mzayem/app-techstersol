@@ -40,6 +40,17 @@ export async function listClients(filters: ListFilters) {
           ]
         : undefined,
     },
+    include: { broughtByPartner: { select: { id: true, name: true } } },
     orderBy: orderBy(filters.sort),
+  });
+}
+
+/** For the "Brought by partner" combobox on the client form — kept as its
+ * own tiny inline query rather than importing from actions/partners/*
+ * (owned by a concurrently in-flight change) to avoid a merge conflict. */
+export async function listPartnerOptions() {
+  return prisma.partner.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
 }

@@ -17,6 +17,8 @@ export type PageKey =
   | "team"
   | "payslips"
   | "work-diary"
+  | "partners"
+  | "partner-payslips"
   | "reports"
   | "roles"
   | "users"
@@ -26,7 +28,7 @@ export type PageRegistryEntry = {
   key: PageKey;
   label: string;
   url: string;
-  group: "Clients" | "Account" | "Projects" | "Team" | "Reports" | "Admin";
+  group: "Clients" | "Account" | "Projects" | "Team" | "Partners" | "Reports" | "Admin";
 };
 
 export const PAGE_REGISTRY: PageRegistryEntry[] = [
@@ -62,6 +64,13 @@ export const PAGE_REGISTRY: PageRegistryEntry[] = [
   { key: "team", label: "Team Members", url: "/team", group: "Team" },
   { key: "payslips", label: "Payslips", url: "/team/payslips", group: "Team" },
   { key: "work-diary", label: "Work Diary", url: "/team/work-diary", group: "Team" },
+  { key: "partners", label: "Partners", url: "/partners", group: "Partners" },
+  {
+    key: "partner-payslips",
+    label: "Partner Payslips",
+    url: "/partners/payslips",
+    group: "Partners",
+  },
   { key: "reports", label: "Reports", url: "/reports", group: "Reports" },
   { key: "roles", label: "Roles", url: "/admin/roles", group: "Admin" },
   { key: "users", label: "Users", url: "/admin/users", group: "Admin" },

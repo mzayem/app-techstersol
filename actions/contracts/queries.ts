@@ -71,6 +71,7 @@ export async function listContracts(filters: ListFilters) {
     include: {
       client: { select: { id: true, name: true, email: true } },
       milestones: { orderBy: { deadline: "asc" } },
+      projectExpenses: { orderBy: { date: "asc" } },
     },
     orderBy: orderBy(filters.sort),
   });
@@ -122,5 +123,24 @@ export async function listOutsourcedContractOptions() {
     where: { teamMemberId: { not: null } },
     select: { id: true, projectName: true, teamMemberId: true },
     orderBy: { date: "desc" },
+  });
+}
+
+/** Own tiny query for the contract form's partner combobox — deliberately
+ * not imported from actions/partners/* (owned by a separate, concurrent
+ * change to that module) to avoid a merge conflict. */
+export async function listPartnerOptions() {
+  return prisma.partner.findMany({
+    select: { id: true, name: true, sharePercentage: true, currency: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+/** A contract's project-level expense rows — used to seed the "Project
+ * Expenses" section of the edit dialog. */
+export async function listProjectExpenses(contractId: string) {
+  return prisma.projectExpense.findMany({
+    where: { contractId },
+    orderBy: { date: "asc" },
   });
 }

@@ -125,6 +125,29 @@ export async function createTeamUser(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
+export async function createPartnerUser(formData: FormData) {
+  await requirePagePermission("users", "create");
+
+  const name = str(formData, "name");
+  const email = str(formData, "email");
+  const password = str(formData, "password");
+  const partnerId = str(formData, "partnerId");
+  validateBasics(name, email, password);
+  if (!partnerId) throw new Error("Partner is required");
+
+  const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
+  if (!partner) throw new Error("Selected partner no longer exists");
+
+  const authUserId = await createAuthAccount(name, email, password);
+
+  const appUser = await prisma.appUser.create({
+    data: { authUserId, email, name, kind: "PARTNER", partnerId, status: readStatus(formData) },
+  });
+  await sendCredentialsMail(appUser.id, name, email, password);
+
+  revalidatePath("/admin/users");
+}
+
 export async function createClientUser(formData: FormData) {
   await requirePagePermission("users", "create");
 
@@ -225,6 +248,15 @@ export async function updateAppUser(id: string, formData: FormData) {
     await prisma.appUser.update({
       where: { id },
       data: { name, email, teamMemberId, status, ...lockoutReset },
+    });
+  } else if (appUser.kind === "PARTNER") {
+    const partnerId = str(formData, "partnerId");
+    if (!partnerId) throw new Error("Partner is required");
+    const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
+    if (!partner) throw new Error("Selected partner no longer exists");
+    await prisma.appUser.update({
+      where: { id },
+      data: { name, email, partnerId, status, ...lockoutReset },
     });
   } else {
     const clientIds = [

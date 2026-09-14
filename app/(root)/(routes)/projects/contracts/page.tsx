@@ -14,6 +14,7 @@ import type {
 import {
   listClientOptions,
   listContracts,
+  listPartnerOptions,
   type SortOption,
 } from "@/actions/contracts/queries";
 import { listTeamMemberOptions } from "@/actions/team/queries";
@@ -29,7 +30,7 @@ export default async function ContractsPage({
   const { permission } = await requirePagePermission("contracts");
   const params = await searchParams;
 
-  const [contracts, clients, teamMembers] = await Promise.all([
+  const [contracts, clients, teamMembers, partners] = await Promise.all([
     listContracts({
       search: params.q,
       status: params.status as ContractStatus | undefined,
@@ -37,6 +38,7 @@ export default async function ContractsPage({
     }),
     listClientOptions(),
     listTeamMemberOptions(),
+    listPartnerOptions(),
   ]);
 
   const clientOptions = clients.map((c) => ({
@@ -44,6 +46,13 @@ export default async function ContractsPage({
     name: c.name,
     currency: c.currency as PaymentCurrency,
     emailNotificationsEnabled: c.emailNotificationsEnabled,
+  }));
+
+  const partnerOptions = partners.map((p) => ({
+    id: p.id,
+    name: p.name,
+    sharePercentage: Number(p.sharePercentage),
+    currency: p.currency as PaymentCurrency,
   }));
 
   const items: ContractListItem[] = contracts.map((contract) => {
@@ -57,6 +66,13 @@ export default async function ContractsPage({
       contract.paymentType === "MILESTONE"
         ? milestones.reduce((sum, m) => sum + m.amount, 0)
         : (amount ?? 0);
+
+    const projectExpenses = contract.projectExpenses.map((e) => ({
+      id: e.id,
+      date: e.date,
+      name: e.name,
+      amount: Number(e.amount),
+    }));
 
     return {
       id: contract.id,
@@ -75,7 +91,12 @@ export default async function ContractsPage({
       teamPayAmount: contract.teamPayAmount ? Number(contract.teamPayAmount) : null,
       statusEmailsEnabled: contract.statusEmailsEnabled,
       chatNotificationsEnabled: contract.chatNotificationsEnabled,
+      partnerId: contract.partnerId,
+      workCostMode: contract.workCostMode,
+      workCostPercent: contract.workCostPercent ? Number(contract.workCostPercent) : null,
+      partnerSharePercent: contract.partnerSharePercent ? Number(contract.partnerSharePercent) : null,
       milestones,
+      projectExpenses,
       totalAmount,
       paidAmount: contract.paidAmount,
     };
@@ -89,7 +110,11 @@ export default async function ContractsPage({
         <div className="flex items-center gap-2">
           <ExportReportDialog module="contracts" label="contracts" />
           {permission.canCreate && (
-            <ContractDialog clients={clientOptions} teamMembers={teamMembers} />
+            <ContractDialog
+              clients={clientOptions}
+              teamMembers={teamMembers}
+              partners={partnerOptions}
+            />
           )}
         </div>
       </div>
@@ -100,6 +125,7 @@ export default async function ContractsPage({
         contracts={paginated.items}
         clients={clientOptions}
         teamMembers={teamMembers}
+        partners={partnerOptions}
         canEdit={permission.canEdit}
         canDelete={permission.canDelete}
         pagination={{

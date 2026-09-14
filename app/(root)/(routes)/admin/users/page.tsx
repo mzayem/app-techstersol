@@ -10,7 +10,11 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { requirePagePermission } from "@/lib/rbac/permissions";
-import { listAppUsers, listAvailableClientOptions } from "@/actions/rbac/user-queries";
+import {
+  listAppUsers,
+  listAvailableClientOptions,
+  listPartnerOptions,
+} from "@/actions/rbac/user-queries";
 import { listRoleOptions } from "@/actions/rbac/role-queries";
 import { listTeamMemberOptions } from "@/actions/team/queries";
 
@@ -24,15 +28,17 @@ export default async function UsersPage({
   await requirePagePermission("users");
   const params = await searchParams;
 
-  const [users, roles, teamMembers, availableClients] = await Promise.all([
+  const [users, roles, teamMembers, availableClients, partners] = await Promise.all([
     listAppUsers(),
     listRoleOptions(),
     listTeamMemberOptions(),
     listAvailableClientOptions(),
+    listPartnerOptions(),
   ]);
 
   const teamMemberOptions = teamMembers.map((m) => ({ id: m.id, name: m.name }));
   const availableClientOptions = availableClients.map((c) => ({ id: c.id, name: c.name }));
+  const partnerOptions = partners.map((p) => ({ id: p.id, name: p.name }));
   const paginated = paginate(users, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
@@ -45,7 +51,12 @@ export default async function UsersPage({
             account: dashboard handler, team login, or client login.
           </p>
         </div>
-        <UserDialog roles={roles} teamMembers={teamMemberOptions} clients={availableClientOptions} />
+        <UserDialog
+          roles={roles}
+          teamMembers={teamMemberOptions}
+          clients={availableClientOptions}
+          partners={partnerOptions}
+        />
       </div>
 
       <div className="rounded-md bg-card ring-1 ring-foreground/10">
@@ -86,7 +97,9 @@ export default async function UsersPage({
                       ? "Dashboard handler"
                       : user.kind === "TEAM"
                         ? "Team login"
-                        : "Client login"}
+                        : user.kind === "PARTNER"
+                          ? "Partner login"
+                          : "Client login"}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-0.5">
@@ -101,6 +114,7 @@ export default async function UsersPage({
                   <TableCell className="text-muted-foreground">
                     {user.role?.name ??
                       user.teamMember?.name ??
+                      user.partner?.name ??
                       (ownClientOptions.length > 0
                         ? ownClientOptions.map((c) => c.name).join(", ")
                         : "—")}
@@ -116,10 +130,12 @@ export default async function UsersPage({
                           status: user.status,
                           roleId: user.roleId,
                           teamMemberId: user.teamMemberId,
+                          partnerId: user.partnerId,
                           clientIds: ownClientOptions.map((c) => c.id),
                         }}
                         roles={roles}
                         teamMembers={teamMemberOptions}
+                        partners={partnerOptions}
                         clients={editClientOptions}
                       />
                     </div>

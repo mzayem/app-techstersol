@@ -38,11 +38,36 @@ export const PAYMENT_TYPE_LABELS: Record<ContractPaymentType, string> = {
   MILESTONE: "Milestone payments",
 };
 
+/** Only meaningful on a partnered contract — FIXED means teamPayAmount is
+ * typed directly (same as a non-partnered contract), PERCENTAGE means it's
+ * derived from workCostPercent × revenue at save time. */
+export const WORK_COST_MODES = ["FIXED", "PERCENTAGE"] as const;
+export type ContractWorkCostMode = (typeof WORK_COST_MODES)[number];
+
+export const WORK_COST_MODE_LABELS: Record<ContractWorkCostMode, string> = {
+  FIXED: "Fixed",
+  PERCENTAGE: "Percentage",
+};
+
 export type MilestoneInput = {
   name: string;
   amount: number;
   deadline: string;
 };
+
+/** A contract's total billable value — the single PROJECT amount, or the
+ * sum of its milestones. Stable the instant a contract is fully paid off,
+ * regardless of how many invoices it took to get there, which is why it's
+ * the revenue figure markInvoicePaid's profit-split calc uses. */
+export function contractRevenueBasis(contract: {
+  paymentType: ContractPaymentType;
+  amount: unknown;
+  milestones: { amount: unknown }[];
+}): number {
+  return contract.paymentType === "PROJECT"
+    ? Number(contract.amount ?? 0)
+    : contract.milestones.reduce((sum, m) => sum + Number(m.amount), 0);
+}
 
 export function formatContractAmount(amount: number, currency: string) {
   return new Intl.NumberFormat(currency === "PKR" ? "en-PK" : "en-US", {

@@ -39,6 +39,8 @@ function readClientFields(formData: FormData) {
     throw new Error("Invalid status");
   }
 
+  const broughtByPartnerId = str(formData, "broughtByPartnerId") || null;
+
   return {
     name,
     phone,
@@ -47,6 +49,15 @@ function readClientFields(formData: FormData) {
     currency: currencyRaw as PaymentCurrency,
     status: statusRaw as ClientStatus,
     emailNotificationsEnabled: str(formData, "emailNotificationsEnabled") !== "false",
+    broughtByPartnerId,
+    // Only meaningful with a partner attributed — cleared otherwise so a
+    // toggle flipped on before removing the attribution doesn't linger.
+    phoneVisibleToPartner: broughtByPartnerId
+      ? str(formData, "phoneVisibleToPartner") === "true"
+      : false,
+    emailVisibleToPartner: broughtByPartnerId
+      ? str(formData, "emailVisibleToPartner") === "true"
+      : false,
   };
 }
 

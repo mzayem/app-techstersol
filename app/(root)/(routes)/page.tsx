@@ -10,6 +10,7 @@ import {
   getDistributionAudit,
   getIncompleteContracts,
   getMonthlySeries,
+  getPartnerPendingPayments,
   getPendingPayments,
   getTeamPendingPayments,
 } from "@/actions/overview/queries";
@@ -24,10 +25,11 @@ export default async function OverviewPage({
   const params = await searchParams;
   const period = resolveOverviewPeriod(params.period, params.from, params.to);
 
-  const [series, pending, teamPendingPkr, clients, contracts] = await Promise.all([
+  const [series, pending, teamPendingPkr, partnerPendingPkr, clients, contracts] = await Promise.all([
     getMonthlySeries(),
     getPendingPayments(),
     getTeamPendingPayments(),
+    getPartnerPendingPayments(),
     getClientRevenueBreakdown(period),
     getIncompleteContracts(period),
   ]);
@@ -73,6 +75,7 @@ export default async function OverviewPage({
         pendingByCurrency={pending.pendingByCurrency}
         pendingTotalPkr={pending.pendingTotalPkr}
         teamPendingPkr={teamPendingPkr}
+        partnerPendingPkr={partnerPendingPkr}
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

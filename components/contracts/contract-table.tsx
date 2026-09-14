@@ -32,6 +32,7 @@ import {
   ContractRowActions,
   type ClientOption,
   type ContractEntry,
+  type PartnerOption,
   type TeamMemberOption,
 } from "@/components/contracts/contract-dialog";
 
@@ -45,6 +46,7 @@ export function ContractTable({
   contracts,
   clients,
   teamMembers,
+  partners,
   canEdit = true,
   canDelete = true,
   pagination,
@@ -52,6 +54,7 @@ export function ContractTable({
   contracts: ContractListItem[];
   clients: ClientOption[];
   teamMembers: TeamMemberOption[];
+  partners: PartnerOption[];
   canEdit?: boolean;
   canDelete?: boolean;
   pagination?: {
@@ -198,6 +201,7 @@ export function ContractTable({
                   entry={contract}
                   clients={clients}
                   teamMembers={teamMembers}
+                  partners={partners}
                   selected={isSelected}
                   onRowClick={(e) => onRowClick(index, contract.id, e)}
                   canEdit={canEdit}

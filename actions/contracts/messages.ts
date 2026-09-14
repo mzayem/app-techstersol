@@ -35,6 +35,17 @@ async function authorizeContractChat(contractId: string) {
     return appUser;
   }
 
+  if (appUser.kind === "PARTNER") {
+    const contract = await prisma.contract.findUnique({
+      where: { id: contractId },
+      select: { partnerId: true },
+    });
+    if (!contract || contract.partnerId !== appUser.partner?.id) {
+      throw new Error("Project not found");
+    }
+    return appUser;
+  }
+
   if (!checkPermission(appUser, "contracts", "view")) {
     throw new Error("You don't have access to this project");
   }
@@ -82,6 +93,9 @@ export async function createContractMessage(
   if (appUser.kind === "TEAM") {
     throw new Error("Team members can view this project's chat but can't post messages");
   }
+  if (appUser.kind === "PARTNER" && !appUser.partner?.chatEnabled) {
+    throw new Error("Chat isn't enabled for your account yet — ask an admin to turn it on");
+  }
 
   const trimmed = body.trim();
   if (!trimmed) throw new Error("Message can't be empty");
@@ -128,6 +142,7 @@ export async function createContractMessage(
   revalidatePath("/projects/contracts");
   revalidatePath("/portal/projects");
   revalidatePath("/client-portal/contracts");
+  revalidatePath("/partner-portal/projects");
   return { ...message, isMine: true };
 }
 
@@ -153,4 +168,5 @@ export async function deleteContractMessage(
   revalidatePath("/projects/contracts");
   revalidatePath("/portal/projects");
   revalidatePath("/client-portal/contracts");
+  revalidatePath("/partner-portal/projects");
 }

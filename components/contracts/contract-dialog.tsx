@@ -33,8 +33,12 @@ import {
   CONTRACT_STATUS_LABELS,
   PAYMENT_TYPES,
   PAYMENT_TYPE_LABELS,
+  WORK_COST_MODES,
+  WORK_COST_MODE_LABELS,
+  contractRevenueBasis,
   type ContractPaymentType,
   type ContractStatus,
+  type ContractWorkCostMode,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
 import { enqueueMutation } from "@/lib/sync/mutate";
@@ -44,6 +48,8 @@ import { ContractActionsMenu } from "@/components/contracts/contract-actions-men
 import { ContractChatButton } from "@/components/contracts/contract-chat";
 import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { ProjectExpensesSection } from "@/components/contracts/project-expenses-section";
+import { getFxEstimate } from "@/actions/contracts/actions";
 
 export type ClientOption = {
   id: string;
@@ -53,6 +59,13 @@ export type ClientOption = {
 };
 
 export type TeamMemberOption = { id: string; name: string };
+
+export type PartnerOption = {
+  id: string;
+  name: string;
+  sharePercentage: number;
+  currency: PaymentCurrency;
+};
 
 export type ContractEntry = {
   id: string;
@@ -70,7 +83,12 @@ export type ContractEntry = {
   teamPayAmount: number | null;
   statusEmailsEnabled: boolean;
   chatNotificationsEnabled: boolean;
+  partnerId: string | null;
+  workCostMode: ContractWorkCostMode | null;
+  workCostPercent: number | null;
+  partnerSharePercent: number | null;
   milestones: { name: string; amount: number; deadline: Date }[];
+  projectExpenses: { id: string; date: Date; name: string; amount: number }[];
 };
 
 type MilestoneRow = { name: string; amount: string; deadline: string };
@@ -91,6 +109,7 @@ export function ContractDialog({
   contract,
   clients,
   teamMembers,
+  partners,
   open: openProp,
   onOpenChange: onOpenChangeProp,
   locked = false,
@@ -100,6 +119,7 @@ export function ContractDialog({
   contract?: ContractEntry;
   clients: ClientOption[];
   teamMembers: TeamMemberOption[];
+  partners: PartnerOption[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
@@ -143,10 +163,75 @@ export function ContractDialog({
     contract?.chatNotificationsEnabled ?? false,
   );
 
+  // Controlled so the percentage-mode work cost estimate can recompute live
+  // off the same values the admin is typing.
+  const [amount, setAmount] = React.useState(
+    contract?.amount != null ? String(contract.amount) : "",
+  );
+  const [teamPayAmount, setTeamPayAmount] = React.useState(
+    contract?.teamPayAmount != null ? String(contract.teamPayAmount) : "",
+  );
+  const [partnerEnabled, setPartnerEnabled] = React.useState(!!contract?.partnerId);
+  const [partnerId, setPartnerId] = React.useState(contract?.partnerId ?? "");
+  const [partnerSharePercent, setPartnerSharePercent] = React.useState(
+    contract?.partnerSharePercent != null ? String(contract.partnerSharePercent) : "",
+  );
+  const [workCostMode, setWorkCostMode] = React.useState<ContractWorkCostMode>(
+    contract?.workCostMode ?? "FIXED",
+  );
+  const [workCostPercent, setWorkCostPercent] = React.useState(
+    contract?.workCostPercent != null ? String(contract.workCostPercent) : "",
+  );
+  const [fxRates, setFxRates] = React.useState<Record<PaymentCurrency, number> | null>(null);
+
   const selectedClient = clients.find((c) => c.id === clientId);
   const clientNotificationsDisabled = selectedClient
     ? !selectedClient.emailNotificationsEnabled
     : false;
+
+  // Fetched once when the dialog is opened — used only to preview the
+  // percentage-mode work cost in PKR; the admin can still edit the result.
+  React.useEffect(() => {
+    if (!open || fxRates) return;
+    getFxEstimate()
+      .then(setFxRates)
+      .catch(() => {});
+  }, [open, fxRates]);
+
+  // Recomputes the "estimated work cost (PKR)" field whenever revenue,
+  // currency, or the percentage itself changes — the admin can still
+  // hand-edit the result afterward without it snapping back, since this
+  // effect only re-runs when one of these specific inputs changes again.
+  React.useEffect(() => {
+    if (!partnerEnabled || workCostMode !== "PERCENTAGE") return;
+    const pct = Number(workCostPercent);
+    if (!workCostPercent || Number.isNaN(pct)) return;
+
+    const revenue = contractRevenueBasis({
+      paymentType: (paymentType || "PROJECT") as ContractPaymentType,
+      amount: paymentType === "PROJECT" ? Number(amount) : null,
+      milestones: milestones.map((m) => ({ amount: Number(m.amount) || 0 })),
+    });
+    const rate = currency && currency !== "PKR" ? (fxRates?.[currency] ?? 1) : 1;
+    const estimate = (revenue * rate * pct) / 100;
+    setTeamPayAmount(estimate ? estimate.toFixed(2) : "0.00");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- milestones is an array literal each render; JSON-stringify below keys the effect off its actual contents instead.
+  }, [
+    partnerEnabled,
+    workCostMode,
+    workCostPercent,
+    paymentType,
+    amount,
+    currency,
+    fxRates,
+    JSON.stringify(milestones.map((m) => m.amount)),
+  ]);
+
+  function onPartnerChange(id: string | null) {
+    setPartnerId(id ?? "");
+    const partner = partners.find((p) => p.id === id);
+    if (partner) setPartnerSharePercent(String(partner.sharePercentage));
+  }
 
   function resetForm() {
     setClientId("");
@@ -157,6 +242,13 @@ export function ContractDialog({
     setTeamMemberId("");
     setStatusEmailsEnabled(true);
     setChatNotificationsEnabled(false);
+    setAmount("");
+    setTeamPayAmount("");
+    setPartnerEnabled(false);
+    setPartnerId("");
+    setPartnerSharePercent("");
+    setWorkCostMode("FIXED");
+    setWorkCostPercent("");
   }
 
   function onClientChange(id: string | null) {
@@ -419,7 +511,8 @@ export function ContractDialog({
                   placeholder="0.00"
                   required
                   disabled={locked}
-                  defaultValue={contract?.amount ?? undefined}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                 />
               </Field>
             )}
@@ -454,32 +547,140 @@ export function ContractDialog({
             </div>
 
             {handledBy === "outsourced" && (
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Team member">
-                  <Combobox
-                    value={teamMemberId}
-                    onValueChange={setTeamMemberId}
-                    options={teamMembers.map((m) => ({ value: m.id, label: m.name }))}
-                    placeholder="Select team member"
-                    searchPlaceholder="Search team…"
-                    emptyText="No team members found."
-                    disabled={locked}
-                  />
-                  <input type="hidden" name="teamMemberId" value={teamMemberId} />
-                </Field>
-                <Field label="Team pay (PKR)">
-                  <Input
-                    type="number"
-                    name="teamPayAmount"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    required
-                    disabled={locked}
-                    defaultValue={contract?.teamPayAmount ?? undefined}
-                  />
-                </Field>
+              <Field label="Team member">
+                <Combobox
+                  value={teamMemberId}
+                  onValueChange={setTeamMemberId}
+                  options={teamMembers.map((m) => ({ value: m.id, label: m.name }))}
+                  placeholder="Select team member"
+                  searchPlaceholder="Search team…"
+                  emptyText="No team members found."
+                  disabled={locked}
+                />
+                <input type="hidden" name="teamMemberId" value={teamMemberId} />
+              </Field>
+            )}
+
+            <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">Partner contract</span>
+                <span className="text-xs text-muted-foreground">
+                  Attach a profit-sharing partner to this project.
+                </span>
               </div>
+              <Switch
+                checked={partnerEnabled}
+                onCheckedChange={(checked) => {
+                  setPartnerEnabled(checked);
+                  if (!checked) {
+                    setPartnerId("");
+                    setPartnerSharePercent("");
+                  }
+                }}
+                disabled={locked}
+              />
+            </div>
+
+            {partnerEnabled && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Partner">
+                    <Combobox
+                      value={partnerId}
+                      onValueChange={onPartnerChange}
+                      options={partners.map((p) => ({ value: p.id, label: p.name }))}
+                      placeholder="Select partner"
+                      searchPlaceholder="Search partners…"
+                      emptyText="No partners found."
+                      disabled={locked}
+                    />
+                    <input type="hidden" name="partnerId" value={partnerId} />
+                  </Field>
+                  <Field label="Partner share %">
+                    <Input
+                      type="number"
+                      name="partnerSharePercent"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0.00"
+                      disabled={locked}
+                      value={partnerSharePercent}
+                      onChange={(e) => setPartnerSharePercent(e.target.value)}
+                    />
+                  </Field>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm text-muted-foreground">Work cost</span>
+                  <div className="inline-flex w-fit overflow-hidden rounded-md ring-1 ring-input">
+                    {WORK_COST_MODES.map((mode) => (
+                      <Button
+                        key={mode}
+                        type="button"
+                        size="sm"
+                        variant={workCostMode === mode ? "default" : "ghost"}
+                        className="rounded-none"
+                        disabled={locked}
+                        onClick={() => setWorkCostMode(mode)}
+                      >
+                        {WORK_COST_MODE_LABELS[mode]}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <input type="hidden" name="workCostMode" value={workCostMode} />
+
+                {workCostMode === "PERCENTAGE" && (
+                  <Field label="Work cost % of revenue">
+                    <Input
+                      type="number"
+                      name="workCostPercent"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0.00"
+                      disabled={locked}
+                      value={workCostPercent}
+                      onChange={(e) => setWorkCostPercent(e.target.value)}
+                    />
+                  </Field>
+                )}
+              </>
+            )}
+
+            {(handledBy === "outsourced" || partnerEnabled) && (
+              <Field
+                label={
+                  partnerEnabled && workCostMode === "PERCENTAGE"
+                    ? "Estimated work cost (PKR) — editable"
+                    : "Work cost (PKR)"
+                }
+              >
+                <Input
+                  type="number"
+                  name="teamPayAmount"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  required={handledBy === "outsourced" && !(partnerEnabled && workCostMode === "PERCENTAGE")}
+                  disabled={locked}
+                  value={teamPayAmount}
+                  onChange={(e) => setTeamPayAmount(e.target.value)}
+                />
+              </Field>
+            )}
+
+            {isEdit ? (
+              <ProjectExpensesSection
+                contractId={contract.id}
+                initialExpenses={contract.projectExpenses}
+                disabled={locked}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Save the contract first to add project expenses.
+              </p>
             )}
 
             <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
@@ -556,6 +757,7 @@ export function ContractRowActions({
   entry,
   clients,
   teamMembers,
+  partners,
   children,
   selected,
   onRowClick,
@@ -565,6 +767,7 @@ export function ContractRowActions({
   entry: ContractEntry;
   clients: ClientOption[];
   teamMembers: TeamMemberOption[];
+  partners: PartnerOption[];
   children: React.ReactNode;
   selected?: boolean;
   onRowClick?: (e: React.MouseEvent) => void;
@@ -624,6 +827,7 @@ export function ContractRowActions({
         contract={entry}
         clients={clients}
         teamMembers={teamMembers}
+        partners={partners}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         locked={locked}

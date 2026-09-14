@@ -19,7 +19,7 @@ import {
   type ClientStatus,
   type PaymentCurrency,
 } from "@/lib/clients/constants";
-import { listClients, type SortOption } from "@/actions/clients/queries";
+import { listClients, listPartnerOptions, type SortOption } from "@/actions/clients/queries";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +32,14 @@ export default async function ClientsPage({
   const { permission } = await requirePagePermission("clients");
   const params = await searchParams;
 
-  const clients = await listClients({
-    search: params.q,
-    status: params.status as ClientStatus | undefined,
-    sort: params.sort as SortOption | undefined,
-  });
+  const [clients, partnerOptions] = await Promise.all([
+    listClients({
+      search: params.q,
+      status: params.status as ClientStatus | undefined,
+      sort: params.sort as SortOption | undefined,
+    }),
+    listPartnerOptions(),
+  ]);
   const paginated = paginate(clients, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
 
   return (
@@ -45,7 +48,7 @@ export default async function ClientsPage({
         <h1 className="text-lg font-medium">Clients</h1>
         <div className="flex items-center gap-2">
           <ExportReportDialog module="clients" label="clients" />
-          {permission.canCreate && <ClientDialog />}
+          {permission.canCreate && <ClientDialog partnerOptions={partnerOptions} />}
         </div>
       </div>
 
@@ -85,6 +88,10 @@ export default async function ClientsPage({
                 currency: client.currency as PaymentCurrency,
                 status: client.status as ClientStatus,
                 emailNotificationsEnabled: client.emailNotificationsEnabled,
+                broughtByPartnerId: client.broughtByPartnerId,
+                broughtByPartnerName: client.broughtByPartner?.name ?? null,
+                phoneVisibleToPartner: client.phoneVisibleToPartner,
+                emailVisibleToPartner: client.emailVisibleToPartner,
               };
               return (
                 <ClientRowActions
@@ -93,7 +100,14 @@ export default async function ClientsPage({
                   canEdit={permission.canEdit}
                   canDelete={permission.canDelete}
                 >
-                  <TableCell className="font-medium">{client.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {client.name}
+                    {client.broughtByPartner && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                        via {client.broughtByPartner.name}
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>{client.phone}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {client.email}

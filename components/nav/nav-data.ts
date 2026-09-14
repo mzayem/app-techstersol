@@ -6,6 +6,7 @@ import {
   Gift,
   Landmark,
   LayoutDashboard,
+  Handshake,
   Mail,
   Receipt,
   ReceiptText,
@@ -97,6 +98,18 @@ export const navGroups = [
         url: "/team/work-diary",
         icon: CalendarDays,
         key: "work-diary" as PageKey,
+      },
+    ],
+  },
+  {
+    title: "Partners",
+    items: [
+      { title: "Partners", url: "/partners", icon: Handshake, key: "partners" as PageKey },
+      {
+        title: "Partner Payslips",
+        url: "/partners/payslips",
+        icon: ReceiptText,
+        key: "partner-payslips" as PageKey,
       },
     ],
   },

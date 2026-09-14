@@ -46,6 +46,7 @@ export async function getCurrentAppUser() {
           },
         },
       },
+      partner: { select: { id: true, name: true, chatEnabled: true } },
     },
   });
 
@@ -95,6 +96,7 @@ export async function requirePagePermission(page: PageKey, action: PermissionAct
   if (!appUser) redirect("/auth/sign-in");
   if (appUser.kind === "TEAM") redirect("/portal");
   if (appUser.kind === "CLIENT") redirect("/client-portal");
+  if (appUser.kind === "PARTNER") redirect("/partner-portal");
 
   const permission = resolvePermission(appUser, page);
   const allowed = {
@@ -116,6 +118,16 @@ export async function requireTeamUser() {
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/auth/sign-in");
   if (appUser.kind !== "TEAM" || !appUser.teamMember) redirect("/");
+  return appUser;
+}
+
+/** Call as the first statement in every partner-portal page. Redirects
+ * anyone who isn't a PARTNER-kind login (or has no linked Partner) back
+ * to the main dashboard. */
+export async function requirePartnerUser() {
+  const appUser = await getCurrentAppUser();
+  if (!appUser) redirect("/auth/sign-in");
+  if (appUser.kind !== "PARTNER" || !appUser.partner) redirect("/");
   return appUser;
 }
 

@@ -9,6 +9,7 @@ import {
   GiftIcon,
   UsersIcon,
   HourglassIcon,
+  HandshakeIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -247,6 +248,7 @@ export function KpiCards({
   pendingByCurrency,
   pendingTotalPkr,
   teamPendingPkr,
+  partnerPendingPkr,
 }: {
   periodEarning: number;
   avgMonthlyEarning: number;
@@ -261,6 +263,7 @@ export function KpiCards({
   pendingByCurrency: Partial<Record<PaymentCurrency, number>>;
   pendingTotalPkr: number;
   teamPendingPkr: number;
+  partnerPendingPkr: number;
 }) {
   const pendingEntries = Object.entries(pendingByCurrency) as [
     PaymentCurrency,
@@ -347,7 +350,7 @@ export function KpiCards({
         </div>
 
         <Card>
-          <CardContent className="grid grid-cols-2 gap-4 divide-y divide-border sm:grid-cols-4 sm:gap-0 sm:divide-y-0 sm:divide-x">
+          <CardContent className="grid grid-cols-2 gap-4 divide-y divide-border sm:grid-cols-5 sm:gap-0 sm:divide-y-0 sm:divide-x">
             <StatStrip
               icon={UsersIcon}
               label="Team paid"
@@ -361,6 +364,13 @@ export function KpiCards({
               value={formatCompactPkr(teamPendingPkr)}
               full={formatPkr(teamPendingPkr)}
               hint="Projects + logged diary hours · all time"
+            />
+            <StatStrip
+              icon={HandshakeIcon}
+              label="Pending payment for partners"
+              value={formatCompactPkr(partnerPendingPkr)}
+              full={formatPkr(partnerPendingPkr)}
+              hint="Accrued, not yet paid out · all time"
             />
             <StatStrip
               icon={FileWarningIcon}

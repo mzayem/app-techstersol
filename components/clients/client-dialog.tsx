@@ -47,10 +47,17 @@ export type ClientEntry = {
   currency: PaymentCurrency;
   status: ClientStatus;
   emailNotificationsEnabled: boolean;
+  broughtByPartnerId?: string | null;
+  broughtByPartnerName?: string | null;
+  phoneVisibleToPartner?: boolean;
+  emailVisibleToPartner?: boolean;
 };
+
+export type PartnerOption = { id: string; name: string };
 
 export function ClientDialog({
   client,
+  partnerOptions = [],
   open: openProp,
   onOpenChange: onOpenChangeProp,
   locked = false,
@@ -58,6 +65,9 @@ export function ClientDialog({
   canEdit = true,
 }: {
   client?: ClientEntry;
+  /** Every Partner, for the "Brought by partner" combobox — optional
+   * attribution, independent of Contract.partnerId. */
+  partnerOptions?: PartnerOption[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
@@ -77,6 +87,15 @@ export function ClientDialog({
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = React.useState(
     client?.emailNotificationsEnabled ?? true,
   );
+  const [broughtByPartnerId, setBroughtByPartnerId] = React.useState(
+    client?.broughtByPartnerId ?? "",
+  );
+  const [phoneVisibleToPartner, setPhoneVisibleToPartner] = React.useState(
+    client?.phoneVisibleToPartner ?? false,
+  );
+  const [emailVisibleToPartner, setEmailVisibleToPartner] = React.useState(
+    client?.emailVisibleToPartner ?? false,
+  );
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -95,6 +114,9 @@ export function ClientDialog({
           formRef.current?.reset();
           setCountry("");
           setEmailNotificationsEnabled(true);
+          setBroughtByPartnerId("");
+          setPhoneVisibleToPartner(false);
+          setEmailVisibleToPartner(false);
         }
         setOpen(false);
       } else {
@@ -218,6 +240,65 @@ export function ClientDialog({
               value={emailNotificationsEnabled ? "true" : "false"}
             />
           </div>
+          <Field label="Brought by partner (optional)">
+            <Combobox
+              value={broughtByPartnerId}
+              onValueChange={(v) => {
+                setBroughtByPartnerId(v);
+                if (!v) {
+                  setPhoneVisibleToPartner(false);
+                  setEmailVisibleToPartner(false);
+                }
+              }}
+              options={partnerOptions.map((p) => ({ value: p.id, label: p.name }))}
+              placeholder="No partner attributed"
+              searchPlaceholder="Search partners…"
+              emptyText="No partners found."
+              disabled={locked}
+            />
+            <input type="hidden" name="broughtByPartnerId" value={broughtByPartnerId} />
+          </Field>
+          {broughtByPartnerId && (
+            <div className="flex flex-col gap-2 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium">Show phone to partner</span>
+                  <span className="text-xs text-muted-foreground">
+                    Lets the attributed partner see this client&apos;s phone number in their
+                    portal.
+                  </span>
+                </div>
+                <Switch
+                  checked={phoneVisibleToPartner}
+                  onCheckedChange={setPhoneVisibleToPartner}
+                  disabled={locked}
+                />
+                <input
+                  type="hidden"
+                  name="phoneVisibleToPartner"
+                  value={phoneVisibleToPartner ? "true" : "false"}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium">Show email to partner</span>
+                  <span className="text-xs text-muted-foreground">
+                    Lets the attributed partner see this client&apos;s email in their portal.
+                  </span>
+                </div>
+                <Switch
+                  checked={emailVisibleToPartner}
+                  onCheckedChange={setEmailVisibleToPartner}
+                  disabled={locked}
+                />
+                <input
+                  type="hidden"
+                  name="emailVisibleToPartner"
+                  value={emailVisibleToPartner ? "true" : "false"}
+                />
+              </div>
+            </div>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           {locked && canEdit && (
             <DialogFooter>
@@ -249,11 +330,13 @@ export function ClientDialog({
 export function ClientRowActions({
   entry,
   children,
+  partnerOptions = [],
   canEdit = true,
   canDelete = true,
 }: {
   entry: ClientEntry;
   children: React.ReactNode;
+  partnerOptions?: PartnerOption[];
   canEdit?: boolean;
   canDelete?: boolean;
 }) {
@@ -288,6 +371,7 @@ export function ClientRowActions({
       </TableRow>
       <ClientDialog
         client={entry}
+        partnerOptions={partnerOptions}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         locked={locked}

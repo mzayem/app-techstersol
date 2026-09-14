@@ -6,6 +6,7 @@ export async function listAppUsers() {
       role: { select: { id: true, name: true } },
       teamMember: { select: { id: true, name: true } },
       clientProfiles: { include: { client: { select: { id: true, name: true } } } },
+      partner: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -20,6 +21,18 @@ export async function listAppUsers() {
         ? Math.max(1, Math.ceil((user.lockedUntil.getTime() - now) / 60_000))
         : null,
   }));
+}
+
+/** Every partner, for the login-creation dropdown. Unlike client logins,
+ * a partner already claimed by another login isn't filtered out here —
+ * same simplicity as listTeamMemberOptions, since AppUser.partnerId's
+ * unique constraint is what actually prevents double-linking. */
+export async function listPartnerOptions() {
+  return prisma.partner.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+    take: 100,
+  });
 }
 
 /** Clients with no login yet — the only ones offered when creating a new
