@@ -20,18 +20,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DATE_PRESETS, DATE_PRESET_LABELS, type DatePreset } from "@/lib/finance/date-range";
+import {
+  DATE_PRESETS,
+  DATE_PRESET_LABELS,
+  type DatePreset,
+} from "@/lib/finance/date-range";
 import type { AnalysisReportType } from "@/lib/reports/analysis/registry";
 
 /** The last several fiscal years (July–June) that have already started,
  * newest first, as `{ startYear, label }` — e.g. `{ startYear: 2025, label:
  * "2025–26" }` for the year running Jul 2025 – Jun 2026. */
-function recentFiscalYears(count: number): { startYear: number; label: string }[] {
+function recentFiscalYears(
+  count: number,
+): { startYear: number; label: string }[] {
   const now = new Date();
-  const currentStart = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  const currentStart =
+    now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
   return Array.from({ length: count }, (_, i) => {
     const startYear = currentStart - i;
-    return { startYear, label: `${startYear}–${String(startYear + 1).slice(-2)}` };
+    return {
+      startYear,
+      label: `${startYear}–${String(startYear + 1).slice(-2)}`,
+    };
   });
 }
 
@@ -52,7 +62,9 @@ export function AnalysisReportDialog({
   const [preset, setPreset] = React.useState<DatePreset>("this-year");
   const [from, setFrom] = React.useState("");
   const [to, setTo] = React.useState("");
-  const [fiscalYear, setFiscalYear] = React.useState(String(FISCAL_YEARS[0].startYear));
+  const [fiscalYear, setFiscalYear] = React.useState(
+    String(FISCAL_YEARS[0].startYear),
+  );
 
   function href() {
     const params = new URLSearchParams();
@@ -102,7 +114,8 @@ export function AnalysisReportDialog({
                 <SelectContent>
                   {FISCAL_YEARS.map((fy) => (
                     <SelectItem key={fy.startYear} value={String(fy.startYear)}>
-                      {fy.label} (1 Jul {fy.startYear} – 30 Jun {fy.startYear + 1})
+                      {fy.label} (1 Jul {fy.startYear} – 30 Jun{" "}
+                      {fy.startYear + 1})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -112,7 +125,10 @@ export function AnalysisReportDialog({
             <>
               <label className="flex flex-col gap-1.5 text-sm">
                 <span className="text-muted-foreground">Date range</span>
-                <Select value={preset} onValueChange={(v) => setPreset(v as DatePreset)}>
+                <Select
+                  value={preset}
+                  onValueChange={(v) => setPreset(v as DatePreset)}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>

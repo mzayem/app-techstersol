@@ -84,9 +84,8 @@ export function ClientDialog({
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
   const [country, setCountry] = React.useState(client?.country ?? "");
-  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = React.useState(
-    client?.emailNotificationsEnabled ?? true,
-  );
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] =
+    React.useState(client?.emailNotificationsEnabled ?? true);
   const [broughtByPartnerId, setBroughtByPartnerId] = React.useState(
     client?.broughtByPartnerId ?? "",
   );
@@ -108,7 +107,11 @@ export function ClientDialog({
             payload: { id: client.id, formData: fields },
             label,
           })
-        : await enqueueMutation({ key: "createClient", payload: fields, label });
+        : await enqueueMutation({
+            key: "createClient",
+            payload: fields,
+            label,
+          });
       if (result.ok) {
         if (!isEdit) {
           formRef.current?.reset();
@@ -225,8 +228,9 @@ export function ClientDialog({
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">Email notifications</span>
               <span className="text-xs text-muted-foreground">
-                Master switch for contract-status emails to this client. Off disables every
-                project&apos;s notifications, regardless of that project&apos;s own setting.
+                Master switch for contract-status emails to this client. Off
+                disables every project&apos;s notifications, regardless of that
+                project&apos;s own setting.
               </span>
             </div>
             <Switch
@@ -250,22 +254,31 @@ export function ClientDialog({
                   setEmailVisibleToPartner(false);
                 }
               }}
-              options={partnerOptions.map((p) => ({ value: p.id, label: p.name }))}
+              options={partnerOptions.map((p) => ({
+                value: p.id,
+                label: p.name,
+              }))}
               placeholder="No partner attributed"
               searchPlaceholder="Search partners…"
               emptyText="No partners found."
               disabled={locked}
             />
-            <input type="hidden" name="broughtByPartnerId" value={broughtByPartnerId} />
+            <input
+              type="hidden"
+              name="broughtByPartnerId"
+              value={broughtByPartnerId}
+            />
           </Field>
           {broughtByPartnerId && (
             <div className="flex flex-col gap-2 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-medium">Show phone to partner</span>
+                  <span className="text-sm font-medium">
+                    Show phone to partner
+                  </span>
                   <span className="text-xs text-muted-foreground">
-                    Lets the attributed partner see this client&apos;s phone number in their
-                    portal.
+                    Lets the attributed partner see this client&apos;s phone
+                    number in their portal.
                   </span>
                 </div>
                 <Switch
@@ -281,9 +294,12 @@ export function ClientDialog({
               </div>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-medium">Show email to partner</span>
+                  <span className="text-sm font-medium">
+                    Show email to partner
+                  </span>
                   <span className="text-xs text-muted-foreground">
-                    Lets the attributed partner see this client&apos;s email in their portal.
+                    Lets the attributed partner see this client&apos;s email in
+                    their portal.
                   </span>
                 </div>
                 <Switch

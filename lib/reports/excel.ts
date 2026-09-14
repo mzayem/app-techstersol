@@ -123,9 +123,7 @@ export async function renderReportExcel(spec: ReportSpec): Promise<Buffer> {
     const longestValue = spec.rows.reduce((max, row) => {
       const raw = row[spec.columns[index].key];
       const text =
-        raw instanceof Date
-          ? raw.toLocaleDateString()
-          : String(raw ?? "");
+        raw instanceof Date ? raw.toLocaleDateString() : String(raw ?? "");
       return Math.max(max, text.length);
     }, label.length);
     column.width = Math.min(Math.max(longestValue + 2, 12), 40);

@@ -83,7 +83,11 @@ export function ExpenseDialog({
             payload: { id: expense.id, formData: fields },
             label,
           })
-        : await enqueueMutation({ key: "createExpense", payload: fields, label });
+        : await enqueueMutation({
+            key: "createExpense",
+            payload: fields,
+            label,
+          });
       if (result.ok) {
         if (!isEdit) formRef.current?.reset();
         setOpen(false);

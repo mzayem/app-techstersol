@@ -39,7 +39,13 @@ export function PartnerPayslipRowActions({
       />
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label="Open actions menu" />}
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Open actions menu"
+            />
+          }
         >
           <MoreHorizontalIcon />
         </DropdownMenuTrigger>
@@ -47,13 +53,22 @@ export function PartnerPayslipRowActions({
           <DropdownMenuGroup>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              render={<a href={`/api/partner-payslips/${id}/pdf`} target="_blank" rel="noreferrer" />}
+              render={
+                <a
+                  href={`/api/partner-payslips/${id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
             >
               <DownloadIcon />
               Download PDF
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
               <Trash2Icon />
               Delete
             </DropdownMenuItem>

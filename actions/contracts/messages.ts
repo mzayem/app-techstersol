@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import { checkPermission, getActiveClientProfiles, getCurrentAppUser } from "@/lib/rbac/permissions";
+import {
+  checkPermission,
+  getActiveClientProfiles,
+  getCurrentAppUser,
+} from "@/lib/rbac/permissions";
 import { notifyChatMessage } from "@/lib/mail/notifications/contracts";
 
 const MAX_MESSAGE_LENGTH = 4000;
@@ -81,7 +85,10 @@ export async function listContractMessages(
   return messages.map(({ authorUserId, authorKind, ...m }) => ({
     ...m,
     isMine: authorUserId === appUser.id,
-    authorName: appUser.kind === "TEAM" && authorKind === "CLIENT" ? "Client" : m.authorName,
+    authorName:
+      appUser.kind === "TEAM" && authorKind === "CLIENT"
+        ? "Client"
+        : m.authorName,
   }));
 }
 
@@ -91,10 +98,14 @@ export async function createContractMessage(
 ): Promise<ContractMessageEntry> {
   const appUser = await authorizeContractChat(contractId);
   if (appUser.kind === "TEAM") {
-    throw new Error("Team members can view this project's chat but can't post messages");
+    throw new Error(
+      "Team members can view this project's chat but can't post messages",
+    );
   }
   if (appUser.kind === "PARTNER" && !appUser.partner?.chatEnabled) {
-    throw new Error("Chat isn't enabled for your account yet — ask an admin to turn it on");
+    throw new Error(
+      "Chat isn't enabled for your account yet — ask an admin to turn it on",
+    );
   }
 
   const trimmed = body.trim();

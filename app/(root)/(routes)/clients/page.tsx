@@ -19,7 +19,11 @@ import {
   type ClientStatus,
   type PaymentCurrency,
 } from "@/lib/clients/constants";
-import { listClients, listPartnerOptions, type SortOption } from "@/actions/clients/queries";
+import {
+  listClients,
+  listPartnerOptions,
+  type SortOption,
+} from "@/actions/clients/queries";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +44,11 @@ export default async function ClientsPage({
     }),
     listPartnerOptions(),
   ]);
-  const paginated = paginate(clients, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    clients,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -48,7 +56,9 @@ export default async function ClientsPage({
         <h1 className="text-lg font-medium">Clients</h1>
         <div className="flex items-center gap-2">
           <ExportReportDialog module="clients" label="clients" />
-          {permission.canCreate && <ClientDialog partnerOptions={partnerOptions} />}
+          {permission.canCreate && (
+            <ClientDialog partnerOptions={partnerOptions} />
+          )}
         </div>
       </div>
 

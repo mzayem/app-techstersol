@@ -88,7 +88,9 @@ export function WorkDiaryFilterBar({
           className="basis-full sm:w-64 sm:basis-auto"
           from={searchParams.get("from") ?? ""}
           to={searchParams.get("to") ?? ""}
-          onChange={({ from, to }) => updateParams({ from: from || null, to: to || null })}
+          onChange={({ from, to }) =>
+            updateParams({ from: from || null, to: to || null })
+          }
         />
       )}
 

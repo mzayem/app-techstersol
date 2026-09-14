@@ -41,8 +41,10 @@ export function periodLabel(
   range: DateRange,
 ): string {
   const preset = (params.range as DatePreset | undefined) ?? "this-year";
-  if (preset === "this-year" && range.from) return String(range.from.getFullYear());
-  if (preset === "this-month" && range.from) return MONTH_YEAR_FORMAT.format(range.from);
+  if (preset === "this-year" && range.from)
+    return String(range.from.getFullYear());
+  if (preset === "this-month" && range.from)
+    return MONTH_YEAR_FORMAT.format(range.from);
   if (preset === "6-months" && range.from) {
     return `${MONTH_YEAR_FORMAT.format(range.from)} – ${MONTH_YEAR_FORMAT.format(new Date())}`;
   }

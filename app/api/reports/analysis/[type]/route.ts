@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 
 import { getCurrentAppUser, checkPermission } from "@/lib/rbac/permissions";
 import type { PageKey } from "@/lib/rbac/pages";
-import { ANALYSIS_REPORTS, isAnalysisReportType } from "@/lib/reports/analysis/registry";
+import {
+  ANALYSIS_REPORTS,
+  isAnalysisReportType,
+} from "@/lib/reports/analysis/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

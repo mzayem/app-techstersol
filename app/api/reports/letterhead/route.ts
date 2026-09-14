@@ -39,14 +39,19 @@ export async function POST(request: Request) {
   const date = body.date?.trim();
   const bodyHtml = body.bodyHtml ?? "";
   if (!label || !date) {
-    return NextResponse.json({ error: "Label and date are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Label and date are required" },
+      { status: 400 },
+    );
   }
 
   const signOffInput = body.signOff ?? {};
   const mode = signOffInput.mode === "blank" ? "blank" : "filled";
   const includeSignature = signOffInput.includeSignature === true;
   const lineHeight =
-    typeof body.lineHeight === "number" && body.lineHeight >= 1 && body.lineHeight <= 3
+    typeof body.lineHeight === "number" &&
+    body.lineHeight >= 1 &&
+    body.lineHeight <= 3
       ? body.lineHeight
       : undefined;
 

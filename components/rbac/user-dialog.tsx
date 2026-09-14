@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { MailIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
+import {
+  MailIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -86,10 +92,16 @@ export function UserDialog({
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
 
-  const [kind, setKind] = React.useState<UserKind>(user?.kind ?? "DASHBOARD_HANDLER");
-  const [status, setStatus] = React.useState<UserStatus>(user?.status ?? "ACTIVE");
+  const [kind, setKind] = React.useState<UserKind>(
+    user?.kind ?? "DASHBOARD_HANDLER",
+  );
+  const [status, setStatus] = React.useState<UserStatus>(
+    user?.status ?? "ACTIVE",
+  );
   const [roleId, setRoleId] = React.useState(user?.roleId ?? "");
-  const [teamMemberId, setTeamMemberId] = React.useState(user?.teamMemberId ?? "");
+  const [teamMemberId, setTeamMemberId] = React.useState(
+    user?.teamMemberId ?? "",
+  );
   const [partnerId, setPartnerId] = React.useState(user?.partnerId ?? "");
   const [clientId, setClientId] = React.useState(user?.clientIds[0] ?? "");
   const [profileMode, setProfileMode] = React.useState<"single" | "multiple">(
@@ -119,7 +131,9 @@ export function UserDialog({
   }
 
   function removeClientRow(index: number) {
-    setClientIds((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+    setClientIds((rows) =>
+      rows.length > 1 ? rows.filter((_, i) => i !== index) : rows,
+    );
   }
 
   function onSubmit(formData: FormData) {
@@ -172,7 +186,9 @@ export function UserDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="DASHBOARD_HANDLER">Dashboard handler</SelectItem>
+                <SelectItem value="DASHBOARD_HANDLER">
+                  Dashboard handler
+                </SelectItem>
                 <SelectItem value="TEAM">Team member login</SelectItem>
                 <SelectItem value="PARTNER">Partner login</SelectItem>
                 <SelectItem value="CLIENT">Client login</SelectItem>
@@ -182,7 +198,12 @@ export function UserDialog({
 
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Name</span>
-            <Input name="name" required placeholder="Full name" defaultValue={user?.name} />
+            <Input
+              name="name"
+              required
+              placeholder="Full name"
+              defaultValue={user?.name}
+            />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Email</span>
@@ -196,7 +217,10 @@ export function UserDialog({
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Status</span>
-            <Select value={status} onValueChange={(v) => v && setStatus(v as UserStatus)}>
+            <Select
+              value={status}
+              onValueChange={(v) => v && setStatus(v as UserStatus)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -218,7 +242,11 @@ export function UserDialog({
               name="password"
               required={!isEdit}
               minLength={8}
-              placeholder={isEdit ? "Leave blank to keep current password" : "At least 8 characters"}
+              placeholder={
+                isEdit
+                  ? "Leave blank to keep current password"
+                  : "At least 8 characters"
+              }
             />
           </label>
 
@@ -241,7 +269,10 @@ export function UserDialog({
               <Combobox
                 value={teamMemberId}
                 onValueChange={setTeamMemberId}
-                options={teamMembers.map((m) => ({ value: m.id, label: m.name }))}
+                options={teamMembers.map((m) => ({
+                  value: m.id,
+                  label: m.name,
+                }))}
                 placeholder="Select team member"
                 searchPlaceholder="Search team…"
                 emptyText="No team members found."
@@ -263,7 +294,9 @@ export function UserDialog({
             </label>
           ) : (
             <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">Client profile(s)</span>
+              <span className="text-sm text-muted-foreground">
+                Client profile(s)
+              </span>
               <div className="inline-flex w-fit overflow-hidden rounded-md ring-1 ring-input">
                 <Button
                   type="button"
@@ -290,7 +323,10 @@ export function UserDialog({
                   <Combobox
                     value={clientId}
                     onValueChange={setClientId}
-                    options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                    options={clients.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
                     placeholder="Select client"
                     searchPlaceholder="Search clients…"
                     emptyText="No clients available — every client already has a login."
@@ -305,14 +341,23 @@ export function UserDialog({
                         value={rowClientId}
                         onValueChange={(v) => updateClientRow(index, v ?? "")}
                         options={clients
-                          .filter((c) => c.id === rowClientId || !clientIds.includes(c.id))
+                          .filter(
+                            (c) =>
+                              c.id === rowClientId || !clientIds.includes(c.id),
+                          )
                           .map((c) => ({ value: c.id, label: c.name }))}
                         placeholder={`Profile ${index + 1}`}
                         searchPlaceholder="Search clients…"
                         emptyText="No clients available."
                         className="flex-1"
                       />
-                      {rowClientId && <input type="hidden" name="clientId" value={rowClientId} />}
+                      {rowClientId && (
+                        <input
+                          type="hidden"
+                          name="clientId"
+                          value={rowClientId}
+                        />
+                      )}
                       <Button
                         type="button"
                         variant="ghost"
@@ -325,7 +370,12 @@ export function UserDialog({
                       </Button>
                     </div>
                   ))}
-                  <Button type="button" variant="outline" size="sm" onClick={addClientRow}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addClientRow}
+                  >
                     <PlusIcon />
                     Add another profile
                   </Button>
@@ -368,7 +418,10 @@ export function UserRowActions({
     startSending(async () => {
       try {
         await sendCredentialsEmail(user.id);
-        toast.add({ title: `New credentials sent to ${user.email}`, type: "success" });
+        toast.add({
+          title: `New credentials sent to ${user.email}`,
+          type: "success",
+        });
         setSendOpen(false);
       } catch (e) {
         toast.add({
@@ -422,15 +475,19 @@ export function UserRowActions({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Send new credentials to {user.name}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Send new credentials to {user.name}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This generates a brand-new password for this login, replacing the current one, and
-              emails a one-time view link to {user.email}. Their old password stops working
-              immediately.
+              This generates a brand-new password for this login, replacing the
+              current one, and emails a one-time view link to {user.email}.
+              Their old password stops working immediately.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" disabled={sending} />}>
+            <AlertDialogClose
+              render={<Button variant="outline" disabled={sending} />}
+            >
               Cancel
             </AlertDialogClose>
             <Button loading={sending} onClick={confirmSendCredentials}>

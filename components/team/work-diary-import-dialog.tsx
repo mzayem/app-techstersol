@@ -1,18 +1,46 @@
 "use client";
 
-import { ImportDialog, type ImportColumn } from "@/components/finance/import-dialog";
+import {
+  ImportDialog,
+  type ImportColumn,
+} from "@/components/finance/import-dialog";
 import { createWorkDiaryEntry } from "@/actions/team/work-diary-actions";
 
 const COLUMNS: ImportColumn[] = [
-  { key: "teamMember", label: "Team member", required: true, hint: "Must match an existing team member's name" },
-  { key: "week", label: "Week", required: true, hint: "Any date within the week — YYYY-MM-DD" },
-  { key: "hours", label: "Hours", required: true, hint: "Total hours worked that week" },
+  {
+    key: "teamMember",
+    label: "Team member",
+    required: true,
+    hint: "Must match an existing team member's name",
+  },
+  {
+    key: "week",
+    label: "Week",
+    required: true,
+    hint: "Any date within the week — YYYY-MM-DD",
+  },
+  {
+    key: "hours",
+    label: "Hours",
+    required: true,
+    hint: "Total hours worked that week",
+  },
   { key: "notes", label: "Notes", hint: "Optional — what they worked on" },
 ];
 
 const SAMPLE_ROWS: Record<string, string>[] = [
-  { teamMember: "Fiazan Mustafa", week: "2026-09-01", hours: "38", notes: "Landing page redesign" },
-  { teamMember: "Fiazan Mustafa", week: "2026-09-08", hours: "40", notes: "Checkout flow QA" },
+  {
+    teamMember: "Fiazan Mustafa",
+    week: "2026-09-01",
+    hours: "38",
+    notes: "Landing page redesign",
+  },
+  {
+    teamMember: "Fiazan Mustafa",
+    week: "2026-09-08",
+    hours: "40",
+    notes: "Checkout flow QA",
+  },
 ];
 
 export function WorkDiaryImportDialog({

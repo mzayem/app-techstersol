@@ -20,7 +20,8 @@ import * as React from "react";
 export function SuppressKnownSdkNoise() {
   React.useEffect(() => {
     function handleRejection(event: PromiseRejectionEvent) {
-      const reason = event.reason as { name?: string; status?: number } | undefined;
+      const reason = event.reason as
+        { name?: string; status?: number } | undefined;
       if (reason?.name === "AuthApiError") {
         event.preventDefault();
         console.debug(
@@ -33,7 +34,8 @@ export function SuppressKnownSdkNoise() {
     }
 
     window.addEventListener("unhandledrejection", handleRejection);
-    return () => window.removeEventListener("unhandledrejection", handleRejection);
+    return () =>
+      window.removeEventListener("unhandledrejection", handleRejection);
   }, []);
 
   return null;

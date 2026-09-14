@@ -35,7 +35,12 @@ export function getLetterheadBackgroundPng(): Promise<Buffer | null> {
   if (!letterheadBgPngPromise) {
     letterheadBgPngPromise = (async () => {
       try {
-        const svgPath = path.join(process.cwd(), "public", "images", "letterhead-bg.svg");
+        const svgPath = path.join(
+          process.cwd(),
+          "public",
+          "images",
+          "letterhead-bg.svg",
+        );
         return await sharp(svgPath, {
           density: RASTER_DPI,
         })

@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import { TEAM_MEMBER_TYPES, type TeamMemberType } from "@/lib/team/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
@@ -57,7 +60,8 @@ function readTeamMemberFields(formData: FormData) {
     // Only meaningful for HOURLY — cleared if the member is project-based.
     hourlyRate: type === "HOURLY" ? hourlyRate : null,
     // Only meaningful when there's an email on file to send to.
-    payslipEmailsEnabled: !!email && str(formData, "payslipEmailsEnabled") !== "false",
+    payslipEmailsEnabled:
+      !!email && str(formData, "payslipEmailsEnabled") !== "false",
   };
 }
 
@@ -91,7 +95,10 @@ export async function deleteTeamMember(id: string) {
   try {
     await prisma.teamMember.delete({ where: { id } });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2003"
+    ) {
       throw new Error("Can't delete a team member who has payslips on record");
     }
     throw e;

@@ -80,7 +80,9 @@ export async function notifyInvoicePaid(invoiceId: string) {
       html: renderInvoicePaidEmail({
         invoiceNumber: formatInvoiceNumber(invoice.number),
         amount: formatContractAmount(balanceDue, pdfData.currency),
-        paidOn: invoice.paidOn ? formatDate(invoice.paidOn) : formatDate(new Date()),
+        paidOn: invoice.paidOn
+          ? formatDate(invoice.paidOn)
+          : formatDate(new Date()),
         verifyUrl: `${appUrl()}/verify/${invoice.id}`,
       }),
       attachments: [attachment],

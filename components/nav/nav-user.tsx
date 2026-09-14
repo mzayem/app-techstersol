@@ -24,7 +24,9 @@ import {
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   const chars =
-    parts.length > 1 ? [parts[0][0], parts[parts.length - 1][0]] : [parts[0]?.[0] ?? "?"];
+    parts.length > 1
+      ? [parts[0][0], parts[parts.length - 1][0]]
+      : [parts[0]?.[0] ?? "?"];
   return chars.join("").toUpperCase();
 }
 
@@ -72,11 +74,15 @@ export function NavUser({
           <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
             <Avatar className="size-8 rounded-lg">
               {image && <AvatarImage src={image} alt={name} />}
-              <AvatarFallback className="rounded-lg">{initials(name)}</AvatarFallback>
+              <AvatarFallback className="rounded-lg">
+                {initials(name)}
+              </AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{name}</span>
-              <span className="truncate text-xs text-muted-foreground">{email}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {email}
+              </span>
             </div>
             <ChevronsUpDown className="ml-auto size-4" />
           </DropdownMenuTrigger>

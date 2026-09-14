@@ -5,7 +5,11 @@ import { CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { DATE_DISPLAY_FORMAT, parseIsoDate, toIsoDate } from "@/lib/date/iso";
 
 /** A single-date picker matching DateRangePicker's Popover+Calendar style —
@@ -47,7 +51,9 @@ export function DatePicker({
 
   return (
     <>
-      {name && <input type="hidden" name={name} value={current} required={required} />}
+      {name && (
+        <input type="hidden" name={name} value={current} required={required} />
+      )}
       <Popover open={open && !disabled} onOpenChange={setOpen}>
         <PopoverTrigger
           render={
@@ -62,7 +68,9 @@ export function DatePicker({
           }
         >
           <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className={cn("flex-1 text-left", !date && "text-muted-foreground")}>
+          <span
+            className={cn("flex-1 text-left", !date && "text-muted-foreground")}
+          >
             {date ? DATE_DISPLAY_FORMAT.format(date) : placeholder}
           </span>
         </PopoverTrigger>

@@ -59,7 +59,10 @@ export async function POST(
   if (path.join("/") === "sign-up/email") {
     const existingCount = await prisma.appUser.count();
     if (existingCount > 0) {
-      return NextResponse.json({ error: "Sign-up is disabled" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Sign-up is disabled" },
+        { status: 403 },
+      );
     }
   }
 

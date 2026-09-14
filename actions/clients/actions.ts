@@ -48,7 +48,8 @@ function readClientFields(formData: FormData) {
     country,
     currency: currencyRaw as PaymentCurrency,
     status: statusRaw as ClientStatus,
-    emailNotificationsEnabled: str(formData, "emailNotificationsEnabled") !== "false",
+    emailNotificationsEnabled:
+      str(formData, "emailNotificationsEnabled") !== "false",
     broughtByPartnerId,
     // Only meaningful with a partner attributed — cleared otherwise so a
     // toggle flipped on before removing the attribution doesn't linger.

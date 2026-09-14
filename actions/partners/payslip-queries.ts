@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
-export type SortOption = "number-desc" | "number-asc" | "issue-desc" | "issue-asc";
+export type SortOption =
+  "number-desc" | "number-asc" | "issue-desc" | "issue-asc";
 
 export type ListFilters = {
   search?: string;
@@ -84,13 +85,19 @@ export function toPartnerPayslipPdfData(
     },
     breakdown: p
       ? {
-          revenueAmount: p.revenueAmount != null ? Number(p.revenueAmount) : null,
-          workCostAmount: p.workCostAmount != null ? Number(p.workCostAmount) : null,
+          revenueAmount:
+            p.revenueAmount != null ? Number(p.revenueAmount) : null,
+          workCostAmount:
+            p.workCostAmount != null ? Number(p.workCostAmount) : null,
           projectExpensesAmount:
-            p.projectExpensesAmount != null ? Number(p.projectExpensesAmount) : null,
+            p.projectExpensesAmount != null
+              ? Number(p.projectExpensesAmount)
+              : null,
           profitAmount: p.profitAmount != null ? Number(p.profitAmount) : null,
           sharePercentageUsed:
-            p.sharePercentageUsed != null ? Number(p.sharePercentageUsed) : null,
+            p.sharePercentageUsed != null
+              ? Number(p.sharePercentageUsed)
+              : null,
         }
       : null,
   };

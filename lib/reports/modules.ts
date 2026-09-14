@@ -1,6 +1,10 @@
 import type { PageKey } from "@/lib/rbac/pages";
 import type { ReportSpec } from "@/lib/reports/types";
-import { resolveDateRange, DATE_PRESET_LABELS, type DatePreset } from "@/lib/finance/date-range";
+import {
+  resolveDateRange,
+  DATE_PRESET_LABELS,
+  type DatePreset,
+} from "@/lib/finance/date-range";
 import {
   BUCKET_LABELS,
   CURRENCY_SYMBOLS,
@@ -44,7 +48,10 @@ import {
   listClients,
   type SortOption as ClientSortOption,
 } from "@/actions/clients/queries";
-import { CLIENT_STATUS_LABELS, type ClientStatus } from "@/lib/clients/constants";
+import {
+  CLIENT_STATUS_LABELS,
+  type ClientStatus,
+} from "@/lib/clients/constants";
 import { getPartnerLedger } from "@/actions/partners/ledger-queries";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
@@ -70,8 +77,14 @@ function dateRangeSubtitle(
   options?: { defaultPreset?: DatePreset; statusLabel?: string },
 ): string {
   const preset =
-    (params.range as DatePreset | undefined) ?? options?.defaultPreset ?? "this-month";
-  const range = resolveDateRange(params.range ?? preset, params.from, params.to);
+    (params.range as DatePreset | undefined) ??
+    options?.defaultPreset ??
+    "this-month";
+  const range = resolveDateRange(
+    params.range ?? preset,
+    params.from,
+    params.to,
+  );
   const parts: string[] = [];
 
   if (preset === "this-month" && range.from) {
@@ -79,7 +92,9 @@ function dateRangeSubtitle(
   } else if (preset === "this-year" && range.from) {
     parts.push(String(range.from.getFullYear()));
   } else if (preset === "6-months" && range.from) {
-    parts.push(`${MONTH_YEAR_FORMAT.format(range.from)} – ${MONTH_YEAR_FORMAT.format(new Date())}`);
+    parts.push(
+      `${MONTH_YEAR_FORMAT.format(range.from)} – ${MONTH_YEAR_FORMAT.format(new Date())}`,
+    );
   } else if (preset === "custom" && (range.from || range.to)) {
     parts.push(
       `${range.from ? DATE_FORMAT.format(range.from) : "…"} – ${range.to ? DATE_FORMAT.format(range.to) : "…"}`,
@@ -141,7 +156,12 @@ const earning: ReportModuleDef = {
         { key: "name", label: "Name", flexible: true },
         { key: "amount", label: "Amount", align: "right", numFmt: "#,##0" },
         { key: "teamPay", label: "Team pay", align: "right", numFmt: "#,##0" },
-        { key: "netEarning", label: "Net earning", align: "right", numFmt: "#,##0" },
+        {
+          key: "netEarning",
+          label: "Net earning",
+          align: "right",
+          numFmt: "#,##0",
+        },
         { key: "reference", label: "Reference", align: "right" },
       ],
       rows: reportRows,
@@ -200,7 +220,9 @@ const expenses: ReportModuleDef = {
   filename: "expense-report",
   async fetch(params) {
     const dateRange = resolveDateRange(params.range, params.from, params.to);
-    const category = EXPENSE_CATEGORIES.includes(params.category as ExpenseCategory)
+    const category = EXPENSE_CATEGORIES.includes(
+      params.category as ExpenseCategory,
+    )
       ? (params.category as ExpenseCategory)
       : undefined;
     const rows = await listExpenses({
@@ -224,7 +246,10 @@ const expenses: ReportModuleDef = {
 
     return {
       title: expenses.title,
-      subtitle: [dateRangeSubtitle(params), category ? `Type: ${BUCKET_LABELS[category]}` : null]
+      subtitle: [
+        dateRangeSubtitle(params),
+        category ? `Type: ${BUCKET_LABELS[category]}` : null,
+      ]
         .filter(Boolean)
         .join("  ·  "),
       columns: [
@@ -247,7 +272,11 @@ const contracts: ReportModuleDef = {
   filename: "contracts-report",
   async fetch(params) {
     const status = params.status as ContractStatus | undefined;
-    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
+    const dateRange = resolveDateRange(
+      params.range ?? "all",
+      params.from,
+      params.to,
+    );
     const rows = await listContracts({
       search: params.q,
       status,
@@ -270,7 +299,8 @@ const contracts: ReportModuleDef = {
         project: contract.projectName,
         startDate: contract.date,
         deadline: contract.deadline,
-        payment: PAYMENT_TYPE_LABELS[contract.paymentType as ContractPaymentType],
+        payment:
+          PAYMENT_TYPE_LABELS[contract.paymentType as ContractPaymentType],
         amount: formatContractAmount(totalAmount, currency),
         status: CONTRACT_STATUS_LABELS[contract.status as ContractStatus],
       };
@@ -302,7 +332,11 @@ const invoices: ReportModuleDef = {
   filename: "invoices-report",
   async fetch(params) {
     const status = params.status as InvoiceStatus | undefined;
-    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
+    const dateRange = resolveDateRange(
+      params.range ?? "all",
+      params.from,
+      params.to,
+    );
     const rows = await listInvoices({
       search: params.q,
       status,
@@ -312,7 +346,10 @@ const invoices: ReportModuleDef = {
 
     const reportRows = rows.map((invoice) => {
       const currency = invoice.currency as PaymentCurrency;
-      const total = invoice.items.reduce((sum, item) => sum + Number(item.amount), 0);
+      const total = invoice.items.reduce(
+        (sum, item) => sum + Number(item.amount),
+        0,
+      );
       const balanceDue = total - Number(invoice.discount);
       return {
         number: formatInvoiceNumber(invoice.number),
@@ -350,7 +387,11 @@ const payslips: ReportModuleDef = {
   title: "PAYSLIPS REPORT",
   filename: "payslips-report",
   async fetch(params) {
-    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
+    const dateRange = resolveDateRange(
+      params.range ?? "all",
+      params.from,
+      params.to,
+    );
     const rows = await listPayslips({
       search: params.q,
       sort: params.sort as PayslipSortOption | undefined,
@@ -376,7 +417,12 @@ const payslips: ReportModuleDef = {
       subtitle: dateRangeSubtitle(params, { defaultPreset: "all" }),
       columns: [
         { key: "number", label: "Payslip" },
-        { key: "teamMember", label: "Team member", flexible: true, flexWeight: 1 },
+        {
+          key: "teamMember",
+          label: "Team member",
+          flexible: true,
+          flexWeight: 1,
+        },
         { key: "project", label: "Project", flexible: true, flexWeight: 2 },
         { key: "period", label: "Period" },
         { key: "issueDate", label: "Issue date", numFmt: "dd mmm yyyy" },
@@ -403,7 +449,11 @@ const clients: ReportModuleDef = {
   filename: "clients-report",
   async fetch(params) {
     const status = params.status as ClientStatus | undefined;
-    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
+    const dateRange = resolveDateRange(
+      params.range ?? "all",
+      params.from,
+      params.to,
+    );
     const rows = await listClients({
       search: params.q,
       status,
@@ -446,7 +496,11 @@ const partners: ReportModuleDef = {
   title: "PARTNER EARNINGS REPORT",
   filename: "partner-earnings-report",
   async fetch(params) {
-    const dateRange = resolveDateRange(params.range ?? "all", params.from, params.to);
+    const dateRange = resolveDateRange(
+      params.range ?? "all",
+      params.from,
+      params.to,
+    );
     const partnerIds = params.partnerIds
       ? params.partnerIds.split(",").filter(Boolean)
       : undefined;
@@ -483,7 +537,9 @@ const partners: ReportModuleDef = {
       subtitle: dateRangeSubtitle(params, {
         defaultPreset: "all",
         statusLabel:
-          partnerIds && partnerIds.length > 0 ? `${partnerIds.length} partner(s) selected` : undefined,
+          partnerIds && partnerIds.length > 0
+            ? `${partnerIds.length} partner(s) selected`
+            : undefined,
       }),
       columns: [
         { key: "date", label: "Date", numFmt: "dd mmm yyyy" },
@@ -491,9 +547,19 @@ const partners: ReportModuleDef = {
         { key: "project", label: "Project", flexible: true, flexWeight: 2 },
         { key: "status", label: "Status" },
         { key: "revenue", label: "Revenue", align: "right", numFmt: "#,##0" },
-        { key: "workCost", label: "Work cost", align: "right", numFmt: "#,##0" },
+        {
+          key: "workCost",
+          label: "Work cost",
+          align: "right",
+          numFmt: "#,##0",
+        },
         { key: "expenses", label: "Expenses", align: "right", numFmt: "#,##0" },
-        { key: "share", label: "Partner share", align: "right", numFmt: "#,##0" },
+        {
+          key: "share",
+          label: "Partner share",
+          align: "right",
+          numFmt: "#,##0",
+        },
         { key: "paymentStatus", label: "Payment status" },
       ],
       rows: reportRows,

@@ -39,19 +39,36 @@ export function PayslipRowActions({
       />
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label="Open actions menu" />}
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Open actions menu"
+            />
+          }
         >
           <MoreHorizontalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuGroup>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem render={<a href={`/api/payslips/${id}/pdf`} target="_blank" rel="noreferrer" />}>
+            <DropdownMenuItem
+              render={
+                <a
+                  href={`/api/payslips/${id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
+            >
               <DownloadIcon />
               Download PDF
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
               <Trash2Icon />
               Delete
             </DropdownMenuItem>

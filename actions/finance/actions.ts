@@ -89,7 +89,9 @@ export async function createEarning(formData: FormData) {
       referenceAmount,
       referenceCurrency,
       createdByUserId,
-      ledgerEntries: { create: earningLedgerEntries(name, dateObj, amount, teamPay) },
+      ledgerEntries: {
+        create: earningLedgerEntries(name, dateObj, amount, teamPay),
+      },
     },
   });
 

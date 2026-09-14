@@ -5,7 +5,11 @@ import { CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { formatWeekRange, mondayOf, sundayOf } from "@/lib/team/work-diary";
 
 /** A single click on any day marks that whole Monday–Sunday week as
@@ -41,7 +45,9 @@ export function WeekPicker({
         }
       >
         <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="flex-1 text-left">{formatWeekRange(value, weekEnd)}</span>
+        <span className="flex-1 text-left">
+          {formatWeekRange(value, weekEnd)}
+        </span>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar

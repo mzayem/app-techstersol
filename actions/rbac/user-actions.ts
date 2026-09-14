@@ -21,7 +21,9 @@ const APP_USER_STATUSES: AppUserStatus[] = ["ACTIVE", "SUSPENDED", "BLOCKED"];
 
 function readStatus(formData: FormData): AppUserStatus {
   const raw = str(formData, "status");
-  return APP_USER_STATUSES.includes(raw as AppUserStatus) ? (raw as AppUserStatus) : "ACTIVE";
+  return APP_USER_STATUSES.includes(raw as AppUserStatus)
+    ? (raw as AppUserStatus)
+    : "ACTIVE";
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -66,7 +68,12 @@ async function createAuthAccount(
  * already created/updated by the time this runs, and a transient mail
  * outage shouldn't undo that; an admin can always resend from the Users
  * page (`sendCredentialsEmail` below). */
-async function sendCredentialsMail(appUserId: string, name: string, email: string, password: string) {
+async function sendCredentialsMail(
+  appUserId: string,
+  name: string,
+  email: string,
+  password: string,
+) {
   try {
     const token = await createCredentialLink(appUserId, password);
     const viewUrl = `${process.env.NEXT_PUBLIC_APP_URL}/credentials/${token}`;
@@ -100,7 +107,14 @@ export async function createDashboardUser(formData: FormData) {
   const authUserId = await createAuthAccount(name, email, password);
 
   const appUser = await prisma.appUser.create({
-    data: { authUserId, email, name, kind: "DASHBOARD_HANDLER", roleId, status: readStatus(formData) },
+    data: {
+      authUserId,
+      email,
+      name,
+      kind: "DASHBOARD_HANDLER",
+      roleId,
+      status: readStatus(formData),
+    },
   });
   await sendCredentialsMail(appUser.id, name, email, password);
 
@@ -125,7 +139,14 @@ export async function createTeamUser(formData: FormData) {
   const authUserId = await createAuthAccount(name, email, password);
 
   const appUser = await prisma.appUser.create({
-    data: { authUserId, email, name, kind: "TEAM", teamMemberId, status: readStatus(formData) },
+    data: {
+      authUserId,
+      email,
+      name,
+      kind: "TEAM",
+      teamMemberId,
+      status: readStatus(formData),
+    },
   });
   await sendCredentialsMail(appUser.id, name, email, password);
 
@@ -148,7 +169,14 @@ export async function createPartnerUser(formData: FormData) {
   const authUserId = await createAuthAccount(name, email, password);
 
   const appUser = await prisma.appUser.create({
-    data: { authUserId, email, name, kind: "PARTNER", partnerId, status: readStatus(formData) },
+    data: {
+      authUserId,
+      email,
+      name,
+      kind: "PARTNER",
+      partnerId,
+      status: readStatus(formData),
+    },
   });
   await sendCredentialsMail(appUser.id, name, email, password);
 
@@ -161,11 +189,12 @@ export async function createClientUser(formData: FormData) {
   const name = str(formData, "name");
   const email = str(formData, "email");
   const password = str(formData, "password");
-  const clientIds = [...new Set(formData.getAll("clientId").map((v) => String(v).trim()))].filter(
-    Boolean,
-  );
+  const clientIds = [
+    ...new Set(formData.getAll("clientId").map((v) => String(v).trim())),
+  ].filter(Boolean);
   validateBasics(name, email, password);
-  if (clientIds.length === 0) throw new Error("At least one client profile is required");
+  if (clientIds.length === 0)
+    throw new Error("At least one client profile is required");
 
   const clients = await prisma.client.findMany({
     where: { id: { in: clientIds } },
@@ -182,7 +211,13 @@ export async function createClientUser(formData: FormData) {
 
   const appUser = await prisma.$transaction(async (tx) => {
     const created = await tx.appUser.create({
-      data: { authUserId, email, name, kind: "CLIENT", status: readStatus(formData) },
+      data: {
+        authUserId,
+        email,
+        name,
+        kind: "CLIENT",
+        status: readStatus(formData),
+      },
     });
     await tx.clientProfile.createMany({
       data: clientIds.map((clientId) => ({ appUserId: created.id, clientId })),
@@ -234,7 +269,8 @@ export async function updateAppUser(id: string, formData: FormData) {
       userId: appUser.authUserId,
       newPassword: password,
     });
-    if (error) throw new Error(error.message ?? "Could not set the new password");
+    if (error)
+      throw new Error(error.message ?? "Could not set the new password");
     await sendCredentialsMail(appUser.id, name, email, password);
   }
 
@@ -250,7 +286,9 @@ export async function updateAppUser(id: string, formData: FormData) {
   } else if (appUser.kind === "TEAM") {
     const teamMemberId = str(formData, "teamMemberId");
     if (!teamMemberId) throw new Error("Team member is required");
-    const teamMember = await prisma.teamMember.findUnique({ where: { id: teamMemberId } });
+    const teamMember = await prisma.teamMember.findUnique({
+      where: { id: teamMemberId },
+    });
     if (!teamMember) throw new Error("Selected team member no longer exists");
     await prisma.appUser.update({
       where: { id },
@@ -259,7 +297,9 @@ export async function updateAppUser(id: string, formData: FormData) {
   } else if (appUser.kind === "PARTNER") {
     const partnerId = str(formData, "partnerId");
     if (!partnerId) throw new Error("Partner is required");
-    const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
+    const partner = await prisma.partner.findUnique({
+      where: { id: partnerId },
+    });
     if (!partner) throw new Error("Selected partner no longer exists");
     await prisma.appUser.update({
       where: { id },
@@ -269,7 +309,8 @@ export async function updateAppUser(id: string, formData: FormData) {
     const clientIds = [
       ...new Set(formData.getAll("clientId").map((v) => String(v).trim())),
     ].filter(Boolean);
-    if (clientIds.length === 0) throw new Error("At least one client profile is required");
+    if (clientIds.length === 0)
+      throw new Error("At least one client profile is required");
 
     const clients = await prisma.client.findMany({
       where: { id: { in: clientIds } },
@@ -283,7 +324,10 @@ export async function updateAppUser(id: string, formData: FormData) {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.appUser.update({ where: { id }, data: { name, email, status, ...lockoutReset } });
+      await tx.appUser.update({
+        where: { id },
+        data: { name, email, status, ...lockoutReset },
+      });
       await tx.clientProfile.deleteMany({
         where: { appUserId: id, clientId: { notIn: clientIds } },
       });

@@ -1,6 +1,9 @@
 "use client";
 
-import { ImportDialog, type ImportColumn } from "@/components/finance/import-dialog";
+import {
+  ImportDialog,
+  type ImportColumn,
+} from "@/components/finance/import-dialog";
 import { createExpense } from "@/actions/finance/actions";
 
 const COLUMNS: ImportColumn[] = [
@@ -16,8 +19,18 @@ const COLUMNS: ImportColumn[] = [
 ];
 
 const SAMPLE_ROWS: Record<string, string>[] = [
-  { date: "2026-01-10", category: "EXPENSE", name: "Office internet", amount: "4500" },
-  { date: "2026-01-20", category: "INVESTMENT", name: "Index fund top-up", amount: "20000" },
+  {
+    date: "2026-01-10",
+    category: "EXPENSE",
+    name: "Office internet",
+    amount: "4500",
+  },
+  {
+    date: "2026-01-20",
+    category: "INVESTMENT",
+    name: "Index fund top-up",
+    amount: "20000",
+  },
 ];
 
 export function ExpenseImportDialog() {

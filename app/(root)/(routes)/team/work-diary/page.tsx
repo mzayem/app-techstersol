@@ -36,7 +36,12 @@ export default async function WorkDiaryPage({
   const period = params.period ?? "year";
 
   const [entries, teamMemberOptions, ratesToPkr] = await Promise.all([
-    listWorkDiaryEntries({ teamMemberId, period, from: params.from, to: params.to }),
+    listWorkDiaryEntries({
+      teamMemberId,
+      period,
+      from: params.from,
+      to: params.to,
+    }),
     listTeamMemberOptions(),
     getRatesToPkr(),
   ]);
@@ -55,9 +60,20 @@ export default async function WorkDiaryPage({
   const hourlyTeamMembers = teamMembers.filter((m) => m.type === "HOURLY");
 
   const totalHours = entries.reduce((sum, e) => sum + Number(e.hours), 0);
-  const totalAmount = entries.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
-  const periodLabel = resolveWorkDiaryPeriod(period, params.from, params.to).label;
-  const paginated = paginate(entries, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const totalAmount = entries.reduce(
+    (sum, e) => sum + Number(e.amount ?? 0),
+    0,
+  );
+  const periodLabel = resolveWorkDiaryPeriod(
+    period,
+    params.from,
+    params.to,
+  ).label;
+  const paginated = paginate(
+    entries,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -66,7 +82,10 @@ export default async function WorkDiaryPage({
         {permission.canCreate && (
           <div className="flex items-center gap-2">
             <WorkDiaryImportDialog teamMembers={hourlyTeamMembers} />
-            <WorkDiaryDialog teamMembers={hourlyTeamMembers} ratesToPkr={ratesToPkr} />
+            <WorkDiaryDialog
+              teamMembers={hourlyTeamMembers}
+              ratesToPkr={ratesToPkr}
+            />
           </div>
         )}
       </div>
@@ -108,7 +127,10 @@ export default async function WorkDiaryPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No work diary entries for this filter.
                 </TableCell>
               </TableRow>
@@ -132,7 +154,9 @@ export default async function WorkDiaryPage({
                   canEdit={permission.canEdit}
                   canDelete={permission.canDelete}
                 >
-                  <TableCell className="font-medium">{e.teamMember.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {e.teamMember.name}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatWeekRange(e.weekStart, e.weekEnd)}
                   </TableCell>

@@ -30,7 +30,11 @@ export default async function TeamPage({
   const { permission } = await requirePagePermission("team");
   const params = await searchParams;
   const members = await listTeamMembers({});
-  const paginated = paginate(members, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    members,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -55,7 +59,10 @@ export default async function TeamPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No team members yet.
                 </TableCell>
               </TableRow>
@@ -71,7 +78,9 @@ export default async function TeamPage({
                 currency: member.currency as PaymentCurrency,
                 address: member.address,
                 type,
-                hourlyRate: member.hourlyRate ? Number(member.hourlyRate) : null,
+                hourlyRate: member.hourlyRate
+                  ? Number(member.hourlyRate)
+                  : null,
                 payslipEmailsEnabled: member.payslipEmailsEnabled,
               };
               return (

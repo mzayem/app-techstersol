@@ -142,21 +142,24 @@ export default async function CredentialsViewPage({
             <>
               <h1 className="tsv-title">Your password</h1>
               <p className="tsv-subtitle">
-                This is the only time this password will be shown. Copy it now and store it
-                somewhere safe — this link won&apos;t work again.
+                This is the only time this password will be shown. Copy it now
+                and store it somewhere safe — this link won&apos;t work again.
               </p>
               <div className="tsv-password-box">
                 <span className="tsv-password">{result.password}</span>
                 <CopyPasswordButton password={result.password} />
               </div>
               <p className="tsv-footer-note">
-                If you didn&apos;t request this account, contact your administrator immediately.
+                If you didn&apos;t request this account, contact your
+                administrator immediately.
               </p>
             </>
           ) : (
             <>
               <h1 className="tsv-title">
-                {result.reason === "expired" ? "Link expired" : "Already viewed"}
+                {result.reason === "expired"
+                  ? "Link expired"
+                  : "Already viewed"}
               </h1>
               <p className="tsv-subtitle">
                 {result.reason === "not_found" &&

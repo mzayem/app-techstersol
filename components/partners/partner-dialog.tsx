@@ -21,7 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import {
   createPartner,
   deletePartner,
@@ -199,7 +202,8 @@ export function PartnerDialog({
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">Project chat access</span>
               <span className="text-xs text-muted-foreground">
-                Allow this partner to post in project chat they can see (read-only otherwise).
+                Allow this partner to post in project chat they can see
+                (read-only otherwise).
               </span>
             </div>
             <Switch

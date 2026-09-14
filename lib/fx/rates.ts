@@ -1,4 +1,7 @@
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 
 /** Approximate units of each currency per 1 USD — only used if the live FX
  * API is unreachable, so the dashboard still renders instead of crashing.
@@ -16,7 +19,9 @@ const FALLBACK_PER_USD: Record<PaymentCurrency, number> = {
  * open.er-api.com — free, no API key, updated daily — cached for an hour
  * via Next's fetch cache. Falls back to a fixed approximate table if the
  * request fails. */
-export async function getRatesToPkr(): Promise<Record<PaymentCurrency, number>> {
+export async function getRatesToPkr(): Promise<
+  Record<PaymentCurrency, number>
+> {
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/USD", {
       next: { revalidate: 3600 },
@@ -25,7 +30,8 @@ export async function getRatesToPkr(): Promise<Record<PaymentCurrency, number>> 
     const data = (await res.json()) as { rates?: Record<string, number> };
     const perUsd = data.rates;
     const pkrPerUsd = perUsd?.PKR;
-    if (!perUsd || !pkrPerUsd) throw new Error("FX API response missing PKR rate");
+    if (!perUsd || !pkrPerUsd)
+      throw new Error("FX API response missing PKR rate");
 
     const rates = {} as Record<PaymentCurrency, number>;
     for (const currency of PAYMENT_CURRENCIES) {

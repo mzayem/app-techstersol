@@ -74,6 +74,8 @@ export function removeFromQueue(id: string) {
 
 export function bumpAttempts(id: string) {
   writeQueue(
-    readQueue().map((item) => (item.id === id ? { ...item, attempts: item.attempts + 1 } : item)),
+    readQueue().map((item) =>
+      item.id === id ? { ...item, attempts: item.attempts + 1 } : item,
+    ),
   );
 }

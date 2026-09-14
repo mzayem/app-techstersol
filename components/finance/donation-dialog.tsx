@@ -70,7 +70,11 @@ export function DonationDialog({
             payload: { id: donation.id, formData: fields },
             label,
           })
-        : await enqueueMutation({ key: "createDonation", payload: fields, label });
+        : await enqueueMutation({
+            key: "createDonation",
+            payload: fields,
+            label,
+          });
       if (result.ok) {
         if (!isEdit) formRef.current?.reset();
         setOpen(false);
@@ -136,7 +140,11 @@ export function DonationDialog({
           {!locked && (
             <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
-                {pending ? "Saving…" : isEdit ? "Save changes" : "Save donation"}
+                {pending
+                  ? "Saving…"
+                  : isEdit
+                    ? "Save changes"
+                    : "Save donation"}
               </Button>
             </DialogFooter>
           )}

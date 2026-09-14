@@ -1,7 +1,10 @@
 import { sendMail } from "@/lib/mail/transport";
 import { renderPartnerPayslipPdf } from "@/lib/partners/payslip-pdf";
 import { formatPartnerPayslipNumber } from "@/lib/partners/constants";
-import { getPartnerPayslipForPdf, toPartnerPayslipPdfData } from "@/actions/partners/payslip-queries";
+import {
+  getPartnerPayslipForPdf,
+  toPartnerPayslipPdfData,
+} from "@/actions/partners/payslip-queries";
 import { renderPartnerPayslipIssuedEmail } from "@/lib/mail/templates/partner-payslip";
 
 function appUrl() {
@@ -25,7 +28,11 @@ function formatDate(date: Date) {
 export async function notifyPartnerPayslipIssued(payslipId: string) {
   try {
     const payslip = await getPartnerPayslipForPdf(payslipId);
-    if (!payslip || !payslip.partner.email || !payslip.partner.payslipEmailsEnabled) {
+    if (
+      !payslip ||
+      !payslip.partner.email ||
+      !payslip.partner.payslipEmailsEnabled
+    ) {
       return;
     }
 

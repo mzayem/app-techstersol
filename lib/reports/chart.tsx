@@ -70,13 +70,16 @@ export function GroupedBarChart({
         strokeWidth={1}
       />
       {categories.map((category, categoryIndex) => {
-        const clusterX = clusterGap + categoryIndex * (clusterWidth + clusterGap);
+        const clusterX =
+          clusterGap + categoryIndex * (clusterWidth + clusterGap);
         return (
           <G key={category}>
             {series.map((s, seriesIndex) => {
               const value = s.values[categoryIndex] ?? 0;
               const barHeight =
-                maxValue > 0 ? (Math.max(value, 0) / maxValue) * chartHeight : 0;
+                maxValue > 0
+                  ? (Math.max(value, 0) / maxValue) * chartHeight
+                  : 0;
               const x = clusterX + seriesIndex * (barWidth + barGap);
               const y = height - paddingBottom - barHeight;
               return (

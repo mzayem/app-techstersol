@@ -13,9 +13,15 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatContractAmount } from "@/lib/contracts/constants";
-import { formatInvoiceNumber, INVOICE_STATUS_LABELS } from "@/lib/invoices/constants";
+import {
+  formatInvoiceNumber,
+  INVOICE_STATUS_LABELS,
+} from "@/lib/invoices/constants";
 import { requirePartnerUser } from "@/lib/rbac/permissions";
-import { listPartnerInvoiceSources, listPartnerInvoices } from "@/actions/partner-portal/queries";
+import {
+  listPartnerInvoiceSources,
+  listPartnerInvoices,
+} from "@/actions/partner-portal/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +38,11 @@ export default async function PartnerInvoicesPage({
     listPartnerInvoices(partner.id),
     listPartnerInvoiceSources(partner.id),
   ]);
-  const paginated = paginate(invoices, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    invoices,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -62,15 +72,22 @@ export default async function PartnerInvoicesPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No invoices yet.
                 </TableCell>
               </TableRow>
             )}
             {paginated.items.map((invoice) => (
               <TableRow key={invoice.id}>
-                <TableCell className="font-medium">{formatInvoiceNumber(invoice.number)}</TableCell>
-                <TableCell className="text-muted-foreground">{invoice.clientName}</TableCell>
+                <TableCell className="font-medium">
+                  {formatInvoiceNumber(invoice.number)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {invoice.clientName}
+                </TableCell>
                 <TableCell>{formatDate(invoice.issueDate)}</TableCell>
                 <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                 <TableCell className="text-right tabular-nums">
@@ -85,7 +102,11 @@ export default async function PartnerInvoicesPage({
                     size="icon-sm"
                     aria-label="Download PDF"
                     render={
-                      <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank" rel="noreferrer" />
+                      <a
+                        href={`/api/invoices/${invoice.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                      />
                     }
                   >
                     <DownloadIcon />

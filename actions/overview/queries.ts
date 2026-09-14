@@ -32,7 +32,13 @@ function monthKey(date: Date) {
 export async function getMonthlySeries(): Promise<MonthlyPoint[]> {
   const [earnings, expenses, donations, teamPayments] = await Promise.all([
     prisma.earning.findMany({
-      select: { date: true, amount: true, teamPay: true, partnerShare: true, projectExpenses: true },
+      select: {
+        date: true,
+        amount: true,
+        teamPay: true,
+        partnerShare: true,
+        projectExpenses: true,
+      },
     }),
     prisma.expense.findMany({
       select: { date: true, amount: true, category: true },
@@ -111,7 +117,8 @@ export function computeEarningKpis(
 ) {
   const periodSeries = series.filter((p) => withinPeriod(p.month, period));
 
-  const { teamPaid, netEarning: periodEarning } = netPeriodEarning(periodSeries);
+  const { teamPaid, netEarning: periodEarning } =
+    netPeriodEarning(periodSeries);
   const activeMonths = periodSeries.filter((p) => p.earning !== 0).length;
   const avgMonthlyEarning = activeMonths > 0 ? periodEarning / activeMonths : 0;
 
@@ -379,7 +386,11 @@ export async function getClientRevenueBreakdown(
       select: {
         amount: true,
         invoice: {
-          select: { clientId: true, client: { select: { name: true } }, pkrAmount: true },
+          select: {
+            clientId: true,
+            client: { select: { name: true } },
+            pkrAmount: true,
+          },
         },
       },
     }),

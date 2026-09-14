@@ -58,7 +58,9 @@ export function PartnerPayslipDialog({
   const [amount, setAmount] = React.useState("");
 
   const partnerAccruals = accruals.filter((a) => a.partnerId === partnerId);
-  const selectedAccrual = partnerAccruals.find((a) => a.contractId === contractId);
+  const selectedAccrual = partnerAccruals.find(
+    (a) => a.contractId === contractId,
+  );
 
   function onPartnerChange(id: string | null) {
     setPartnerId(id ?? "");
@@ -144,10 +146,16 @@ export function PartnerPayslipDialog({
                 Cost breakdown — {selectedAccrual.projectName}
               </span>
               {selectedAccrual.revenueAmount != null && (
-                <BreakdownRow label="Project revenue" value={formatPkr(selectedAccrual.revenueAmount)} />
+                <BreakdownRow
+                  label="Project revenue"
+                  value={formatPkr(selectedAccrual.revenueAmount)}
+                />
               )}
               {selectedAccrual.workCostAmount != null && (
-                <BreakdownRow label="Work cost" value={`-${formatPkr(selectedAccrual.workCostAmount)}`} />
+                <BreakdownRow
+                  label="Work cost"
+                  value={`-${formatPkr(selectedAccrual.workCostAmount)}`}
+                />
               )}
               {!!selectedAccrual.projectExpensesAmount && (
                 <BreakdownRow
@@ -156,7 +164,10 @@ export function PartnerPayslipDialog({
                 />
               )}
               {selectedAccrual.profitAmount != null && (
-                <BreakdownRow label="Net profit" value={formatPkr(selectedAccrual.profitAmount)} />
+                <BreakdownRow
+                  label="Net profit"
+                  value={formatPkr(selectedAccrual.profitAmount)}
+                />
               )}
               <BreakdownRow
                 label={`Partner share${
@@ -191,7 +202,11 @@ export function PartnerPayslipDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Issue date">
-              <DatePicker name="issueDate" required defaultValue={todayInput()} />
+              <DatePicker
+                name="issueDate"
+                required
+                defaultValue={todayInput()}
+              />
             </Field>
             <Field label="Amount (PKR)">
               <Input
@@ -233,14 +248,22 @@ function BreakdownRow({
   emphasize?: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between ${emphasize ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+    <div
+      className={`flex items-center justify-between ${emphasize ? "font-medium text-foreground" : "text-muted-foreground"}`}
+    >
       <span>{label}</span>
       <span className="tabular-nums">{value}</span>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

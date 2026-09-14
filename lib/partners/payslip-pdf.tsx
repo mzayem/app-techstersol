@@ -18,7 +18,9 @@ import { formatPartnerPayslipNumber } from "@/lib/partners/constants";
 
 function readImageAsDataUrl(filename: string) {
   try {
-    const buffer = fs.readFileSync(path.join(process.cwd(), "public", "images", filename));
+    const buffer = fs.readFileSync(
+      path.join(process.cwd(), "public", "images", filename),
+    );
     return `data:image/png;base64,${buffer.toString("base64")}`;
   } catch {
     return null;
@@ -33,7 +35,12 @@ function getLogoDataUrl(): Promise<string | null> {
   if (!logoDataUrlPromise) {
     logoDataUrlPromise = (async () => {
       try {
-        const webpPath = path.join(process.cwd(), "public", "images", "logo-black.webp");
+        const webpPath = path.join(
+          process.cwd(),
+          "public",
+          "images",
+          "logo-black.webp",
+        );
         const pngBuffer = await sharp(webpPath).png().toBuffer();
         return `data:image/png;base64,${pngBuffer.toString("base64")}`;
       } catch {
@@ -138,7 +145,12 @@ const styles = StyleSheet.create({
   },
   signatureImage: { width: 110, height: 42 },
   stampImage: { width: 78, height: 78 },
-  signCaption: { fontSize: 8, color: "#6b7280", marginTop: 2, textAlign: "center" },
+  signCaption: {
+    fontSize: 8,
+    color: "#6b7280",
+    marginTop: 2,
+    textAlign: "center",
+  },
   footer: {
     position: "absolute",
     bottom: 30,
@@ -180,7 +192,9 @@ function PartnerPayslipDocument({
             // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is not an HTML <img>
             <Image src={logoDataUrl} style={{ width: 150, height: 30 }} />
           ) : (
-            <Text style={{ fontSize: 17, fontWeight: 700 }}>{COMPANY_INFO.name.toUpperCase()}</Text>
+            <Text style={{ fontSize: 17, fontWeight: 700 }}>
+              {COMPANY_INFO.name.toUpperCase()}
+            </Text>
           )}
           <Text style={styles.title}>PAYSLIP</Text>
         </View>
@@ -205,13 +219,16 @@ function PartnerPayslipDocument({
           </View>
           <View style={{ maxWidth: 220, gap: 4 }}>
             <Text>
-              <Text style={styles.bold}>Payslip No</Text>: {formatPartnerPayslipNumber(payslip.number)}
+              <Text style={styles.bold}>Payslip No</Text>:{" "}
+              {formatPartnerPayslipNumber(payslip.number)}
             </Text>
             <Text>
-              <Text style={styles.bold}>Issue Date</Text>: {formatDate(payslip.issueDate)}
+              <Text style={styles.bold}>Issue Date</Text>:{" "}
+              {formatDate(payslip.issueDate)}
             </Text>
             <Text>
-              <Text style={styles.bold}>Period</Text>: {formatDate(payslip.periodStart)} –{" "}
+              <Text style={styles.bold}>Period</Text>:{" "}
+              {formatDate(payslip.periodStart)} –{" "}
               {formatDate(payslip.periodEnd)}
             </Text>
             {payslip.projectName && (
@@ -232,15 +249,20 @@ function PartnerPayslipDocument({
               {payslip.breakdown.revenueAmount != null && (
                 <View style={styles.tableRow}>
                   <Text style={styles.descCol}>
-                    Project revenue{payslip.projectName ? ` — ${payslip.projectName}` : ""}
+                    Project revenue
+                    {payslip.projectName ? ` — ${payslip.projectName}` : ""}
                   </Text>
-                  <Text style={styles.amountCol}>{formatPkr(payslip.breakdown.revenueAmount)}</Text>
+                  <Text style={styles.amountCol}>
+                    {formatPkr(payslip.breakdown.revenueAmount)}
+                  </Text>
                 </View>
               )}
               {payslip.breakdown.workCostAmount != null && (
                 <View style={styles.tableRow}>
                   <Text style={styles.descCol}>Less: work cost</Text>
-                  <Text style={styles.amountCol}>-{formatPkr(payslip.breakdown.workCostAmount)}</Text>
+                  <Text style={styles.amountCol}>
+                    -{formatPkr(payslip.breakdown.workCostAmount)}
+                  </Text>
                 </View>
               )}
               {!!payslip.breakdown.projectExpensesAmount && (
@@ -254,7 +276,9 @@ function PartnerPayslipDocument({
               {payslip.breakdown.profitAmount != null && (
                 <View style={styles.tableRow}>
                   <Text style={styles.descCol}>Net profit</Text>
-                  <Text style={styles.amountCol}>{formatPkr(payslip.breakdown.profitAmount)}</Text>
+                  <Text style={styles.amountCol}>
+                    {formatPkr(payslip.breakdown.profitAmount)}
+                  </Text>
                 </View>
               )}
               <View style={styles.tableRow}>
@@ -265,7 +289,9 @@ function PartnerPayslipDocument({
                     : ""}
                   {payslip.note ? `\n${payslip.note}` : ""}
                 </Text>
-                <Text style={styles.amountCol}>{formatPkr(payslip.amount)}</Text>
+                <Text style={styles.amountCol}>
+                  {formatPkr(payslip.amount)}
+                </Text>
               </View>
             </>
           ) : (
@@ -302,8 +328,14 @@ function PartnerPayslipDocument({
         </View>
 
         <View style={styles.footer} fixed>
-          <Text style={[styles.small, { maxWidth: 340, color: "#8d8d8d", fontStyle: "italic" }]}>
-            Computer-generated payslip — no physical signature required for validity.
+          <Text
+            style={[
+              styles.small,
+              { maxWidth: 340, color: "#8d8d8d", fontStyle: "italic" },
+            ]}
+          >
+            Computer-generated payslip — no physical signature required for
+            validity.
           </Text>
           <View style={styles.verifyGroup}>
             <Text style={styles.bold}>E-Verify</Text>
@@ -316,13 +348,20 @@ function PartnerPayslipDocument({
   );
 }
 
-export async function renderPartnerPayslipPdf(payslip: PartnerPayslipPdfData, origin: string) {
+export async function renderPartnerPayslipPdf(
+  payslip: PartnerPayslipPdfData,
+  origin: string,
+) {
   const verifyUrl = `${origin}/verify/partner-payslip/${payslip.id}`;
   const [qrDataUrl, logoDataUrl] = await Promise.all([
     QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 }),
     getLogoDataUrl(),
   ]);
   return renderToBuffer(
-    <PartnerPayslipDocument payslip={payslip} qrDataUrl={qrDataUrl} logoDataUrl={logoDataUrl} />,
+    <PartnerPayslipDocument
+      payslip={payslip}
+      qrDataUrl={qrDataUrl}
+      logoDataUrl={logoDataUrl}
+    />,
   );
 }

@@ -55,7 +55,12 @@ async function readWorkDiaryFields(formData: FormData) {
     throw new Error("Team member and week are required");
   }
   const hours = Number(hoursRaw);
-  if (!hoursRaw || Number.isNaN(hours) || hours <= 0 || hours > MAX_WEEKLY_HOURS) {
+  if (
+    !hoursRaw ||
+    Number.isNaN(hours) ||
+    hours <= 0 ||
+    hours > MAX_WEEKLY_HOURS
+  ) {
     throw new Error(`Enter a valid number of hours (0–${MAX_WEEKLY_HOURS})`);
   }
 
@@ -88,13 +93,21 @@ async function readWorkDiaryFields(formData: FormData) {
 
 export async function createWorkDiaryEntry(formData: FormData) {
   const teamMemberId = str(formData, "teamMemberId");
-  const createdByUserId = await requireWorkDiaryWriteAccess("create", teamMemberId);
+  const createdByUserId = await requireWorkDiaryWriteAccess(
+    "create",
+    teamMemberId,
+  );
   const fields = await readWorkDiaryFields(formData);
 
   try {
-    await prisma.workDiaryEntry.create({ data: { ...fields, createdByUserId } });
+    await prisma.workDiaryEntry.create({
+      data: { ...fields, createdByUserId },
+    });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
       throw new Error(
         `This team member already has an entry for the week of ${formatWeekRange(
           fields.weekStart,
@@ -120,7 +133,10 @@ export async function updateWorkDiaryEntry(id: string, formData: FormData) {
   try {
     await prisma.workDiaryEntry.update({ where: { id }, data: fields });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
       throw new Error(
         `This team member already has a different entry for the week of ${formatWeekRange(
           fields.weekStart,

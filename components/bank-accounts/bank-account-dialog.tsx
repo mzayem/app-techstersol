@@ -120,7 +120,11 @@ export function BankAccountDialog({
             payload: { id: bankAccount.id, formData: fields },
             label,
           })
-        : await enqueueMutation({ key: "createBankAccount", payload: fields, label });
+        : await enqueueMutation({
+            key: "createBankAccount",
+            payload: fields,
+            label,
+          });
       if (result.ok) {
         if (!isEdit) {
           formRef.current?.reset();

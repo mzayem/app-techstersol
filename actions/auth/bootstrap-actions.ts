@@ -20,7 +20,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function bootstrapAdmin(formData: FormData) {
   const existingCount = await prisma.appUser.count();
   if (existingCount > 0) {
-    throw new Error("Sign-up is closed — ask your administrator for an account");
+    throw new Error(
+      "Sign-up is closed — ask your administrator for an account",
+    );
   }
 
   const name = str(formData, "name");

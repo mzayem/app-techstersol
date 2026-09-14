@@ -87,5 +87,7 @@ const COMPACT_PKR_FORMATTER = new Intl.NumberFormat("en-PK", {
 /** Below 10,000 shows the exact amount; at or above it, abbreviates to
  * e.g. "₨10K" or "₨1.2M" for scannable headline stats. */
 export function formatCompactPkr(amount: number) {
-  return Math.abs(amount) < 10_000 ? formatPkr(amount) : COMPACT_PKR_FORMATTER.format(amount);
+  return Math.abs(amount) < 10_000
+    ? formatPkr(amount)
+    : COMPACT_PKR_FORMATTER.format(amount);
 }

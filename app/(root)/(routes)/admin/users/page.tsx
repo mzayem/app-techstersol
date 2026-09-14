@@ -28,18 +28,29 @@ export default async function UsersPage({
   await requirePagePermission("users");
   const params = await searchParams;
 
-  const [users, roles, teamMembers, availableClients, partners] = await Promise.all([
-    listAppUsers(),
-    listRoleOptions(),
-    listTeamMemberOptions(),
-    listAvailableClientOptions(),
-    listPartnerOptions(),
-  ]);
+  const [users, roles, teamMembers, availableClients, partners] =
+    await Promise.all([
+      listAppUsers(),
+      listRoleOptions(),
+      listTeamMemberOptions(),
+      listAvailableClientOptions(),
+      listPartnerOptions(),
+    ]);
 
-  const teamMemberOptions = teamMembers.map((m) => ({ id: m.id, name: m.name }));
-  const availableClientOptions = availableClients.map((c) => ({ id: c.id, name: c.name }));
+  const teamMemberOptions = teamMembers.map((m) => ({
+    id: m.id,
+    name: m.name,
+  }));
+  const availableClientOptions = availableClients.map((c) => ({
+    id: c.id,
+    name: c.name,
+  }));
   const partnerOptions = partners.map((p) => ({ id: p.id, name: p.name }));
-  const paginated = paginate(users, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    users,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -47,8 +58,8 @@ export default async function UsersPage({
         <div>
           <h1 className="text-lg font-medium">Users</h1>
           <p className="text-sm text-muted-foreground">
-            Sign-up is disabled — this is the only way to create a new
-            account: dashboard handler, team login, or client login.
+            Sign-up is disabled — this is the only way to create a new account:
+            dashboard handler, team login, or client login.
           </p>
         </div>
         <UserDialog
@@ -74,7 +85,10 @@ export default async function UsersPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No users yet.
                 </TableCell>
               </TableRow>
@@ -91,7 +105,9 @@ export default async function UsersPage({
               return (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.email}
+                  </TableCell>
                   <TableCell>
                     {user.kind === "DASHBOARD_HANDLER"
                       ? "Dashboard handler"
@@ -156,13 +172,21 @@ export default async function UsersPage({
   );
 }
 
-function StatusPill({ status }: { status: "ACTIVE" | "SUSPENDED" | "BLOCKED" }) {
+function StatusPill({
+  status,
+}: {
+  status: "ACTIVE" | "SUSPENDED" | "BLOCKED";
+}) {
   const styles = {
     ACTIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     SUSPENDED: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     BLOCKED: "bg-red-500/10 text-red-600 dark:text-red-400",
   } as const;
-  const labels = { ACTIVE: "Active", SUSPENDED: "Suspended", BLOCKED: "Blocked" } as const;
+  const labels = {
+    ACTIVE: "Active",
+    SUSPENDED: "Suspended",
+    BLOCKED: "Blocked",
+  } as const;
 
   return (
     <span

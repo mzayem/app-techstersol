@@ -99,12 +99,20 @@ export async function getDistributionBreakdown(
   dateRange: DateRange = {},
 ): Promise<Record<Bucket, BucketBreakdown>> {
   const date = dateWhere(dateRange);
-  const [earnings, expensesByCategory, donations, teamPayments] = await Promise.all([
-    prisma.earning.aggregate({ where: { date }, _sum: { amount: true, teamPay: true } }),
-    prisma.expense.groupBy({ where: { date }, by: ["category"], _sum: { amount: true } }),
-    prisma.donation.aggregate({ where: { date }, _sum: { amount: true } }),
-    prisma.teamPayment.aggregate({ where: { date }, _sum: { amount: true } }),
-  ]);
+  const [earnings, expensesByCategory, donations, teamPayments] =
+    await Promise.all([
+      prisma.earning.aggregate({
+        where: { date },
+        _sum: { amount: true, teamPay: true },
+      }),
+      prisma.expense.groupBy({
+        where: { date },
+        by: ["category"],
+        _sum: { amount: true },
+      }),
+      prisma.donation.aggregate({ where: { date }, _sum: { amount: true } }),
+      prisma.teamPayment.aggregate({ where: { date }, _sum: { amount: true } }),
+    ]);
 
   // Team pay comes out before anything else is distributed — whether it was
   // deducted from a specific Earning (an outsourced contract's invoice) or
@@ -158,7 +166,10 @@ export async function getTotalNetEarnings(
 ): Promise<NetEarningsBreakdown> {
   const date = dateWhere(dateRange);
   const [sum, teamPayments] = await Promise.all([
-    prisma.earning.aggregate({ where: { date }, _sum: { amount: true, teamPay: true } }),
+    prisma.earning.aggregate({
+      where: { date },
+      _sum: { amount: true, teamPay: true },
+    }),
     prisma.teamPayment.aggregate({ where: { date }, _sum: { amount: true } }),
   ]);
   const totalEarning = Number(sum._sum.amount ?? 0);

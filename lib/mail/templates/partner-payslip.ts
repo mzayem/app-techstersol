@@ -1,4 +1,10 @@
-import { emailBadge, emailButton, emailInfoRow, emailInfoTable, renderEmailShell } from "./shell";
+import {
+  emailBadge,
+  emailButton,
+  emailInfoRow,
+  emailInfoTable,
+  renderEmailShell,
+} from "./shell";
 
 export function renderPartnerPayslipIssuedEmail({
   payslipNumber,
@@ -24,9 +30,13 @@ export function renderPartnerPayslipIssuedEmail({
   const breakdownRows = breakdown
     ? [
         projectName ? emailInfoRow("Project", projectName) : "",
-        breakdown.revenue ? emailInfoRow("Project revenue", breakdown.revenue) : "",
+        breakdown.revenue
+          ? emailInfoRow("Project revenue", breakdown.revenue)
+          : "",
         breakdown.workCost ? emailInfoRow("Work cost", breakdown.workCost) : "",
-        breakdown.projectExpenses ? emailInfoRow("Project expenses", breakdown.projectExpenses) : "",
+        breakdown.projectExpenses
+          ? emailInfoRow("Project expenses", breakdown.projectExpenses)
+          : "",
         breakdown.profit ? emailInfoRow("Net profit", breakdown.profit) : "",
         breakdown.sharePercent != null
           ? emailInfoRow("Your share", `${breakdown.sharePercent}% of profit`)

@@ -1,6 +1,13 @@
-import { getMonthlySeries, computeEarningKpis, getDistributionAudit } from "@/actions/overview/queries";
+import {
+  getMonthlySeries,
+  computeEarningKpis,
+  getDistributionAudit,
+} from "@/actions/overview/queries";
 import { formatPkr } from "@/lib/finance/constants";
-import { fiscalYearRange, formatFiscalYearLabel } from "@/lib/finance/date-range";
+import {
+  fiscalYearRange,
+  formatFiscalYearLabel,
+} from "@/lib/finance/date-range";
 import { GroupedBarChart } from "@/lib/reports/chart";
 import {
   AnalysisTable,
@@ -33,7 +40,9 @@ export async function renderTaxYearReport(
   params: Record<string, string | undefined>,
   generatedBy: string,
 ): Promise<Buffer> {
-  const startYear = params.fiscalYear ? Number(params.fiscalYear) : currentFiscalYearStart();
+  const startYear = params.fiscalYear
+    ? Number(params.fiscalYear)
+    : currentFiscalYearStart();
   const range = fiscalYearRange(startYear);
   const period: ResolvedPeriod = { from: range.from!, to: range.to! };
   const label = `Fiscal Year ${formatFiscalYearLabel(startYear)} (1 July ${startYear} – 30 June ${startYear + 1})`;
@@ -48,7 +57,8 @@ export async function renderTaxYearReport(
     })
     .sort((a, b) => a.month.localeCompare(b.month));
 
-  const totalExpenseLike = kpis.totalExpenses + kpis.totalInvestment + kpis.totalDonations;
+  const totalExpenseLike =
+    kpis.totalExpenses + kpis.totalInvestment + kpis.totalDonations;
   const netMargin =
     kpis.periodEarning + kpis.totalTeamPaid > 0
       ? (kpis.periodEarning / (kpis.periodEarning + kpis.totalTeamPaid)) * 100
@@ -76,22 +86,26 @@ export async function renderTaxYearReport(
     <>
       <Section heading="Overview">
         <Paragraph>
-          This report presents a summary of Techstersol’s financial activity for the fiscal
-          year running from 1 July {startYear} to 30 June {startYear + 1}. During this period,
-          the company recorded net earning of {formatPkr(kpis.periodEarning)}, averaging{" "}
-          {formatPkr(kpis.avgMonthlyEarning)} per active month across {kpis.monthCount} month
+          This report presents a summary of Techstersol’s financial activity for
+          the fiscal year running from 1 July {startYear} to 30 June{" "}
+          {startYear + 1}. During this period, the company recorded net earning
+          of {formatPkr(kpis.periodEarning)}, averaging{" "}
+          {formatPkr(kpis.avgMonthlyEarning)} per active month across{" "}
+          {kpis.monthCount} month
           {kpis.monthCount === 1 ? "" : "s"} of recorded activity.
         </Paragraph>
         <Paragraph>
-          A total of {formatPkr(totalExpenseLike)} was allocated toward expenses, investment,
-          and charitable donations combined over the year, following the company’s standard
-          distribution split of net earning. Team payments — compensation for outsourced work
-          and logged hours not already netted against a specific booked earning — amounted to{" "}
-          {formatPkr(kpis.totalTeamPaid)}, representing {(100 - netMargin).toFixed(1)}% of gross
-          earning for the year.
+          A total of {formatPkr(totalExpenseLike)} was allocated toward
+          expenses, investment, and charitable donations combined over the year,
+          following the company’s standard distribution split of net earning.
+          Team payments — compensation for outsourced work and logged hours not
+          already netted against a specific booked earning — amounted to{" "}
+          {formatPkr(kpis.totalTeamPaid)}, representing{" "}
+          {(100 - netMargin).toFixed(1)}% of gross earning for the year.
         </Paragraph>
         <Paragraph>
-          {audit.expenses.overFraction !== null && audit.expenses.overFraction > 0
+          {audit.expenses.overFraction !== null &&
+          audit.expenses.overFraction > 0
             ? "Expense spending exceeded its allocated share for the year, which management should factor into planning for the year ahead."
             : "Expense spending stayed within its allocated share for the year, reflecting disciplined budget management."}
         </Paragraph>
@@ -100,13 +114,21 @@ export async function renderTaxYearReport(
       {monthly.length > 0 && (
         <Section heading="Monthly earning and expenses">
           <GroupedBarChart
-            categories={monthly.map((p) => MONTH_LABEL_FORMAT.format(new Date(`${p.month}T00:00:00`)))}
+            categories={monthly.map((p) =>
+              MONTH_LABEL_FORMAT.format(new Date(`${p.month}T00:00:00`)),
+            )}
             series={[
-              { label: "Earning", color: "#10b981", values: monthly.map((p) => p.earning) },
+              {
+                label: "Earning",
+                color: "#10b981",
+                values: monthly.map((p) => p.earning),
+              },
               {
                 label: "Expenses",
                 color: "#f43f5e",
-                values: monthly.map((p) => p.expense + p.lifestyle + p.emergencyFund),
+                values: monthly.map(
+                  (p) => p.expense + p.lifestyle + p.emergencyFund,
+                ),
               },
             ]}
             valueFormatter={(v) => formatPkr(v)}
@@ -128,9 +150,9 @@ export async function renderTaxYearReport(
 
       <Section heading="Certification">
         <Paragraph>
-          This report has been prepared from Techstersol’s recorded financial data for the
-          fiscal year stated above and is certified accurate to the best of management’s
-          knowledge as of the date signed below.
+          This report has been prepared from Techstersol’s recorded financial
+          data for the fiscal year stated above and is certified accurate to the
+          best of management’s knowledge as of the date signed below.
         </Paragraph>
         <Paragraph>Date: {signOffDate}</Paragraph>
       </Section>
@@ -139,10 +161,5 @@ export async function renderTaxYearReport(
     </>
   );
 
-  return renderAnalysisPdf(
-    "ANNUAL REPORT",
-    label,
-    generatedBy,
-    body,
-  );
+  return renderAnalysisPdf("ANNUAL REPORT", label, generatedBy, body);
 }

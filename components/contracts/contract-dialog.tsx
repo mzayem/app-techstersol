@@ -155,13 +155,14 @@ export function ContractDialog({
   const [handledBy, setHandledBy] = React.useState<"company" | "outsourced">(
     contract?.teamMemberId ? "outsourced" : "company",
   );
-  const [teamMemberId, setTeamMemberId] = React.useState(contract?.teamMemberId ?? "");
+  const [teamMemberId, setTeamMemberId] = React.useState(
+    contract?.teamMemberId ?? "",
+  );
   const [statusEmailsEnabled, setStatusEmailsEnabled] = React.useState(
     contract?.statusEmailsEnabled ?? true,
   );
-  const [chatNotificationsEnabled, setChatNotificationsEnabled] = React.useState(
-    contract?.chatNotificationsEnabled ?? false,
-  );
+  const [chatNotificationsEnabled, setChatNotificationsEnabled] =
+    React.useState(contract?.chatNotificationsEnabled ?? false);
 
   // Controlled so the percentage-mode work cost estimate can recompute live
   // off the same values the admin is typing.
@@ -171,10 +172,14 @@ export function ContractDialog({
   const [teamPayAmount, setTeamPayAmount] = React.useState(
     contract?.teamPayAmount != null ? String(contract.teamPayAmount) : "",
   );
-  const [partnerEnabled, setPartnerEnabled] = React.useState(!!contract?.partnerId);
+  const [partnerEnabled, setPartnerEnabled] = React.useState(
+    !!contract?.partnerId,
+  );
   const [partnerId, setPartnerId] = React.useState(contract?.partnerId ?? "");
   const [partnerSharePercent, setPartnerSharePercent] = React.useState(
-    contract?.partnerSharePercent != null ? String(contract.partnerSharePercent) : "",
+    contract?.partnerSharePercent != null
+      ? String(contract.partnerSharePercent)
+      : "",
   );
   const [workCostMode, setWorkCostMode] = React.useState<ContractWorkCostMode>(
     contract?.workCostMode ?? "FIXED",
@@ -182,7 +187,10 @@ export function ContractDialog({
   const [workCostPercent, setWorkCostPercent] = React.useState(
     contract?.workCostPercent != null ? String(contract.workCostPercent) : "",
   );
-  const [fxRates, setFxRates] = React.useState<Record<PaymentCurrency, number> | null>(null);
+  const [fxRates, setFxRates] = React.useState<Record<
+    PaymentCurrency,
+    number
+  > | null>(null);
 
   const selectedClient = clients.find((c) => c.id === clientId);
   const clientNotificationsDisabled = selectedClient
@@ -212,7 +220,8 @@ export function ContractDialog({
       amount: paymentType === "PROJECT" ? Number(amount) : null,
       milestones: milestones.map((m) => ({ amount: Number(m.amount) || 0 })),
     });
-    const rate = currency && currency !== "PKR" ? (fxRates?.[currency] ?? 1) : 1;
+    const rate =
+      currency && currency !== "PKR" ? (fxRates?.[currency] ?? 1) : 1;
     const estimate = (revenue * rate * pct) / 100;
     setTeamPayAmount(estimate ? estimate.toFixed(2) : "0.00");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- milestones is an array literal each render; JSON-stringify below keys the effect off its actual contents instead.
@@ -287,7 +296,11 @@ export function ContractDialog({
       const result = isEdit
         ? await enqueueMutation({
             key: "updateContract",
-            payload: { id: contract.id, formData: fields, milestones: milestoneInputs },
+            payload: {
+              id: contract.id,
+              formData: fields,
+              milestones: milestoneInputs,
+            },
             label,
           })
         : await enqueueMutation({
@@ -476,7 +489,9 @@ export function ContractDialog({
                       className="w-40"
                       value={row.deadline}
                       disabled={locked}
-                      onValueChange={(v) => updateMilestone(index, { deadline: v })}
+                      onValueChange={(v) =>
+                        updateMilestone(index, { deadline: v })
+                      }
                     />
                     <Button
                       type="button"
@@ -551,7 +566,10 @@ export function ContractDialog({
                 <Combobox
                   value={teamMemberId}
                   onValueChange={setTeamMemberId}
-                  options={teamMembers.map((m) => ({ value: m.id, label: m.name }))}
+                  options={teamMembers.map((m) => ({
+                    value: m.id,
+                    label: m.name,
+                  }))}
                   placeholder="Select team member"
                   searchPlaceholder="Search team…"
                   emptyText="No team members found."
@@ -588,7 +606,10 @@ export function ContractDialog({
                     <Combobox
                       value={partnerId}
                       onValueChange={onPartnerChange}
-                      options={partners.map((p) => ({ value: p.id, label: p.name }))}
+                      options={partners.map((p) => ({
+                        value: p.id,
+                        label: p.name,
+                      }))}
                       placeholder="Select partner"
                       searchPlaceholder="Search partners…"
                       emptyText="No partners found."
@@ -612,7 +633,9 @@ export function ContractDialog({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm text-muted-foreground">Work cost</span>
+                  <span className="text-sm text-muted-foreground">
+                    Work cost
+                  </span>
                   <div className="inline-flex w-fit overflow-hidden rounded-md ring-1 ring-input">
                     {WORK_COST_MODES.map((mode) => (
                       <Button
@@ -663,7 +686,10 @@ export function ContractDialog({
                   min="0"
                   step="0.01"
                   placeholder="0.00"
-                  required={handledBy === "outsourced" && !(partnerEnabled && workCostMode === "PERCENTAGE")}
+                  required={
+                    handledBy === "outsourced" &&
+                    !(partnerEnabled && workCostMode === "PERCENTAGE")
+                  }
                   disabled={locked}
                   value={teamPayAmount}
                   onChange={(e) => setTeamPayAmount(e.target.value)}
@@ -685,7 +711,9 @@ export function ContractDialog({
 
             <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">Email on status changes</span>
+                <span className="text-sm font-medium">
+                  Email on status changes
+                </span>
                 <span className="text-xs text-muted-foreground">
                   {clientNotificationsDisabled
                     ? "Off — this client has email notifications disabled in their profile."
@@ -700,16 +728,22 @@ export function ContractDialog({
               <input
                 type="hidden"
                 name="statusEmailsEnabled"
-                value={statusEmailsEnabled && !clientNotificationsDisabled ? "true" : "false"}
+                value={
+                  statusEmailsEnabled && !clientNotificationsDisabled
+                    ? "true"
+                    : "false"
+                }
               />
             </div>
 
             <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">Email on new chat messages</span>
+                <span className="text-sm font-medium">
+                  Email on new chat messages
+                </span>
                 <span className="text-xs text-muted-foreground">
-                  Off by default. When on, a message from you emails the client, and a message
-                  from the client emails you.
+                  Off by default. When on, a message from you emails the client,
+                  and a message from the client emails you.
                 </span>
               </div>
               <Switch
@@ -743,7 +777,11 @@ export function ContractDialog({
           {!locked && (
             <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
-                {pending ? "Saving…" : isEdit ? "Save changes" : "Save contract"}
+                {pending
+                  ? "Saving…"
+                  : isEdit
+                    ? "Save changes"
+                    : "Save contract"}
               </Button>
             </DialogFooter>
           )}

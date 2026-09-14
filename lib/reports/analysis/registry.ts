@@ -22,13 +22,17 @@ export type AnalysisReportDef = {
    * "fiscalYear" reports (just the Annual Report) pick a July–June year
    * instead. */
   periodKind: "range" | "fiscalYear";
-  render(params: Record<string, string | undefined>, generatedBy: string): Promise<Buffer>;
+  render(
+    params: Record<string, string | undefined>,
+    generatedBy: string,
+  ): Promise<Buffer>;
 };
 
 export const ANALYSIS_REPORTS: Record<AnalysisReportType, AnalysisReportDef> = {
   "balance-sheet-audit": {
     title: "Balance Sheet Audit",
-    description: "Every credit and debit for the period, with a running balance.",
+    description:
+      "Every credit and debit for the period, with a running balance.",
     filename: "balance-sheet-audit",
     tab: "audit",
     periodKind: "range",
@@ -68,7 +72,8 @@ export const ANALYSIS_REPORTS: Record<AnalysisReportType, AnalysisReportDef> = {
   },
   "tax-year": {
     title: "Annual Report",
-    description: "Fiscal-year (Jul–Jun) summary with charts, ending in a signed sign-off.",
+    description:
+      "Fiscal-year (Jul–Jun) summary with charts, ending in a signed sign-off.",
     filename: "annual-report",
     tab: "annual",
     periodKind: "fiscalYear",
@@ -76,6 +81,8 @@ export const ANALYSIS_REPORTS: Record<AnalysisReportType, AnalysisReportDef> = {
   },
 };
 
-export function isAnalysisReportType(value: string): value is AnalysisReportType {
+export function isAnalysisReportType(
+  value: string,
+): value is AnalysisReportType {
   return value in ANALYSIS_REPORTS;
 }

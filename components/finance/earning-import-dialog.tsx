@@ -1,6 +1,9 @@
 "use client";
 
-import { ImportDialog, type ImportColumn } from "@/components/finance/import-dialog";
+import {
+  ImportDialog,
+  type ImportColumn,
+} from "@/components/finance/import-dialog";
 import { createEarning } from "@/actions/finance/actions";
 
 const COLUMNS: ImportColumn[] = [

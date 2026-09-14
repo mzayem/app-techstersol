@@ -10,7 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/chart";
+import {
+  ChartContainer,
+  ChartTooltip,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { formatPkr } from "@/lib/finance/constants";
 import type { ClientRevenueSlice } from "@/actions/overview/queries";
 
@@ -34,7 +38,11 @@ function colorFor(client: ClientRevenueSlice, clientIndex: number) {
   return client.isOther ? OTHER_COLOR : COLORS[clientIndex % COLORS.length];
 }
 
-export function RevenuePieChart({ clients }: { clients: ClientRevenueSlice[] }) {
+export function RevenuePieChart({
+  clients,
+}: {
+  clients: ClientRevenueSlice[];
+}) {
   const chartConfig = React.useMemo(() => {
     const config: ChartConfig = {};
     let clientIndex = 0;
@@ -65,7 +73,10 @@ export function RevenuePieChart({ clients }: { clients: ClientRevenueSlice[] }) 
             Revenue appears here once an invoice is marked paid.
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="mx-auto aspect-square h-70">
+          <ChartContainer
+            config={chartConfig}
+            className="mx-auto aspect-square h-70"
+          >
             <PieChart>
               <Pie
                 data={clients}
@@ -76,7 +87,10 @@ export function RevenuePieChart({ clients }: { clients: ClientRevenueSlice[] }) 
                 strokeWidth={2}
               >
                 {clients.map((c) => (
-                  <Cell key={c.clientId} fill={chartConfig[c.clientId]?.color} />
+                  <Cell
+                    key={c.clientId}
+                    fill={chartConfig[c.clientId]?.color}
+                  />
                 ))}
               </Pie>
               <ChartTooltip content={<RevenueTooltip />} />
@@ -87,12 +101,17 @@ export function RevenuePieChart({ clients }: { clients: ClientRevenueSlice[] }) 
       {clients.length > 0 && (
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-(--card-spacing) text-xs sm:grid-cols-3">
           {clients.map((c) => (
-            <div key={c.clientId} className="flex items-center gap-1.5 truncate">
+            <div
+              key={c.clientId}
+              className="flex items-center gap-1.5 truncate"
+            >
               <span
                 className="size-2 shrink-0 rounded-xs"
                 style={{ backgroundColor: chartConfig[c.clientId]?.color }}
               />
-              <span className="truncate text-muted-foreground">{c.clientName}</span>
+              <span className="truncate text-muted-foreground">
+                {c.clientName}
+              </span>
             </div>
           ))}
         </div>

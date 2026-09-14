@@ -22,7 +22,11 @@ export default async function TeamPaymentsPage({
   const params = await searchParams;
   const payments = await listTeamPayments();
   const total = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-  const paginated = paginate(payments, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    payments,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">

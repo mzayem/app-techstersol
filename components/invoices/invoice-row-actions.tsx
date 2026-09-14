@@ -55,7 +55,10 @@ export function InvoiceRowActions({
         setMarkUnpaidOpen(false);
       } catch (e) {
         toast.add({
-          title: e instanceof Error ? e.message : "Couldn't mark this invoice as unpaid",
+          title:
+            e instanceof Error
+              ? e.message
+              : "Couldn't mark this invoice as unpaid",
           type: "error",
         });
       }
@@ -71,7 +74,10 @@ export function InvoiceRowActions({
         onMarkUnpaid={() => setMarkUnpaidOpen(true)}
         onDelete={() => setDeleteOpen(true)}
       />
-      <SendEmailDialog defaultTo={clientEmail} record={{ kind: "invoice", id }} />
+      <SendEmailDialog
+        defaultTo={clientEmail}
+        record={{ kind: "invoice", id }}
+      />
       <MarkPaidDialog
         open={markPaidOpen}
         onOpenChange={setMarkPaidOpen}

@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { ACTION_REGISTRY } from "@/lib/sync/actions-registry";
 import { isLikelyNetworkError } from "@/lib/sync/mutate";
-import { getQueue, removeFromQueue, bumpAttempts, subscribeQueue } from "@/lib/sync/queue";
+import {
+  getQueue,
+  removeFromQueue,
+  bumpAttempts,
+  subscribeQueue,
+} from "@/lib/sync/queue";
 
 const RETRY_INTERVAL_MS = 15_000;
 // ~5 minutes of retrying at the interval above before giving up on an
@@ -42,7 +47,11 @@ export function SyncProvider() {
           await run(item.payload);
           removeFromQueue(item.id);
           changed = true;
-          toast.add({ title: `Synced "${item.label}"`, type: "success", timeout: 2500 });
+          toast.add({
+            title: `Synced "${item.label}"`,
+            type: "success",
+            timeout: 2500,
+          });
         } catch (error) {
           if (isLikelyNetworkError(error)) {
             // Still offline-ish — stop this pass, the next tick will retry
@@ -54,7 +63,8 @@ export function SyncProvider() {
             removeFromQueue(item.id);
             toast.add({
               title: `Couldn't sync "${item.label}"`,
-              description: error instanceof Error ? error.message : "Unknown error",
+              description:
+                error instanceof Error ? error.message : "Unknown error",
               type: "error",
               timeout: 6000,
             });

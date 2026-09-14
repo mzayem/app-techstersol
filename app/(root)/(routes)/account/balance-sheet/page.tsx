@@ -36,7 +36,11 @@ export default async function BalanceSheetPage({
   ]);
 
   const rows = withRunningBalance(chronological).reverse();
-  const paginated = paginate(rows, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    rows,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -44,8 +48,7 @@ export default async function BalanceSheetPage({
         <h1 className="text-lg font-medium">Balance Sheet</h1>
         <p className="text-sm text-muted-foreground">
           Every credit and debit is recorded automatically as earnings,
-          expenses, donations, and team pay are entered — nothing to add
-          here.
+          expenses, donations, and team pay are entered — nothing to add here.
         </p>
       </div>
 
@@ -117,7 +120,9 @@ export default async function BalanceSheetPage({
                   {formatDate(entry.date)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {Number(entry.debit) > 0 ? formatPkr(Number(entry.debit)) : "—"}
+                  {Number(entry.debit) > 0
+                    ? formatPkr(Number(entry.debit))
+                    : "—"}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {Number(entry.credit) > 0

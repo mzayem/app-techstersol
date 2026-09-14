@@ -12,9 +12,12 @@ export const LETTERHEAD_FONT_FAMILIES = [
   { value: "Verdana", label: "Verdana" },
 ] as const;
 
-export type LetterheadFontFamily = (typeof LETTERHEAD_FONT_FAMILIES)[number]["value"];
+export type LetterheadFontFamily =
+  (typeof LETTERHEAD_FONT_FAMILIES)[number]["value"];
 
-export const LETTERHEAD_FONT_SIZES = [8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32] as const;
+export const LETTERHEAD_FONT_SIZES = [
+  8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32,
+] as const;
 
 export const LETTERHEAD_LINE_SPACINGS = [
   { value: 1, label: "Single (default)" },

@@ -12,8 +12,14 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatContractAmount } from "@/lib/contracts/constants";
-import { formatInvoiceNumber, INVOICE_STATUS_LABELS } from "@/lib/invoices/constants";
-import { getActiveClientProfiles, requireClientUser } from "@/lib/rbac/permissions";
+import {
+  formatInvoiceNumber,
+  INVOICE_STATUS_LABELS,
+} from "@/lib/invoices/constants";
+import {
+  getActiveClientProfiles,
+  requireClientUser,
+} from "@/lib/rbac/permissions";
 import { listMyInvoices } from "@/actions/client-portal/queries";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +34,11 @@ export default async function ClientInvoicesPage({
   const profiles = getActiveClientProfiles(appUser);
   const isMultiProfile = profiles.length > 1;
   const invoices = await listMyInvoices(profiles);
-  const paginated = paginate(invoices, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    invoices,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -69,7 +79,9 @@ export default async function ClientInvoicesPage({
                   {formatInvoiceNumber(invoice.number)}
                 </TableCell>
                 {isMultiProfile && (
-                  <TableCell className="text-muted-foreground">{invoice.clientName}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {invoice.clientName}
+                  </TableCell>
                 )}
                 <TableCell>{formatDate(invoice.issueDate)}</TableCell>
                 <TableCell>{formatDate(invoice.dueDate)}</TableCell>
@@ -85,7 +97,11 @@ export default async function ClientInvoicesPage({
                     size="icon-sm"
                     aria-label="Download PDF"
                     render={
-                      <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank" rel="noreferrer" />
+                      <a
+                        href={`/api/invoices/${invoice.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                      />
                     }
                   >
                     <DownloadIcon />

@@ -43,7 +43,11 @@ export function notifyProposalSubmitted({
     await sendMail({
       to,
       subject: `New project proposal: ${projectName}`,
-      html: renderProposalNotificationEmail({ clientName, projectName, appUrl: appUrl() }),
+      html: renderProposalNotificationEmail({
+        clientName,
+        projectName,
+        appUrl: appUrl(),
+      }),
     });
   });
 }
@@ -61,7 +65,11 @@ export function notifyContractCreated(contractId: string) {
       },
     });
     if (!contract) return;
-    if (!contract.statusEmailsEnabled || !contract.client.emailNotificationsEnabled) return;
+    if (
+      !contract.statusEmailsEnabled ||
+      !contract.client.emailNotificationsEnabled
+    )
+      return;
     if (!contract.client.email) return;
 
     await sendMail({
@@ -88,7 +96,11 @@ export function notifyContractStatusChanged(contractId: string) {
       },
     });
     if (!contract) return;
-    if (!contract.statusEmailsEnabled || !contract.client.emailNotificationsEnabled) return;
+    if (
+      !contract.statusEmailsEnabled ||
+      !contract.client.emailNotificationsEnabled
+    )
+      return;
     if (!contract.client.email) return;
 
     await sendMail({

@@ -33,20 +33,42 @@ export type PageRegistryEntry = {
   key: PageKey;
   label: string;
   url: string;
-  group: "Clients" | "Account" | "Projects" | "Team" | "Partners" | "Reports" | "Admin";
+  group:
+    | "Clients"
+    | "Account"
+    | "Projects"
+    | "Team"
+    | "Partners"
+    | "Reports"
+    | "Admin";
 };
 
 export const PAGE_REGISTRY: PageRegistryEntry[] = [
   { key: "clients", label: "Clients", url: "/clients", group: "Clients" },
-  { key: "earning", label: "Earning", url: "/account/earning", group: "Account" },
-  { key: "expenses", label: "Expenses", url: "/account/expenses", group: "Account" },
+  {
+    key: "earning",
+    label: "Earning",
+    url: "/account/earning",
+    group: "Account",
+  },
+  {
+    key: "expenses",
+    label: "Expenses",
+    url: "/account/expenses",
+    group: "Account",
+  },
   {
     key: "distributions",
     label: "Distributions",
     url: "/account/distributions",
     group: "Account",
   },
-  { key: "donations", label: "Donations", url: "/account/donations", group: "Account" },
+  {
+    key: "donations",
+    label: "Donations",
+    url: "/account/donations",
+    group: "Account",
+  },
   {
     key: "bank-details",
     label: "Bank Details",
@@ -65,10 +87,20 @@ export const PAGE_REGISTRY: PageRegistryEntry[] = [
     url: "/projects/contracts",
     group: "Projects",
   },
-  { key: "invoices", label: "Invoices", url: "/projects/invoices", group: "Projects" },
+  {
+    key: "invoices",
+    label: "Invoices",
+    url: "/projects/invoices",
+    group: "Projects",
+  },
   { key: "team", label: "Team Members", url: "/team", group: "Team" },
   { key: "payslips", label: "Payslips", url: "/team/payslips", group: "Team" },
-  { key: "work-diary", label: "Work Diary", url: "/team/work-diary", group: "Team" },
+  {
+    key: "work-diary",
+    label: "Work Diary",
+    url: "/team/work-diary",
+    group: "Team",
+  },
   { key: "partners", label: "Partners", url: "/partners", group: "Partners" },
   {
     key: "partner-payslips",
@@ -82,14 +114,24 @@ export const PAGE_REGISTRY: PageRegistryEntry[] = [
     url: "/partners/ledger",
     group: "Partners",
   },
-  { key: "reports-audit", label: "Audit Reports", url: "/reports/audit", group: "Reports" },
+  {
+    key: "reports-audit",
+    label: "Audit Reports",
+    url: "/reports/audit",
+    group: "Reports",
+  },
   {
     key: "reports-performance",
     label: "Performance Reports",
     url: "/reports/performance",
     group: "Reports",
   },
-  { key: "reports-annual", label: "Annual Report", url: "/reports/annual", group: "Reports" },
+  {
+    key: "reports-annual",
+    label: "Annual Report",
+    url: "/reports/annual",
+    group: "Reports",
+  },
   {
     key: "reports-partners",
     label: "Earnings shared with partners",

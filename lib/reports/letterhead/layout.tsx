@@ -86,11 +86,15 @@ Font.register({
 });
 Font.register({
   family: "LH Montserrat",
-  fonts: [{ src: path.join(fontsDir, "LH-Montserrat-Bold.ttf"), fontWeight: 700 }],
+  fonts: [
+    { src: path.join(fontsDir, "LH-Montserrat-Bold.ttf"), fontWeight: 700 },
+  ],
 });
 Font.register({
   family: "LH Inter",
-  fonts: [{ src: path.join(fontsDir, "LH-Inter-Regular.ttf"), fontWeight: 400 }],
+  fonts: [
+    { src: path.join(fontsDir, "LH-Inter-Regular.ttf"), fontWeight: 400 },
+  ],
 });
 
 const styles = StyleSheet.create({

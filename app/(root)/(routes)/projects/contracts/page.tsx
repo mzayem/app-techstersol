@@ -88,20 +88,30 @@ export default async function ContractsPage({
       amount,
       status: contract.status as ContractStatus,
       teamMemberId: contract.teamMemberId,
-      teamPayAmount: contract.teamPayAmount ? Number(contract.teamPayAmount) : null,
+      teamPayAmount: contract.teamPayAmount
+        ? Number(contract.teamPayAmount)
+        : null,
       statusEmailsEnabled: contract.statusEmailsEnabled,
       chatNotificationsEnabled: contract.chatNotificationsEnabled,
       partnerId: contract.partnerId,
       workCostMode: contract.workCostMode,
-      workCostPercent: contract.workCostPercent ? Number(contract.workCostPercent) : null,
-      partnerSharePercent: contract.partnerSharePercent ? Number(contract.partnerSharePercent) : null,
+      workCostPercent: contract.workCostPercent
+        ? Number(contract.workCostPercent)
+        : null,
+      partnerSharePercent: contract.partnerSharePercent
+        ? Number(contract.partnerSharePercent)
+        : null,
       milestones,
       projectExpenses,
       totalAmount,
       paidAmount: contract.paidAmount,
     };
   });
-  const paginated = paginate(items, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    items,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">

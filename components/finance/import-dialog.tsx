@@ -93,16 +93,25 @@ export function ImportDialog({
     const rows = parseCsv(text);
     if (rows.length === 0) {
       setImporting(false);
-      setResult({ succeeded: 0, errors: [{ row: 0, message: "The file is empty." }] });
+      setResult({
+        succeeded: 0,
+        errors: [{ row: 0, message: "The file is empty." }],
+      });
       return;
     }
 
     const headerCells = rows[0].map((h) => h.trim());
-    const columnByHeader = new Map(columns.map((c) => [c.key.toLowerCase(), c]));
-    const indexToColumn = headerCells.map((h) => columnByHeader.get(h.toLowerCase()));
+    const columnByHeader = new Map(
+      columns.map((c) => [c.key.toLowerCase(), c]),
+    );
+    const indexToColumn = headerCells.map((h) =>
+      columnByHeader.get(h.toLowerCase()),
+    );
 
     const missingRequired = columns.filter(
-      (c) => c.required && !headerCells.some((h) => h.toLowerCase() === c.key.toLowerCase()),
+      (c) =>
+        c.required &&
+        !headerCells.some((h) => h.toLowerCase() === c.key.toLowerCase()),
     );
     if (missingRequired.length > 0) {
       setImporting(false);
@@ -207,7 +216,12 @@ export function ImportDialog({
             </table>
           </div>
 
-          <Button type="button" variant="outline" size="sm" onClick={downloadSample}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={downloadSample}
+          >
             <DownloadIcon />
             Download sample CSV
           </Button>
@@ -249,7 +263,8 @@ export function ImportDialog({
                   <XCircleIcon className="size-4 text-destructive" />
                 )}
                 <span className="font-medium">
-                  {result.succeeded} row{result.succeeded === 1 ? "" : "s"} imported
+                  {result.succeeded} row{result.succeeded === 1 ? "" : "s"}{" "}
+                  imported
                   {result.errors.length > 0
                     ? `, ${result.errors.length} failed`
                     : ""}
@@ -281,7 +296,11 @@ export function ImportDialog({
           >
             Close
           </Button>
-          <Button type="button" disabled={!file || importing} onClick={handleImport}>
+          <Button
+            type="button"
+            disabled={!file || importing}
+            onClick={handleImport}
+          >
             {importing ? "Importing…" : "Import"}
           </Button>
         </DialogFooter>

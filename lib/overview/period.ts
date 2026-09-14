@@ -29,7 +29,10 @@ export function resolveOverviewPeriod(
   switch (period) {
     case "last-year": {
       const year = now.getFullYear() - 1;
-      return { from: new Date(year, 0, 1), to: new Date(year, 11, 31, 23, 59, 59, 999) };
+      return {
+        from: new Date(year, 0, 1),
+        to: new Date(year, 11, 31, 23, 59, 59, 999),
+      };
     }
     case "custom":
       return {

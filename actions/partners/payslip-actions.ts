@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { PARTNER_PAYSLIP_NUMBER_START, formatPartnerPayslipNumber } from "@/lib/partners/constants";
+import {
+  PARTNER_PAYSLIP_NUMBER_START,
+  formatPartnerPayslipNumber,
+} from "@/lib/partners/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { notifyPartnerPayslipIssued } from "@/lib/mail/notifications/partners";
 
@@ -51,7 +54,11 @@ export async function createPartnerPayslip(formData: FormData) {
   // it's recorded as its own outgoing MANUAL PartnerPayment.
   const existingPayment = contractId
     ? await prisma.partnerPayment.findFirst({
-        where: { contractId, source: "AUTO_COMPLETION", partnerPayslipId: null },
+        where: {
+          contractId,
+          source: "AUTO_COMPLETION",
+          partnerPayslipId: null,
+        },
         select: { id: true },
       })
     : null;
@@ -161,7 +168,9 @@ export async function deletePartnerPayslip(id: string) {
     // payment reverts to unlinked/pending, re-issuable later), unlinking
     // via onDelete: SetNull.
     await prisma.$transaction([
-      prisma.ledgerEntry.deleteMany({ where: { partnerPaymentId: payment.id } }),
+      prisma.ledgerEntry.deleteMany({
+        where: { partnerPaymentId: payment.id },
+      }),
       prisma.partnerPayslip.delete({ where: { id } }),
     ]);
   } else {

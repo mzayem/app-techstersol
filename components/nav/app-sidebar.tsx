@@ -120,10 +120,13 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={
-                    pathname === navSettings.url || pathname.startsWith(`${navSettings.url}/`)
+                    pathname === navSettings.url ||
+                    pathname.startsWith(`${navSettings.url}/`)
                   }
                   tooltip={navSettings.title}
-                  render={<Link href={navSettings.url} onClick={closeOnMobile} />}
+                  render={
+                    <Link href={navSettings.url} onClick={closeOnMobile} />
+                  }
                 >
                   <navSettings.icon />
                   <span>{navSettings.title}</span>

@@ -93,7 +93,9 @@ export function ProjectExpensesSection({
             {row.date.toISOString().slice(0, 10)}
           </span>
           <span className="flex-1">{row.name}</span>
-          <span className="w-24 text-right">{formatContractAmount(row.amount, "PKR")}</span>
+          <span className="w-24 text-right">
+            {formatContractAmount(row.amount, "PKR")}
+          </span>
           <Button
             type="button"
             variant="ghost"
@@ -108,7 +110,12 @@ export function ProjectExpensesSection({
       ))}
 
       <div className="flex items-start gap-2">
-        <DatePicker className="w-36" value={date} disabled={disabled} onValueChange={setDate} />
+        <DatePicker
+          className="w-36"
+          value={date}
+          disabled={disabled}
+          onValueChange={setDate}
+        />
         <Input
           placeholder="Name"
           className="flex-1"

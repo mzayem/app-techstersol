@@ -125,7 +125,10 @@ export function ContractTable({
         clearSelection();
       } catch (e) {
         toast.add({
-          title: e instanceof Error ? e.message : "Couldn't update the selected contracts",
+          title:
+            e instanceof Error
+              ? e.message
+              : "Couldn't update the selected contracts",
           type: "error",
         });
       }

@@ -110,7 +110,12 @@ async function paidAmountsByContract(contractIds: string[]) {
 
 export async function listClientOptions() {
   return prisma.client.findMany({
-    select: { id: true, name: true, currency: true, emailNotificationsEnabled: true },
+    select: {
+      id: true,
+      name: true,
+      currency: true,
+      emailNotificationsEnabled: true,
+    },
     orderBy: { name: "asc" },
     take: 100,
   });

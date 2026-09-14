@@ -12,7 +12,10 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatPartnerPayslipNumber } from "@/lib/partners/constants";
 import { listPartnerPayslips } from "@/actions/partners/payslip-queries";
-import { listPartnerOptions, listPartnerPendingAccruals } from "@/actions/partners/queries";
+import {
+  listPartnerOptions,
+  listPartnerPendingAccruals,
+} from "@/actions/partners/queries";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +33,11 @@ export default async function PartnerPayslipsPage({
     listPartnerPendingAccruals(),
   ]);
 
-  const paginated = paginate(payslips, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    payslips,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -57,7 +64,10 @@ export default async function PartnerPayslipsPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No partner payslips issued yet.
                 </TableCell>
               </TableRow>
@@ -72,7 +82,8 @@ export default async function PartnerPayslipsPage({
                   {payslip.contract?.projectName ?? "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {formatDate(payslip.periodStart)} – {formatDate(payslip.periodEnd)}
+                  {formatDate(payslip.periodStart)} –{" "}
+                  {formatDate(payslip.periodEnd)}
                 </TableCell>
                 <TableCell>{formatDate(payslip.issueDate)}</TableCell>
                 <TableCell className="text-right tabular-nums">

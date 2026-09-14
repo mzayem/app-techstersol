@@ -96,7 +96,8 @@ export function FinanceAreaChart({
 
   const filtered = React.useMemo(() => {
     const from = monthKey(rangeStart(range, customFrom, new Date()));
-    const to = range === "custom" ? monthKey(new Date(customTo)) : monthKey(new Date());
+    const to =
+      range === "custom" ? monthKey(new Date(customTo)) : monthKey(new Date());
     return series.filter((p) => p.month >= from && p.month <= to);
   }, [series, range, customFrom, customTo]);
 
@@ -124,8 +125,8 @@ export function FinanceAreaChart({
       <CardHeader>
         <CardTitle>Finance overview</CardTitle>
         <CardDescription>
-          Earning {formatPkr(totals.earning)} · Spent {formatPkr(totals.spent)} · Net{" "}
-          {formatPkr(totals.earning - totals.spent)}
+          Earning {formatPkr(totals.earning)} · Spent {formatPkr(totals.spent)}{" "}
+          · Net {formatPkr(totals.earning - totals.spent)}
         </CardDescription>
         <CardAction className="flex items-center gap-2">
           {range === "custom" && (
@@ -139,7 +140,10 @@ export function FinanceAreaChart({
               }}
             />
           )}
-          <Select value={range} onValueChange={(v) => v && setRange(v as RangeValue)}>
+          <Select
+            value={range}
+            onValueChange={(v) => v && setRange(v as RangeValue)}
+          >
             <SelectTrigger size="sm" className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -159,13 +163,27 @@ export function FinanceAreaChart({
             No activity recorded in this range yet.
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="aspect-auto h-75 w-full">
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-75 w-full"
+          >
             <AreaChart data={filtered}>
               <defs>
                 {Object.entries(chartConfig).map(([key, cfg]) => (
-                  <linearGradient key={key} id={`fill-${key}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient
+                    key={key}
+                    id={`fill-${key}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
                     <stop offset="5%" stopColor={cfg.color} stopOpacity={0.8} />
-                    <stop offset="95%" stopColor={cfg.color} stopOpacity={0.05} />
+                    <stop
+                      offset="95%"
+                      stopColor={cfg.color}
+                      stopOpacity={0.05}
+                    />
                   </linearGradient>
                 ))}
               </defs>

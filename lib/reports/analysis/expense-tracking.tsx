@@ -1,5 +1,10 @@
 import { getDistributionBreakdown } from "@/actions/finance/queries";
-import { BUCKET_LABELS, BUCKETS, DISTRIBUTION_SPLIT, formatPkr } from "@/lib/finance/constants";
+import {
+  BUCKET_LABELS,
+  BUCKETS,
+  DISTRIBUTION_SPLIT,
+  formatPkr,
+} from "@/lib/finance/constants";
 import { HorizontalGroupedBarChart } from "@/lib/reports/chart";
 import {
   AnalysisTable,
@@ -7,7 +12,10 @@ import {
   Section,
   renderAnalysisPdf,
 } from "@/lib/reports/analysis/layout";
-import { resolveAnalysisRange, periodLabel } from "@/lib/reports/analysis/period";
+import {
+  resolveAnalysisRange,
+  periodLabel,
+} from "@/lib/reports/analysis/period";
 
 export async function renderExpenseTracking(
   params: Record<string, string | undefined>,
@@ -18,7 +26,10 @@ export async function renderExpenseTracking(
 
   const breakdown = await getDistributionBreakdown(range);
 
-  const totalAllocated = BUCKETS.reduce((sum, b) => sum + breakdown[b].allocated, 0);
+  const totalAllocated = BUCKETS.reduce(
+    (sum, b) => sum + breakdown[b].allocated,
+    0,
+  );
   const totalSpent = BUCKETS.reduce((sum, b) => sum + breakdown[b].spent, 0);
   const overBuckets = BUCKETS.filter((b) => breakdown[b].remaining < 0);
 
@@ -36,8 +47,9 @@ export async function renderExpenseTracking(
     <>
       <Section heading="Summary">
         <Paragraph>
-          Against a total allocation of {formatPkr(totalAllocated)} across its five distribution
-          buckets for {label}, Techstersol spent {formatPkr(totalSpent)} —{" "}
+          Against a total allocation of {formatPkr(totalAllocated)} across its
+          five distribution buckets for {label}, Techstersol spent{" "}
+          {formatPkr(totalSpent)} —{" "}
           {totalAllocated > 0
             ? `${((totalSpent / totalAllocated) * 100).toFixed(1)}% of the allocation`
             : "no allocation was available to compare against"}

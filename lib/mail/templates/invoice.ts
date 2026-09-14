@@ -1,5 +1,12 @@
 import { INVOICE_STATUS_LABELS } from "@/lib/invoices/constants";
-import { emailBadge, emailButton, emailInfoRow, emailInfoTable, emailStatusBadge, renderEmailShell } from "./shell";
+import {
+  emailBadge,
+  emailButton,
+  emailInfoRow,
+  emailInfoTable,
+  emailStatusBadge,
+  renderEmailShell,
+} from "./shell";
 
 export function renderInvoiceCreatedEmail({
   invoiceNumber,
@@ -19,7 +26,11 @@ export function renderInvoiceCreatedEmail({
       A new invoice has been issued to you. The PDF is attached to this email.
     </p>
     ${emailInfoTable(
-      emailInfoRow("Status", emailStatusBadge(INVOICE_STATUS_LABELS.UNPAID, "amber"), { raw: true }) +
+      emailInfoRow(
+        "Status",
+        emailStatusBadge(INVOICE_STATUS_LABELS.UNPAID, "amber"),
+        { raw: true },
+      ) +
         emailInfoRow("Amount due", amount) +
         emailInfoRow("Due date", dueDate),
     )}
@@ -46,11 +57,18 @@ export function renderInvoicePaidEmail({
       Thanks — we've received your payment. The stamped, paid invoice PDF is attached.
     </p>
     ${emailInfoTable(
-      emailInfoRow("Status", emailStatusBadge(INVOICE_STATUS_LABELS.PAID, "emerald"), { raw: true }) +
+      emailInfoRow(
+        "Status",
+        emailStatusBadge(INVOICE_STATUS_LABELS.PAID, "emerald"),
+        { raw: true },
+      ) +
         emailInfoRow("Amount paid", amount) +
         emailInfoRow("Paid on", paidOn),
     )}
     <div style="margin-top:28px;">${emailButton("Verify invoice", verifyUrl)}</div>
   `;
-  return renderEmailShell({ title: `Invoice ${invoiceNumber} — Paid`, bodyHtml });
+  return renderEmailShell({
+    title: `Invoice ${invoiceNumber} — Paid`,
+    bodyHtml,
+  });
 }

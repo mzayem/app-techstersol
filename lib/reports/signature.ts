@@ -17,8 +17,13 @@ function readImageAsDataUrl(filename: string): string | null {
 let signatureDataUrl: string | null | undefined;
 let stampDataUrl: string | null | undefined;
 
-export function getSignatureAssets(): { signature: string | null; stamp: string | null } {
-  if (signatureDataUrl === undefined) signatureDataUrl = readImageAsDataUrl("slip_sign.png");
-  if (stampDataUrl === undefined) stampDataUrl = readImageAsDataUrl("digital_stamp.png");
+export function getSignatureAssets(): {
+  signature: string | null;
+  stamp: string | null;
+} {
+  if (signatureDataUrl === undefined)
+    signatureDataUrl = readImageAsDataUrl("slip_sign.png");
+  if (stampDataUrl === undefined)
+    stampDataUrl = readImageAsDataUrl("digital_stamp.png");
   return { signature: signatureDataUrl, stamp: stampDataUrl };
 }

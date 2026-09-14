@@ -21,7 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DATE_PRESETS, DATE_PRESET_LABELS, type DatePreset } from "@/lib/finance/date-range";
+import {
+  DATE_PRESETS,
+  DATE_PRESET_LABELS,
+  type DatePreset,
+} from "@/lib/finance/date-range";
 
 export type PartnerOption = { id: string; name: string };
 
@@ -29,7 +33,11 @@ export type PartnerOption = { id: string; name: string };
  * ExportReportDialog, plus a partner multi-select (defaults to every
  * partner; leaving it at "all" or clearing back to none both export every
  * partner, so there's no dead-end empty-report state). */
-export function PartnerReportExportDialog({ partners }: { partners: PartnerOption[] }) {
+export function PartnerReportExportDialog({
+  partners,
+}: {
+  partners: PartnerOption[];
+}) {
   const [open, setOpen] = React.useState(false);
   const [preset, setPreset] = React.useState<DatePreset>("all");
   const [from, setFrom] = React.useState("");
@@ -81,7 +89,10 @@ export function PartnerReportExportDialog({ partners }: { partners: PartnerOptio
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Date range</span>
-            <Select value={preset} onValueChange={(v) => setPreset(v as DatePreset)}>
+            <Select
+              value={preset}
+              onValueChange={(v) => setPreset(v as DatePreset)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -119,7 +130,9 @@ export function PartnerReportExportDialog({ partners }: { partners: PartnerOptio
             </div>
             <div className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-md p-2 ring-1 ring-foreground/10">
               {partners.length === 0 && (
-                <p className="px-1 py-1 text-xs text-muted-foreground">No partners yet.</p>
+                <p className="px-1 py-1 text-xs text-muted-foreground">
+                  No partners yet.
+                </p>
               )}
               {partners.map((p) => (
                 <label
@@ -137,7 +150,8 @@ export function PartnerReportExportDialog({ partners }: { partners: PartnerOptio
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Leaving every partner checked (or clearing them all) exports every partner.
+            Leaving every partner checked (or clearing them all) exports every
+            partner.
           </p>
         </div>
         <DialogFooter>

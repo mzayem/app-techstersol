@@ -1,7 +1,12 @@
-import { ImapFlow, type MessageAddressObject, type MessageStructureObject } from "imapflow";
+import {
+  ImapFlow,
+  type MessageAddressObject,
+  type MessageStructureObject,
+} from "imapflow";
 import { simpleParser } from "mailparser";
 
-export type MailFolder = "INBOX" | "INBOX.Sent" | "INBOX.Drafts" | "INBOX.Trash";
+export type MailFolder =
+  "INBOX" | "INBOX.Sent" | "INBOX.Drafts" | "INBOX.Trash";
 
 export type MailListItem = {
   uid: number;
@@ -28,7 +33,10 @@ function client() {
     host: process.env.EMAIL_IMAP_HOST!,
     port: Number(process.env.EMAIL_IMAP_PORT ?? 993),
     secure: true,
-    auth: { user: process.env.EMAIL_ACCOUNT!, pass: process.env.EMAIL_PASSWORD! },
+    auth: {
+      user: process.env.EMAIL_ACCOUNT!,
+      pass: process.env.EMAIL_PASSWORD!,
+    },
     logger: false,
   });
 }
@@ -36,7 +44,10 @@ function client() {
 /** Every call here opens its own short-lived connection — Next.js server
  * actions/route handlers aren't a good place to keep a persistent IMAP
  * session open between requests. */
-async function withMailbox<T>(folder: MailFolder, fn: (c: ImapFlow) => Promise<T>): Promise<T> {
+async function withMailbox<T>(
+  folder: MailFolder,
+  fn: (c: ImapFlow) => Promise<T>,
+): Promise<T> {
   const c = client();
   await c.connect();
   try {
@@ -88,7 +99,8 @@ export async function listMessages(
   { limit = 25, page = 1 }: { limit?: number; page?: number } = {},
 ): Promise<{ messages: MailListItem[]; total: number }> {
   return withMailbox(folder, async (c) => {
-    const total = c.mailbox && typeof c.mailbox !== "boolean" ? c.mailbox.exists : 0;
+    const total =
+      c.mailbox && typeof c.mailbox !== "boolean" ? c.mailbox.exists : 0;
     if (total === 0) return { messages: [], total: 0 };
 
     const end = total - (page - 1) * limit;
@@ -98,7 +110,13 @@ export async function listMessages(
     const messages: MailListItem[] = [];
     for await (const msg of c.fetch(
       { seq: `${start}:${end}` },
-      { envelope: true, uid: true, flags: true, bodyStructure: true, size: true },
+      {
+        envelope: true,
+        uid: true,
+        flags: true,
+        bodyStructure: true,
+        size: true,
+      },
     )) {
       messages.push({
         uid: msg.uid,
@@ -117,10 +135,17 @@ export async function listMessages(
   });
 }
 
-export async function getMessage(folder: MailFolder, uid: number): Promise<MailDetail | null> {
+export async function getMessage(
+  folder: MailFolder,
+  uid: number,
+): Promise<MailDetail | null> {
   return withMailbox(folder, async (c) => {
     const envelopeMsg =
-      (await c.fetchOne(String(uid), { envelope: true, flags: true, bodyStructure: true }, { uid: true })) || undefined;
+      (await c.fetchOne(
+        String(uid),
+        { envelope: true, flags: true, bodyStructure: true },
+        { uid: true },
+      )) || undefined;
     const raw = await c.download(String(uid), undefined, { uid: true });
     if (!raw) return null;
 
@@ -144,28 +169,42 @@ export async function getMessage(folder: MailFolder, uid: number): Promise<MailD
       html: typeof parsed.html === "string" ? parsed.html : null,
       text: parsed.text ?? null,
       replyToAddress:
-        parsed.replyTo?.value?.[0]?.address ?? parsed.from?.value?.[0]?.address ?? "",
+        parsed.replyTo?.value?.[0]?.address ??
+        parsed.from?.value?.[0]?.address ??
+        "",
     };
   });
 }
 
-export async function markSeen(folder: MailFolder, uid: number, seen: boolean): Promise<void> {
+export async function markSeen(
+  folder: MailFolder,
+  uid: number,
+  seen: boolean,
+): Promise<void> {
   await withMailbox(folder, async (c) => {
     if (seen) await c.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true });
     else await c.messageFlagsRemove(String(uid), ["\\Seen"], { uid: true });
   });
 }
 
-export async function toggleFlagged(folder: MailFolder, uid: number, flagged: boolean): Promise<void> {
+export async function toggleFlagged(
+  folder: MailFolder,
+  uid: number,
+  flagged: boolean,
+): Promise<void> {
   await withMailbox(folder, async (c) => {
-    if (flagged) await c.messageFlagsAdd(String(uid), ["\\Flagged"], { uid: true });
+    if (flagged)
+      await c.messageFlagsAdd(String(uid), ["\\Flagged"], { uid: true });
     else await c.messageFlagsRemove(String(uid), ["\\Flagged"], { uid: true });
   });
 }
 
 /** Moves to Trash from anywhere else; permanently deletes if it's already
  * in Trash — the same two-stage behavior as most mail clients. */
-export async function deleteMessage(folder: MailFolder, uid: number): Promise<void> {
+export async function deleteMessage(
+  folder: MailFolder,
+  uid: number,
+): Promise<void> {
   await withMailbox(folder, async (c) => {
     if (folder === "INBOX.Trash") {
       await c.messageDelete(String(uid), { uid: true });

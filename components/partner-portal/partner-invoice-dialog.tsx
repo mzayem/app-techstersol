@@ -30,7 +30,12 @@ import {
 } from "@/actions/partner-portal/actions";
 import type { PartnerInvoiceSources } from "@/actions/partner-portal/queries";
 
-function lineKey(option: Pick<PartnerInvoiceSources["lineOptions"][number], "contractId" | "milestoneId">) {
+function lineKey(
+  option: Pick<
+    PartnerInvoiceSources["lineOptions"][number],
+    "contractId" | "milestoneId"
+  >,
+) {
   return `${option.contractId}:${option.milestoneId ?? "project"}`;
 }
 
@@ -51,7 +56,11 @@ function addDaysInput(dateStr: string, days: number) {
  * listPartnerInvoiceSources. Submits straight to createPartnerInvoice,
  * which re-validates every contract against Contract.partnerId server-side
  * regardless of what this form sends. */
-export function PartnerInvoiceDialog({ sources }: { sources: PartnerInvoiceSources }) {
+export function PartnerInvoiceDialog({
+  sources,
+}: {
+  sources: PartnerInvoiceSources;
+}) {
   const { clients, lineOptions, bankAccounts } = sources;
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
@@ -59,7 +68,9 @@ export function PartnerInvoiceDialog({ sources }: { sources: PartnerInvoiceSourc
   const formRef = React.useRef<HTMLFormElement>(null);
 
   const [clientId, setClientId] = React.useState("");
-  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set());
+  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(
+    new Set(),
+  );
   const [bankAccountId, setBankAccountId] = React.useState("");
   const [issueDateValue, setIssueDateValue] = React.useState(todayInput);
   const [dueDateValue, setDueDateValue] = React.useState(() =>
@@ -93,7 +104,9 @@ export function PartnerInvoiceDialog({ sources }: { sources: PartnerInvoiceSourc
     () => (currency ? bankAccounts.filter((b) => b.currency === currency) : []),
     [bankAccounts, currency],
   );
-  const effectiveBankAccountId = matchingBankAccounts.some((b) => b.id === bankAccountId)
+  const effectiveBankAccountId = matchingBankAccounts.some(
+    (b) => b.id === bankAccountId,
+  )
     ? bankAccountId
     : (matchingBankAccounts[0]?.id ?? "");
 
@@ -166,14 +179,17 @@ export function PartnerInvoiceDialog({ sources }: { sources: PartnerInvoiceSourc
 
             {clientId && (
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">Contracts & milestones</span>
+                <span className="text-sm text-muted-foreground">
+                  Contracts & milestones
+                </span>
                 {clientLineOptions.length === 0 && (
                   <p className="text-sm text-muted-foreground">
                     This client has nothing left to invoice.
                   </p>
                 )}
                 {clientLineOptions.map((option) => {
-                  const disabled = currency !== null && option.currency !== currency;
+                  const disabled =
+                    currency !== null && option.currency !== currency;
                   const key = lineKey(option);
                   return (
                     <label
@@ -192,7 +208,10 @@ export function PartnerInvoiceDialog({ sources }: { sources: PartnerInvoiceSourc
                         {option.label}
                       </span>
                       <span className="text-muted-foreground">
-                        {formatContractAmount(option.remainingAmount, option.currency)}
+                        {formatContractAmount(
+                          option.remainingAmount,
+                          option.currency,
+                        )}
                       </span>
                     </label>
                   );
@@ -203,7 +222,10 @@ export function PartnerInvoiceDialog({ sources }: { sources: PartnerInvoiceSourc
             {items.length > 0 && (
               <div className="flex flex-col gap-1 rounded-md bg-muted p-3 text-sm">
                 {items.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between gap-2">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between gap-2"
+                  >
                     <span>{item.description}</span>
                     <span className="tabular-nums">
                       {currency && formatContractAmount(item.amount, currency)}
@@ -237,10 +259,15 @@ export function PartnerInvoiceDialog({ sources }: { sources: PartnerInvoiceSourc
                   ))}
                 </SelectContent>
               </Select>
-              <input type="hidden" name="bankAccountId" value={effectiveBankAccountId} />
+              <input
+                type="hidden"
+                name="bankAccountId"
+                value={effectiveBankAccountId}
+              />
               {currency && matchingBankAccounts.length === 0 && (
                 <span className="text-xs text-destructive">
-                  No {currency} bank account on file yet — ask an admin to add one.
+                  No {currency} bank account on file yet — ask an admin to add
+                  one.
                 </span>
               )}
             </Field>
@@ -284,7 +311,13 @@ export function PartnerInvoiceDialog({ sources }: { sources: PartnerInvoiceSourc
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

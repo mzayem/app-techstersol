@@ -33,14 +33,19 @@ export default async function PortalProjectsPage({
   const appUser = await requireTeamUser();
   const params = await searchParams;
   const projects = await listMyProjects(appUser.teamMember!.id);
-  const paginated = paginate(projects, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    projects,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
       <div>
         <h1 className="text-lg font-medium">My Projects</h1>
         <p className="text-sm text-muted-foreground">
-          Project name and deadline only — amounts and client details aren&apos;t shown here.
+          Project name and deadline only — amounts and client details
+          aren&apos;t shown here.
         </p>
       </div>
 
@@ -57,18 +62,25 @@ export default async function PortalProjectsPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={4}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No projects assigned to you yet.
                 </TableCell>
               </TableRow>
             )}
             {paginated.items.map((project) => (
               <TableRow key={project.id}>
-                <TableCell className="font-medium">{project.projectName}</TableCell>
+                <TableCell className="font-medium">
+                  {project.projectName}
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDate(project.deadline)}
                 </TableCell>
-                <TableCell>{STATUS_LABELS[project.status] ?? project.status}</TableCell>
+                <TableCell>
+                  {STATUS_LABELS[project.status] ?? project.status}
+                </TableCell>
                 <TableCell>
                   <ContractChatButton
                     contractId={project.id}

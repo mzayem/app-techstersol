@@ -84,7 +84,11 @@ export function EarningDialog({
             payload: { id: earning.id, formData: fields },
             label,
           })
-        : await enqueueMutation({ key: "createEarning", payload: fields, label });
+        : await enqueueMutation({
+            key: "createEarning",
+            payload: fields,
+            label,
+          });
       if (result.ok) {
         if (!isEdit) formRef.current?.reset();
         setOpen(false);

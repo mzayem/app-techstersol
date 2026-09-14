@@ -3,7 +3,11 @@
 import { Cell, Pie, PieChart } from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/chart";
+import {
+  ChartContainer,
+  ChartTooltip,
+  type ChartConfig,
+} from "@/components/ui/chart";
 
 const chartConfig = {
   completed: { label: "Completed", color: "#10b981" },
@@ -35,7 +39,10 @@ export function PortalProjectsChart({
             No projects assigned yet.
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="mx-auto aspect-square h-52">
+          <ChartContainer
+            config={chartConfig}
+            className="mx-auto aspect-square h-52"
+          >
             <PieChart>
               <Pie
                 data={data}

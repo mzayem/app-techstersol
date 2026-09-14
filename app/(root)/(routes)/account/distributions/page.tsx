@@ -24,18 +24,25 @@ export default async function DistributionsPage({
 }) {
   await requirePagePermission("distributions");
   const params = await searchParams;
-  const dateRange = resolveDateRange(params.range ?? "this-year", params.from, params.to);
+  const dateRange = resolveDateRange(
+    params.range ?? "this-year",
+    params.from,
+    params.to,
+  );
 
   // The stat cards are running balances that carry credit/debit across
   // years, so they always show the all-time figure regardless of the time
   // filter below — only the per-bucket "spent vs allocated for this period"
   // audit and the earning/team-pay/net summary are scoped to it.
-  const [allTimeBalances, breakdown, { totalEarning, totalTeamPay, netEarning }] =
-    await Promise.all([
-      getBucketBalances(),
-      getDistributionBreakdown(dateRange),
-      getTotalNetEarnings(dateRange),
-    ]);
+  const [
+    allTimeBalances,
+    breakdown,
+    { totalEarning, totalTeamPay, netEarning },
+  ] = await Promise.all([
+    getBucketBalances(),
+    getDistributionBreakdown(dateRange),
+    getTotalNetEarnings(dateRange),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -52,11 +59,18 @@ export default async function DistributionsPage({
 
       <div className="rounded-md bg-card p-4 ring-1 ring-foreground/10 sm:p-6">
         <p className="text-sm text-muted-foreground">
-          Earning is <span className="font-medium text-foreground">{formatPkr(totalEarning)}</span>
+          Earning is{" "}
+          <span className="font-medium text-foreground">
+            {formatPkr(totalEarning)}
+          </span>
           {", team pay is "}
-          <span className="font-medium text-foreground">{formatPkr(totalTeamPay)}</span>
+          <span className="font-medium text-foreground">
+            {formatPkr(totalTeamPay)}
+          </span>
           {", net is "}
-          <span className="font-medium text-foreground">{formatPkr(netEarning)}</span>
+          <span className="font-medium text-foreground">
+            {formatPkr(netEarning)}
+          </span>
         </p>
 
         <div className="mt-6 flex flex-col gap-5">

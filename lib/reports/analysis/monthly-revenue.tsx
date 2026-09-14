@@ -1,4 +1,7 @@
-import { getMonthlySeries, computeEarningKpis } from "@/actions/overview/queries";
+import {
+  getMonthlySeries,
+  computeEarningKpis,
+} from "@/actions/overview/queries";
 import { formatPkr } from "@/lib/finance/constants";
 import { GroupedBarChart } from "@/lib/reports/chart";
 import {
@@ -13,7 +16,10 @@ import {
   toResolvedPeriod,
 } from "@/lib/reports/analysis/period";
 
-const MONTH_LABEL_FORMAT = new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit" });
+const MONTH_LABEL_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  month: "short",
+  year: "2-digit",
+});
 
 function monthFloor(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -37,7 +43,8 @@ export async function renderMonthlyRevenue(
     .sort((a, b) => a.month.localeCompare(b.month));
 
   const trendDirection =
-    monthly.length >= 2 && monthly[monthly.length - 1].earning >= monthly[0].earning
+    monthly.length >= 2 &&
+    monthly[monthly.length - 1].earning >= monthly[0].earning
       ? "an upward trend"
       : "a downward trend";
 
@@ -55,26 +62,34 @@ export async function renderMonthlyRevenue(
     <>
       <Section heading="Summary">
         <Paragraph>
-          Across {label}, Techstersol earned a net {formatPkr(kpis.periodEarning)} over{" "}
-          {kpis.monthCount} month{kpis.monthCount === 1 ? "" : "s"}, averaging{" "}
-          {formatPkr(kpis.avgMonthlyEarning)} per active month. Monthly earning over the period
-          shows {trendDirection}
+          Across {label}, Techstersol earned a net{" "}
+          {formatPkr(kpis.periodEarning)} over {kpis.monthCount} month
+          {kpis.monthCount === 1 ? "" : "s"}, averaging{" "}
+          {formatPkr(kpis.avgMonthlyEarning)} per active month. Monthly earning
+          over the period shows {trendDirection}
           {monthly.length >= 2
             ? `, moving from ${formatPkr(monthly[0].earning)} to ${formatPkr(monthly[monthly.length - 1].earning)}.`
             : "."}
         </Paragraph>
         <Paragraph>
-          Standalone team payments — outsourced work or logged hours not already netted against
-          a specific earning — totalled {formatPkr(kpis.totalTeamPaid)} for the period.
+          Standalone team payments — outsourced work or logged hours not already
+          netted against a specific earning — totalled{" "}
+          {formatPkr(kpis.totalTeamPaid)} for the period.
         </Paragraph>
       </Section>
 
       {monthly.length > 0 && (
         <Section heading="Earning by month">
           <GroupedBarChart
-            categories={monthly.map((p) => MONTH_LABEL_FORMAT.format(new Date(`${p.month}T00:00:00`)))}
+            categories={monthly.map((p) =>
+              MONTH_LABEL_FORMAT.format(new Date(`${p.month}T00:00:00`)),
+            )}
             series={[
-              { label: "Earning", color: "#10b981", values: monthly.map((p) => p.earning) },
+              {
+                label: "Earning",
+                color: "#10b981",
+                values: monthly.map((p) => p.earning),
+              },
             ]}
             valueFormatter={(v) => formatPkr(v)}
           />

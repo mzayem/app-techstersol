@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import {
   PAYMENT_TYPES,
   formatContractAmount,
@@ -12,7 +15,10 @@ import {
   type MilestoneInput,
 } from "@/lib/contracts/constants";
 import { INVOICE_NUMBER_START } from "@/lib/invoices/constants";
-import { invoicedAmountsByLine, remainingKey } from "@/actions/invoices/queries";
+import {
+  invoicedAmountsByLine,
+  remainingKey,
+} from "@/actions/invoices/queries";
 import { validateMilestones } from "@/lib/contracts/validation";
 import { requirePartnerUser } from "@/lib/rbac/permissions";
 import { notifyProposalSubmitted } from "@/lib/mail/notifications/contracts";
@@ -69,10 +75,17 @@ export async function createPartnerClient(formData: FormData) {
   });
 
   revalidatePath("/partner-portal/projects");
-  return { id: client.id, name: client.name, currency: client.currency as PaymentCurrency };
+  return {
+    id: client.id,
+    name: client.name,
+    currency: client.currency as PaymentCurrency,
+  };
 }
 
-function readPartnerContractFields(formData: FormData, milestonesInput: MilestoneInput[]) {
+function readPartnerContractFields(
+  formData: FormData,
+  milestonesInput: MilestoneInput[],
+) {
   const date = str(formData, "date");
   const deadline = str(formData, "deadline");
   const projectName = str(formData, "projectName");
@@ -102,7 +115,10 @@ function readPartnerContractFields(formData: FormData, milestonesInput: Mileston
   }));
 
   const amount = paymentType === "PROJECT" ? Number(amountRaw) : undefined;
-  if (paymentType === "PROJECT" && (!amountRaw || Number.isNaN(amount) || amount! <= 0)) {
+  if (
+    paymentType === "PROJECT" &&
+    (!amountRaw || Number.isNaN(amount) || amount! <= 0)
+  ) {
     throw new Error("Enter a valid project amount");
   }
 
@@ -181,7 +197,10 @@ export async function createPartnerContractRequest(
     },
   });
 
-  await notifyProposalSubmitted({ clientName: client.name, projectName: fields.projectName });
+  await notifyProposalSubmitted({
+    clientName: client.name,
+    projectName: fields.projectName,
+  });
   revalidatePath("/partner-portal/projects");
 }
 
@@ -201,7 +220,10 @@ export type PartnerInvoiceItemInput = {
  * balance is a dashboard/admin call, not a partner's. Fires
  * notifyInvoiceCreated right after creation, same as the admin flow — no
  * separate manual "send" step. */
-export async function createPartnerInvoice(formData: FormData, items: PartnerInvoiceItemInput[]) {
+export async function createPartnerInvoice(
+  formData: FormData,
+  items: PartnerInvoiceItemInput[],
+) {
   const appUser = await requirePartnerUser();
   const partnerId = appUser.partner!.id;
 
@@ -222,7 +244,9 @@ export async function createPartnerInvoice(formData: FormData, items: PartnerInv
   }
   for (const item of items) {
     if (!item.contractId || !item.description.trim() || !(item.amount > 0)) {
-      throw new Error("Each line item needs a source, a description, and a positive amount");
+      throw new Error(
+        "Each line item needs a source, a description, and a positive amount",
+      );
     }
   }
 
@@ -245,7 +269,9 @@ export async function createPartnerInvoice(formData: FormData, items: PartnerInv
   }
   for (const contract of contracts) {
     if (contract.clientId !== clientId) {
-      throw new Error("Selected contracts must all belong to the selected client");
+      throw new Error(
+        "Selected contracts must all belong to the selected client",
+      );
     }
     if (contract.currency !== currency) {
       throw new Error("Selected contracts must all share the same currency");
@@ -257,16 +283,24 @@ export async function createPartnerInvoice(formData: FormData, items: PartnerInv
   const preparedItems = items.map((item, index) => {
     const contract = contractsById.get(item.contractId)!;
     const faceAmount = item.milestoneId
-      ? Number(contract.milestones.find((m) => m.id === item.milestoneId)?.amount ?? 0)
+      ? Number(
+          contract.milestones.find((m) => m.id === item.milestoneId)?.amount ??
+            0,
+        )
       : Number(contract.amount ?? 0);
-    const alreadyInvoiced = invoiced.get(remainingKey(item.contractId, item.milestoneId)) ?? 0;
+    const alreadyInvoiced =
+      invoiced.get(remainingKey(item.contractId, item.milestoneId)) ?? 0;
     const remaining = faceAmount - alreadyInvoiced;
 
     if (remaining <= 0.01) {
-      throw new Error("One of the selected lines has already been fully invoiced");
+      throw new Error(
+        "One of the selected lines has already been fully invoiced",
+      );
     }
     if (item.amount > remaining + 0.01) {
-      throw new Error("A line item's amount can't exceed its remaining balance");
+      throw new Error(
+        "A line item's amount can't exceed its remaining balance",
+      );
     }
 
     const isPartial = item.amount < remaining - 0.01;
@@ -306,14 +340,17 @@ export async function createPartnerInvoice(formData: FormData, items: PartnerInv
           dueDate: new Date(dueDate),
           createdByUserId: appUser.authUserId,
           items: { create: preparedItems },
-          contracts: { create: contractIds.map((contractId) => ({ contractId })) },
+          contracts: {
+            create: contractIds.map((contractId) => ({ contractId })),
+          },
         },
       });
       await notifyInvoiceCreated(created.id);
       revalidatePath("/partner-portal/invoices");
       return;
     } catch (e) {
-      const isNumberConflict = e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+      const isNumberConflict =
+        e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
       if (!isNumberConflict || attempt === 2) throw e;
     }
   }

@@ -165,7 +165,9 @@ export async function getInvoiceForPdf(id: string) {
 /** Maps a `getInvoiceForPdf` result into the shape `renderInvoicePdf`
  * expects — shared by the PDF route handler and the invoice-email
  * notifiers so both build the exact same document. */
-export function toInvoicePdfData(invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>) {
+export function toInvoicePdfData(
+  invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>,
+) {
   return {
     id: invoice.id,
     number: invoice.number,

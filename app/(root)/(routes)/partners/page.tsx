@@ -26,7 +26,11 @@ export default async function PartnersPage({
   const { permission } = await requirePagePermission("partners");
   const params = await searchParams;
   const partners = await listPartners({});
-  const paginated = paginate(partners, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    partners,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -51,7 +55,10 @@ export default async function PartnersPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No partners yet.
                 </TableCell>
               </TableRow>

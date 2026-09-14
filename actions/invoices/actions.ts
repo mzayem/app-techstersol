@@ -8,14 +8,23 @@ import {
   PAYMENT_CURRENCIES,
   type PaymentCurrency,
 } from "@/lib/clients/constants";
-import { contractRevenueBasis, formatContractAmount } from "@/lib/contracts/constants";
+import {
+  contractRevenueBasis,
+  formatContractAmount,
+} from "@/lib/contracts/constants";
 import {
   INVOICE_NUMBER_START,
   formatInvoiceNumber,
 } from "@/lib/invoices/constants";
-import { invoicedAmountsByLine, remainingKey } from "@/actions/invoices/queries";
+import {
+  invoicedAmountsByLine,
+  remainingKey,
+} from "@/actions/invoices/queries";
 import { requirePagePermission } from "@/lib/rbac/permissions";
-import { notifyInvoiceCreated, notifyInvoicePaid } from "@/lib/mail/notifications/invoices";
+import {
+  notifyInvoiceCreated,
+  notifyInvoicePaid,
+} from "@/lib/mail/notifications/invoices";
 import { computePartnerSplit } from "@/lib/partners/calc";
 import { getRatesToPkr } from "@/lib/fx/rates";
 
@@ -290,7 +299,9 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     }
   }
 
-  const completedContracts = contracts.filter((c) => completedIds.includes(c.id));
+  const completedContracts = contracts.filter((c) =>
+    completedIds.includes(c.id),
+  );
 
   // A contract's outsourced pay is credited to the team member once, when
   // that contract is fully paid off — not per invoice, since a contract can
@@ -303,7 +314,8 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   // partnered or not — booked to the ledger already at entry time (see
   // ProjectExpense), this is just the aggregate for the Earning row.
   const projectExpensesTotal = completedContracts.reduce(
-    (sum, c) => sum + c.projectExpenses.reduce((s, e) => s + Number(e.amount), 0),
+    (sum, c) =>
+      sum + c.projectExpenses.reduce((s, e) => s + Number(e.amount), 0),
     0,
   );
 
@@ -314,19 +326,34 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   // so a non-PKR contract's face-value revenue must be converted to PKR
   // before combining them — otherwise profit is computed from mismatched
   // units (e.g. $100 revenue minus a PKR 8,327 work cost).
-  const partneredContracts = completedContracts.filter((c) => c.partnerId && c.partner);
-  const ratesToPkr =
-    partneredContracts.some((c) => c.currency !== "PKR") ? await getRatesToPkr() : null;
+  const partneredContracts = completedContracts.filter(
+    (c) => c.partnerId && c.partner,
+  );
+  const ratesToPkr = partneredContracts.some((c) => c.currency !== "PKR")
+    ? await getRatesToPkr()
+    : null;
 
   const partnerBookings = partneredContracts
     .map((c) => {
       const rawRevenue = revenueByContract.get(c.id) ?? 0;
       const revenue =
-        c.currency === "PKR" ? rawRevenue : rawRevenue * (ratesToPkr?.[c.currency as PaymentCurrency] ?? 1);
+        c.currency === "PKR"
+          ? rawRevenue
+          : rawRevenue * (ratesToPkr?.[c.currency as PaymentCurrency] ?? 1);
       const workCost = Number(c.teamPayAmount ?? 0);
-      const projectExpenses = c.projectExpenses.reduce((s, e) => s + Number(e.amount), 0);
-      const sharePercent = Number(c.partnerSharePercent ?? c.partner!.sharePercentage);
-      const split = computePartnerSplit({ revenue, workCost, projectExpenses, sharePercent });
+      const projectExpenses = c.projectExpenses.reduce(
+        (s, e) => s + Number(e.amount),
+        0,
+      );
+      const sharePercent = Number(
+        c.partnerSharePercent ?? c.partner!.sharePercentage,
+      );
+      const split = computePartnerSplit({
+        revenue,
+        workCost,
+        projectExpenses,
+        sharePercent,
+      });
       return {
         contractId: c.id,
         partnerId: c.partnerId!,
@@ -337,7 +364,10 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     })
     .filter((b) => b.partnerShareAmount > 0);
 
-  const partnerShareTotal = partnerBookings.reduce((sum, b) => sum + b.partnerShareAmount, 0);
+  const partnerShareTotal = partnerBookings.reduce(
+    (sum, b) => sum + b.partnerShareAmount,
+    0,
+  );
 
   // Earning.amount (the P&L/tax-relevant figure shown on the Earning page)
   // is net of the partner share and project expenses — the gross figure
@@ -384,7 +414,12 @@ export async function markInvoicePaid(id: string, formData: FormData) {
         createdByUserId,
         ledgerEntries: {
           create: [
-            { type: "EARNING", name: earningName, date: paidOn, credit: pkrAmount },
+            {
+              type: "EARNING",
+              name: earningName,
+              date: paidOn,
+              credit: pkrAmount,
+            },
             ...(teamPay > 0
               ? [
                   {
@@ -467,12 +502,18 @@ export async function markInvoiceUnpaid(id: string) {
   if (invoice.status === "UNPAID") return;
 
   const contractIds = invoice.contracts.map((c) => c.contractId);
-  const partnerPaymentIds = await collectReversiblePartnerPaymentIds(contractIds);
+  const partnerPaymentIds =
+    await collectReversiblePartnerPaymentIds(contractIds);
 
   await prisma.$transaction([
     prisma.invoice.update({
       where: { id },
-      data: { status: "UNPAID", paidOn: null, transactionId: null, pkrAmount: null },
+      data: {
+        status: "UNPAID",
+        paidOn: null,
+        transactionId: null,
+        pkrAmount: null,
+      },
     }),
     prisma.contract.updateMany({
       where: {
@@ -482,7 +523,9 @@ export async function markInvoiceUnpaid(id: string) {
       data: { status: "PENDING_PAYMENT" },
     }),
     prisma.earning.deleteMany({ where: { invoiceId: id } }),
-    prisma.partnerPayment.deleteMany({ where: { id: { in: partnerPaymentIds } } }),
+    prisma.partnerPayment.deleteMany({
+      where: { id: { in: partnerPaymentIds } },
+    }),
   ]);
 
   revalidatePath("/projects/invoices");
@@ -503,7 +546,8 @@ export async function deleteInvoice(id: string) {
 
   if (invoice.status === "PAID") {
     const contractIds = invoice.contracts.map((c) => c.contractId);
-    const partnerPaymentIds = await collectReversiblePartnerPaymentIds(contractIds);
+    const partnerPaymentIds =
+      await collectReversiblePartnerPaymentIds(contractIds);
     await prisma.$transaction([
       prisma.contract.updateMany({
         where: {
@@ -512,7 +556,9 @@ export async function deleteInvoice(id: string) {
         },
         data: { status: "PENDING_PAYMENT" },
       }),
-      prisma.partnerPayment.deleteMany({ where: { id: { in: partnerPaymentIds } } }),
+      prisma.partnerPayment.deleteMany({
+        where: { id: { in: partnerPaymentIds } },
+      }),
       prisma.invoice.delete({ where: { id } }),
     ]);
     revalidatePath("/projects/contracts");

@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
-import { CONTRACT_STATUS_LABELS, formatContractAmount } from "@/lib/contracts/constants";
+import {
+  CONTRACT_STATUS_LABELS,
+  formatContractAmount,
+} from "@/lib/contracts/constants";
 import { requirePartnerUser } from "@/lib/rbac/permissions";
 import {
   listPartnerClientOptions,
@@ -36,7 +39,11 @@ export default async function PartnerProjectsPage({
     listPartnerClientOptions(partner.id),
     listTeamMemberOptions(),
   ]);
-  const paginated = paginate(contracts, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    contracts,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -71,7 +78,10 @@ export default async function PartnerProjectsPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={8}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No projects yet — propose one to get started.
                 </TableCell>
               </TableRow>
@@ -91,7 +101,9 @@ export default async function PartnerProjectsPage({
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{contract.clientName}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {contract.clientName}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {contract.clientPhone ?? (
                       <span className="italic">{HIDDEN_CONTACT_LABEL}</span>
@@ -108,7 +120,9 @@ export default async function PartnerProjectsPage({
                   <TableCell className="text-right tabular-nums">
                     {formatContractAmount(total, contract.currency)}
                   </TableCell>
-                  <TableCell>{CONTRACT_STATUS_LABELS[contract.status]}</TableCell>
+                  <TableCell>
+                    {CONTRACT_STATUS_LABELS[contract.status]}
+                  </TableCell>
                   <TableCell>
                     <ContractChatButton
                       contractId={contract.id}

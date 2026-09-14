@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import { formatInvoiceFileNumber } from "@/lib/invoices/constants";
 import { renderInvoicePdf } from "@/lib/invoices/pdf";
-import { checkPermission, getActiveClientProfiles, getCurrentAppUser } from "@/lib/rbac/permissions";
+import {
+  checkPermission,
+  getActiveClientProfiles,
+  getCurrentAppUser,
+} from "@/lib/rbac/permissions";
 import { getInvoiceForPdf, toInvoicePdfData } from "@/actions/invoices/queries";
 
 export const runtime = "nodejs";
@@ -34,7 +38,10 @@ export async function GET(
   if (appUser.kind === "TEAM") {
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
-  if (appUser.kind === "DASHBOARD_HANDLER" && !checkPermission(appUser, "invoices", "view")) {
+  if (
+    appUser.kind === "DASHBOARD_HANDLER" &&
+    !checkPermission(appUser, "invoices", "view")
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

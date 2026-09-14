@@ -1,10 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import type { PaymentCurrency } from "@/lib/clients/constants";
-import type { ContractPaymentType, ContractStatus } from "@/lib/contracts/constants";
+import type {
+  ContractPaymentType,
+  ContractStatus,
+} from "@/lib/contracts/constants";
 
-export type ClientProfileOption = { id: string; name: string; currency: PaymentCurrency };
+export type ClientProfileOption = {
+  id: string;
+  name: string;
+  currency: PaymentCurrency;
+};
 
-export type ProfileValue<T> = { clientId: string; clientName: string; value: T };
+export type ProfileValue<T> = {
+  clientId: string;
+  clientName: string;
+  value: T;
+};
 
 export type ClientOverview = {
   totalProjects: number;
@@ -14,7 +25,9 @@ export type ClientOverview = {
   completedProjectsByProfile: ProfileValue<number>[];
   pendingProjectsByProfile: ProfileValue<number>[];
   pendingPaymentByCurrency: Partial<Record<PaymentCurrency, number>>;
-  pendingPaymentByProfile: ProfileValue<Partial<Record<PaymentCurrency, number>>>[];
+  pendingPaymentByProfile: ProfileValue<
+    Partial<Record<PaymentCurrency, number>>
+  >[];
   nextDueInvoice: {
     number: number;
     dueDate: Date;
@@ -70,7 +83,9 @@ export async function getClientOverview(
   for (const clientId of clientIds) {
     const own = contracts.filter((c) => c.clientId === clientId);
     const completed = own.filter((c) => c.status === "COMPLETED").length;
-    const pending = own.filter((c) => c.status !== "COMPLETED" && c.status !== "CANCELLED").length;
+    const pending = own.filter(
+      (c) => c.status !== "COMPLETED" && c.status !== "CANCELLED",
+    ).length;
     const clientName = nameOf.get(clientId)!;
     totalProjectsByProfile.push({ clientId, clientName, value: own.length });
     completedProjectsByProfile.push({ clientId, clientName, value: completed });
@@ -78,16 +93,27 @@ export async function getClientOverview(
   }
 
   const pendingPaymentByCurrency: Partial<Record<PaymentCurrency, number>> = {};
-  const pendingPaymentByProfile: ProfileValue<Partial<Record<PaymentCurrency, number>>>[] =
-    clientIds.map((clientId) => ({ clientId, clientName: nameOf.get(clientId)!, value: {} }));
-  const byProfileMap = new Map(pendingPaymentByProfile.map((p) => [p.clientId, p.value]));
+  const pendingPaymentByProfile: ProfileValue<
+    Partial<Record<PaymentCurrency, number>>
+  >[] = clientIds.map((clientId) => ({
+    clientId,
+    clientName: nameOf.get(clientId)!,
+    value: {},
+  }));
+  const byProfileMap = new Map(
+    pendingPaymentByProfile.map((p) => [p.clientId, p.value]),
+  );
 
   for (const invoice of unpaidInvoices) {
-    const total = invoice.items.reduce((sum, item) => sum + Number(item.amount), 0);
+    const total = invoice.items.reduce(
+      (sum, item) => sum + Number(item.amount),
+      0,
+    );
     const balance = total - Number(invoice.discount);
     if (balance <= 0.01) continue;
     const currency = invoice.currency as PaymentCurrency;
-    pendingPaymentByCurrency[currency] = (pendingPaymentByCurrency[currency] ?? 0) + balance;
+    pendingPaymentByCurrency[currency] =
+      (pendingPaymentByCurrency[currency] ?? 0) + balance;
     const profileValue = byProfileMap.get(invoice.clientId);
     if (profileValue) {
       profileValue[currency] = (profileValue[currency] ?? 0) + balance;
@@ -108,8 +134,14 @@ export async function getClientOverview(
 
   return {
     totalProjects: contracts.length,
-    completedProjects: completedProjectsByProfile.reduce((sum, p) => sum + p.value, 0),
-    pendingProjects: pendingProjectsByProfile.reduce((sum, p) => sum + p.value, 0),
+    completedProjects: completedProjectsByProfile.reduce(
+      (sum, p) => sum + p.value,
+      0,
+    ),
+    pendingProjects: pendingProjectsByProfile.reduce(
+      (sum, p) => sum + p.value,
+      0,
+    ),
     totalProjectsByProfile,
     completedProjectsByProfile,
     pendingProjectsByProfile,
@@ -149,8 +181,12 @@ export async function listMyContracts(
       ...(filters.search
         ? {
             OR: [
-              { projectName: { contains: filters.search, mode: "insensitive" } },
-              { description: { contains: filters.search, mode: "insensitive" } },
+              {
+                projectName: { contains: filters.search, mode: "insensitive" },
+              },
+              {
+                description: { contains: filters.search, mode: "insensitive" },
+              },
             ],
           }
         : {}),
@@ -166,7 +202,9 @@ export async function listMyContracts(
       paymentType: true,
       amount: true,
       status: true,
-      milestones: { select: { id: true, name: true, amount: true, deadline: true } },
+      milestones: {
+        select: { id: true, name: true, amount: true, deadline: true },
+      },
     },
     orderBy: { date: "desc" },
   });
@@ -196,7 +234,9 @@ export type MyInvoice = {
   balanceDue: number;
 };
 
-export async function listMyInvoices(clients: ClientProfileOption[]): Promise<MyInvoice[]> {
+export async function listMyInvoices(
+  clients: ClientProfileOption[],
+): Promise<MyInvoice[]> {
   const clientIds = clients.map((c) => c.id);
   const nameOf = new Map(clients.map((c) => [c.id, c.name]));
 
@@ -218,7 +258,10 @@ export async function listMyInvoices(clients: ClientProfileOption[]): Promise<My
   });
 
   return invoices.map((invoice) => {
-    const total = invoice.items.reduce((sum, item) => sum + Number(item.amount), 0);
+    const total = invoice.items.reduce(
+      (sum, item) => sum + Number(item.amount),
+      0,
+    );
     return {
       id: invoice.id,
       clientId: invoice.clientId,

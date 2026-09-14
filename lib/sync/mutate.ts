@@ -11,7 +11,8 @@ import { pushToQueue } from "@/lib/sync/queue";
 export function isLikelyNetworkError(error: unknown): boolean {
   if (typeof navigator !== "undefined" && !navigator.onLine) return true;
   if (error instanceof TypeError) return true;
-  if (error instanceof Error && /failed to fetch|network/i.test(error.message)) return true;
+  if (error instanceof Error && /failed to fetch|network/i.test(error.message))
+    return true;
   return false;
 }
 
@@ -31,13 +32,21 @@ export async function enqueueMutation<P>({
   payload: P;
   label: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const toastId = toast.add({ title: `Saving ${label}…`, type: "loading", timeout: 0 });
+  const toastId = toast.add({
+    title: `Saving ${label}…`,
+    type: "loading",
+    timeout: 0,
+  });
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
 
   if (!offline) {
     try {
       await ACTION_REGISTRY[key](payload);
-      toast.update(toastId, { title: `Saved ${label}`, type: "success", timeout: 2000 });
+      toast.update(toastId, {
+        title: `Saved ${label}`,
+        type: "success",
+        timeout: 2000,
+      });
       return { ok: true };
     } catch (error) {
       if (!isLikelyNetworkError(error)) {

@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
 function str(formData: FormData, key: string) {
@@ -48,7 +51,8 @@ function readPartnerFields(formData: FormData) {
     currency: currencyRaw as PaymentCurrency,
     sharePercentage,
     // Only meaningful when there's an email on file to send to.
-    payslipEmailsEnabled: !!email && str(formData, "payslipEmailsEnabled") !== "false",
+    payslipEmailsEnabled:
+      !!email && str(formData, "payslipEmailsEnabled") !== "false",
     chatEnabled: str(formData, "chatEnabled") === "true",
   };
 }
@@ -83,8 +87,13 @@ export async function deletePartner(id: string) {
   try {
     await prisma.partner.delete({ where: { id } });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
-      throw new Error("Can't delete a partner who has contracts or payslips on record");
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2003"
+    ) {
+      throw new Error(
+        "Can't delete a partner who has contracts or payslips on record",
+      );
     }
     throw e;
   }

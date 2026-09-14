@@ -1,4 +1,11 @@
-import { emailBadge, emailButton, emailInfoRow, emailInfoTable, escapeHtml, renderEmailShell } from "./shell";
+import {
+  emailBadge,
+  emailButton,
+  emailInfoRow,
+  emailInfoTable,
+  escapeHtml,
+  renderEmailShell,
+} from "./shell";
 
 export function renderCredentialsEmail({
   name,

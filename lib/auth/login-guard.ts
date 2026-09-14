@@ -14,7 +14,9 @@ export type LoginGuardOutcome = { message?: string };
  * email belongs to an account — an unknown email is always "allowed",
  * exactly like Neon Auth's own "invalid credentials" error already treats
  * unknown and wrong-password cases identically. */
-export async function checkLoginAllowed(email: string): Promise<LoginGuardCheck> {
+export async function checkLoginAllowed(
+  email: string,
+): Promise<LoginGuardCheck> {
   const appUser = await prisma.appUser.findUnique({
     where: { email },
     select: { status: true, lockedUntil: true },
@@ -24,7 +26,8 @@ export async function checkLoginAllowed(email: string): Promise<LoginGuardCheck>
   if (appUser.status !== "ACTIVE") {
     return {
       allowed: false,
-      message: "This account has been blocked. Please contact your administrator.",
+      message:
+        "This account has been blocked. Please contact your administrator.",
     };
   }
 
@@ -55,7 +58,9 @@ export async function recordLoginSuccess(email: string): Promise<void> {
  * next lockout tier (or a permanent block once every tier is used).
  * Returns a user-facing message only when a new lockout/block just kicked
  * in — an ordinary sub-5 failure returns nothing extra to show. */
-export async function recordLoginFailure(email: string): Promise<LoginGuardOutcome> {
+export async function recordLoginFailure(
+  email: string,
+): Promise<LoginGuardOutcome> {
   const appUser = await prisma.appUser.findUnique({
     where: { email },
     select: { id: true, failedLoginAttempts: true, lockoutStage: true },
@@ -81,7 +86,9 @@ export async function recordLoginFailure(email: string): Promise<LoginGuardOutco
         lockedUntil: new Date(Date.now() + minutes * 60_000),
       },
     });
-    return { message: `Too many failed attempts. Account locked for ${minutes} minutes.` };
+    return {
+      message: `Too many failed attempts. Account locked for ${minutes} minutes.`,
+    };
   }
 
   await prisma.appUser.update({
@@ -89,6 +96,7 @@ export async function recordLoginFailure(email: string): Promise<LoginGuardOutco
     data: { status: "BLOCKED", failedLoginAttempts: 0, lockedUntil: null },
   });
   return {
-    message: "Too many failed attempts. This account has been blocked. Please contact your administrator.",
+    message:
+      "Too many failed attempts. This account has been blocked. Please contact your administrator.",
   };
 }

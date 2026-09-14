@@ -13,7 +13,11 @@ export type ListFilters = {
 };
 
 export async function listWorkDiaryEntries(filters: ListFilters) {
-  const { gte, lte } = resolveWorkDiaryPeriod(filters.period, filters.from, filters.to);
+  const { gte, lte } = resolveWorkDiaryPeriod(
+    filters.period,
+    filters.from,
+    filters.to,
+  );
 
   return prisma.workDiaryEntry.findMany({
     where: {

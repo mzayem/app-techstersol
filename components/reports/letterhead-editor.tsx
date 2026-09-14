@@ -3,7 +3,12 @@
 import * as React from "react";
 import { useEditor, useEditorState, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { TextStyle, Color, FontFamily, FontSize } from "@tiptap/extension-text-style";
+import {
+  TextStyle,
+  Color,
+  FontFamily,
+  FontSize,
+} from "@tiptap/extension-text-style";
 import TiptapImage from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import {
@@ -92,18 +97,26 @@ export function LetterheadEditor() {
   const [date, setDate] = React.useState(todayFormatted);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const [signOffMode, setSignOffMode] = React.useState<"filled" | "blank">("filled");
+  const [signOffMode, setSignOffMode] = React.useState<"filled" | "blank">(
+    "filled",
+  );
   const [name, setName] = React.useState("Muhammad Zayem");
   const [role, setRole] = React.useState("Owner / Software Developer");
 
   const [includeSignature, setIncludeSignature] = React.useState(false);
-  const [signaturePassword, setSignaturePassword] = React.useState<string | null>(null);
+  const [signaturePassword, setSignaturePassword] = React.useState<
+    string | null
+  >(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = React.useState(false);
 
-  const [fontFamily, setFontFamily] = React.useState<string>(LETTERHEAD_FONT_FAMILIES[0].value);
+  const [fontFamily, setFontFamily] = React.useState<string>(
+    LETTERHEAD_FONT_FAMILIES[0].value,
+  );
   const [fontSize, setFontSize] = React.useState(10.5);
   const [color, setColor] = React.useState("#1b1b1b");
-  const [lineHeight, setLineHeight] = React.useState(LETTERHEAD_DEFAULT_LINE_HEIGHT);
+  const [lineHeight, setLineHeight] = React.useState(
+    LETTERHEAD_DEFAULT_LINE_HEIGHT,
+  );
   const [imageError, setImageError] = React.useState<string | null>(null);
 
   const [pending, startTransition] = React.useTransition();
@@ -235,7 +248,9 @@ export function LetterheadEditor() {
               name,
               role,
               includeSignature,
-              password: includeSignature ? (signaturePassword ?? undefined) : undefined,
+              password: includeSignature
+                ? (signaturePassword ?? undefined)
+                : undefined,
             },
           }),
         });
@@ -354,7 +369,9 @@ export function LetterheadEditor() {
             size="icon-sm"
             aria-label="Justify"
             disabled={!editor || showSource}
-            onClick={() => editor?.chain().focus().setTextAlign("justify").run()}
+            onClick={() =>
+              editor?.chain().focus().setTextAlign("justify").run()
+            }
           >
             <AlignJustifyIcon />
           </Button>
@@ -405,7 +422,10 @@ export function LetterheadEditor() {
             />
           </label>
 
-          <Select value={String(lineHeight)} onValueChange={(v) => v && setLineHeight(Number(v))}>
+          <Select
+            value={String(lineHeight)}
+            onValueChange={(v) => v && setLineHeight(Number(v))}
+          >
             <SelectTrigger className="h-8 w-28 text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -441,7 +461,9 @@ export function LetterheadEditor() {
             type="button"
             variant={showSource ? "secondary" : "ghost"}
             size="icon-sm"
-            aria-label={showSource ? "Back to visual editor" : "View HTML source"}
+            aria-label={
+              showSource ? "Back to visual editor" : "View HTML source"
+            }
             title={showSource ? "Back to visual editor" : "View HTML source"}
             disabled={!editor}
             onClick={toggleSourceView}
@@ -470,17 +492,23 @@ export function LetterheadEditor() {
           <div>
             <p className="text-sm font-medium">Sign-off name &amp; role</p>
             <p className="text-xs text-muted-foreground">
-              Filled prints the name and role below the signature line; blank prints empty lines
-              for someone to sign by hand.
+              Filled prints the name and role below the signature line; blank
+              prints empty lines for someone to sign by hand.
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <span className={cn(signOffMode === "blank" && "font-medium")}>Blank</span>
+            <span className={cn(signOffMode === "blank" && "font-medium")}>
+              Blank
+            </span>
             <Switch
               checked={signOffMode === "filled"}
-              onCheckedChange={(checked) => setSignOffMode(checked ? "filled" : "blank")}
+              onCheckedChange={(checked) =>
+                setSignOffMode(checked ? "filled" : "blank")
+              }
             />
-            <span className={cn(signOffMode === "filled" && "font-medium")}>Filled</span>
+            <span className={cn(signOffMode === "filled" && "font-medium")}>
+              Filled
+            </span>
           </div>
         </div>
 
@@ -502,7 +530,10 @@ export function LetterheadEditor() {
               Requires confirming your password every time this is on.
             </p>
           </div>
-          <Switch checked={includeSignature} onCheckedChange={handleSignatureToggle} />
+          <Switch
+            checked={includeSignature}
+            onCheckedChange={handleSignatureToggle}
+          />
         </div>
       </div>
 
@@ -524,7 +555,13 @@ export function LetterheadEditor() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

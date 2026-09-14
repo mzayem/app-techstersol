@@ -1,4 +1,7 @@
-import { CONTRACT_STATUS_LABELS, type ContractStatus } from "@/lib/contracts/constants";
+import {
+  CONTRACT_STATUS_LABELS,
+  type ContractStatus,
+} from "@/lib/contracts/constants";
 import {
   emailBadge,
   emailButton,
@@ -25,7 +28,10 @@ const CONTRACT_STATUS_TONE: Record<ContractStatus, StatusTone> = {
 };
 
 function contractStatusBadge(status: ContractStatus) {
-  return emailStatusBadge(CONTRACT_STATUS_LABELS[status], CONTRACT_STATUS_TONE[status]);
+  return emailStatusBadge(
+    CONTRACT_STATUS_LABELS[status],
+    CONTRACT_STATUS_TONE[status],
+  );
 }
 
 export function renderProposalNotificationEmail({
@@ -143,8 +149,13 @@ export function renderChatNotificationEmail({
     <div class="em-panel em-heading" style="background:rgba(120,120,130,0.08);border:1px solid rgba(120,120,130,0.2);border-radius:12px;padding:16px 20px;font-size:14px;line-height:1.7;color:#18181b;white-space:pre-wrap;">${escapeHtml(message)}</div>
     <div style="margin-top:28px;">${emailButton(
       "View conversation",
-      forAdmin ? `${appUrl}/projects/contracts` : `${appUrl}/client-portal/contracts`,
+      forAdmin
+        ? `${appUrl}/projects/contracts`
+        : `${appUrl}/client-portal/contracts`,
     )}</div>
   `;
-  return renderEmailShell({ title: `New message on ${escapeHtml(projectName)}`, bodyHtml });
+  return renderEmailShell({
+    title: `New message on ${escapeHtml(projectName)}`,
+    bodyHtml,
+  });
 }

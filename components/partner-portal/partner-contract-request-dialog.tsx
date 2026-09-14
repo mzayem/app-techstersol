@@ -24,14 +24,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COUNTRIES } from "@/lib/clients/countries";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import {
   PAYMENT_TYPES,
   PAYMENT_TYPE_LABELS,
   type ContractPaymentType,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
-import { createPartnerClient, createPartnerContractRequest } from "@/actions/partner-portal/actions";
+import {
+  createPartnerClient,
+  createPartnerContractRequest,
+} from "@/actions/partner-portal/actions";
 import type { PartnerClientOption } from "@/actions/partner-portal/queries";
 
 const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: c }));
@@ -75,15 +81,22 @@ export function PartnerContractRequestDialog({
   const [clientMode, setClientMode] = React.useState<ClientMode>(
     clients.length > 0 ? "existing" : "new",
   );
-  const [existingClientId, setExistingClientId] = React.useState(clients[0]?.id ?? "");
+  const [existingClientId, setExistingClientId] = React.useState(
+    clients[0]?.id ?? "",
+  );
   const [newClientName, setNewClientName] = React.useState("");
   const [newClientPhone, setNewClientPhone] = React.useState("");
   const [newClientEmail, setNewClientEmail] = React.useState("");
   const [newClientCountry, setNewClientCountry] = React.useState("");
-  const [newClientCurrency, setNewClientCurrency] = React.useState<PaymentCurrency | "">("");
+  const [newClientCurrency, setNewClientCurrency] = React.useState<
+    PaymentCurrency | ""
+  >("");
 
-  const [paymentType, setPaymentType] = React.useState<ContractPaymentType>("PROJECT");
-  const [milestones, setMilestones] = React.useState<MilestoneRow[]>([emptyMilestoneRow()]);
+  const [paymentType, setPaymentType] =
+    React.useState<ContractPaymentType>("PROJECT");
+  const [milestones, setMilestones] = React.useState<MilestoneRow[]>([
+    emptyMilestoneRow(),
+  ]);
   const [teamMemberId, setTeamMemberId] = React.useState("");
 
   function resetForm() {
@@ -100,7 +113,9 @@ export function PartnerContractRequestDialog({
   }
 
   function updateMilestone(index: number, patch: Partial<MilestoneRow>) {
-    setMilestones((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+    setMilestones((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
   }
 
   function addMilestone() {
@@ -108,7 +123,9 @@ export function PartnerContractRequestDialog({
   }
 
   function removeMilestone(index: number) {
-    setMilestones((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+    setMilestones((rows) =>
+      rows.length > 1 ? rows.filter((_, i) => i !== index) : rows,
+    );
   }
 
   function onSubmit(formData: FormData) {
@@ -124,7 +141,13 @@ export function PartnerContractRequestDialog({
         let clientId = existingClientId;
 
         if (clientMode === "new") {
-          if (!newClientName || !newClientPhone || !newClientEmail || !newClientCountry || !newClientCurrency) {
+          if (
+            !newClientName ||
+            !newClientPhone ||
+            !newClientEmail ||
+            !newClientCountry ||
+            !newClientCurrency
+          ) {
             throw new Error("Fill in every field for the new client");
           }
           const clientFormData = new FormData();
@@ -191,13 +214,17 @@ export function PartnerContractRequestDialog({
               {clientMode === "existing" ? (
                 clients.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    You haven&apos;t brought in any clients yet — switch to &quot;New client&quot;.
+                    You haven&apos;t brought in any clients yet — switch to
+                    &quot;New client&quot;.
                   </p>
                 ) : (
                   <Combobox
                     value={existingClientId}
                     onValueChange={setExistingClientId}
-                    options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                    options={clients.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
                     placeholder="Select client"
                     searchPlaceholder="Search clients…"
                     emptyText="No clients found."
@@ -234,7 +261,9 @@ export function PartnerContractRequestDialog({
                   />
                   <Select
                     value={newClientCurrency}
-                    onValueChange={(v) => setNewClientCurrency((v as PaymentCurrency) ?? "")}
+                    onValueChange={(v) =>
+                      setNewClientCurrency((v as PaymentCurrency) ?? "")
+                    }
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Payment currency" />
@@ -252,7 +281,9 @@ export function PartnerContractRequestDialog({
             </div>
 
             <div className="flex items-center justify-between gap-3 rounded-md bg-muted/50 px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Your profit share on this project</span>
+              <span className="text-muted-foreground">
+                Your profit share on this project
+              </span>
               <span className="font-medium">{sharePercentage}%</span>
             </div>
 
@@ -270,14 +301,20 @@ export function PartnerContractRequestDialog({
             </div>
 
             <Field label="Description">
-              <Textarea name="description" placeholder="Tell us about the project" rows={3} />
+              <Textarea
+                name="description"
+                placeholder="Tell us about the project"
+                rows={3}
+              />
             </Field>
 
             <Field label="Payment structure">
               <Select
                 name="paymentType"
                 value={paymentType}
-                onValueChange={(v) => setPaymentType((v ?? "PROJECT") as ContractPaymentType)}
+                onValueChange={(v) =>
+                  setPaymentType((v ?? "PROJECT") as ContractPaymentType)
+                }
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -294,14 +331,18 @@ export function PartnerContractRequestDialog({
 
             {paymentType === "MILESTONE" ? (
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">Milestones</span>
+                <span className="text-sm text-muted-foreground">
+                  Milestones
+                </span>
                 {milestones.map((row, index) => (
                   <div key={index} className="flex items-start gap-2">
                     <Input
                       placeholder="Name"
                       className="flex-1"
                       value={row.name}
-                      onChange={(e) => updateMilestone(index, { name: e.target.value })}
+                      onChange={(e) =>
+                        updateMilestone(index, { name: e.target.value })
+                      }
                     />
                     <Input
                       type="number"
@@ -310,12 +351,16 @@ export function PartnerContractRequestDialog({
                       placeholder="Amount"
                       className="w-28"
                       value={row.amount}
-                      onChange={(e) => updateMilestone(index, { amount: e.target.value })}
+                      onChange={(e) =>
+                        updateMilestone(index, { amount: e.target.value })
+                      }
                     />
                     <DatePicker
                       className="w-40"
                       value={row.deadline}
-                      onValueChange={(v) => updateMilestone(index, { deadline: v })}
+                      onValueChange={(v) =>
+                        updateMilestone(index, { deadline: v })
+                      }
                     />
                     <Button
                       type="button"
@@ -329,7 +374,12 @@ export function PartnerContractRequestDialog({
                     </Button>
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="sm" onClick={addMilestone}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addMilestone}
+                >
                   <PlusIcon />
                   Add milestone
                 </Button>
@@ -348,12 +398,17 @@ export function PartnerContractRequestDialog({
             )}
 
             <div className="flex flex-col gap-2 rounded-md ring-1 ring-foreground/10 p-3">
-              <span className="text-sm font-medium">Suggest a team member (optional)</span>
+              <span className="text-sm font-medium">
+                Suggest a team member (optional)
+              </span>
               <p className="text-xs text-muted-foreground">
-                Just a starting point — the admin can change or clear this before activating
-                the project.
+                Just a starting point — the admin can change or clear this
+                before activating the project.
               </p>
-              <Select value={teamMemberId} onValueChange={(v) => setTeamMemberId(v ?? "")}>
+              <Select
+                value={teamMemberId}
+                onValueChange={(v) => setTeamMemberId(v ?? "")}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="No suggestion" />
                 </SelectTrigger>
@@ -393,7 +448,13 @@ export function PartnerContractRequestDialog({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

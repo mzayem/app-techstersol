@@ -75,8 +75,12 @@ export function WorkDiaryDialog({
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
-  const [teamMemberId, setTeamMemberId] = React.useState(entry?.teamMemberId ?? "");
-  const [hoursInput, setHoursInput] = React.useState(entry?.hours.toString() ?? "");
+  const [teamMemberId, setTeamMemberId] = React.useState(
+    entry?.teamMemberId ?? "",
+  );
+  const [hoursInput, setHoursInput] = React.useState(
+    entry?.hours.toString() ?? "",
+  );
   const [weekStart, setWeekStart] = React.useState(
     entry?.weekStart ?? mondayOf(new Date()),
   );
@@ -122,7 +126,9 @@ export function WorkDiaryDialog({
       )}
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit work diary entry" : "Add work diary entry"}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Edit work diary entry" : "Add work diary entry"}
+          </DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <Field label="Team member">
@@ -140,8 +146,16 @@ export function WorkDiaryDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Week">
-              <WeekPicker value={weekStart} onChange={setWeekStart} disabled={locked} />
-              <input type="hidden" name="week" value={toDateInputValue(weekStart)} />
+              <WeekPicker
+                value={weekStart}
+                onChange={setWeekStart}
+                disabled={locked}
+              />
+              <input
+                type="hidden"
+                name="week"
+                value={toDateInputValue(weekStart)}
+              />
             </Field>
             <Field label="Hours">
               <Input
@@ -195,7 +209,12 @@ export function WorkDiaryDialog({
           )}
           {!locked && (
             <DialogFooter>
-              <Button key="save" type="submit" disabled={!teamMemberId} loading={pending}>
+              <Button
+                key="save"
+                type="submit"
+                disabled={!teamMemberId}
+                loading={pending}
+              >
                 {pending ? "Saving…" : isEdit ? "Save changes" : "Save entry"}
               </Button>
             </DialogFooter>

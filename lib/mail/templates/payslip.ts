@@ -1,4 +1,10 @@
-import { emailBadge, emailButton, emailInfoRow, emailInfoTable, renderEmailShell } from "./shell";
+import {
+  emailBadge,
+  emailButton,
+  emailInfoRow,
+  emailInfoTable,
+  renderEmailShell,
+} from "./shell";
 
 export function renderPayslipIssuedEmail({
   payslipNumber,

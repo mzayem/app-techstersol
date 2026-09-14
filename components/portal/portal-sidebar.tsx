@@ -31,7 +31,12 @@ import { Separator } from "@/components/ui/separator";
 const PORTAL_NAV = [
   { title: "Overview", url: "/portal", icon: LayoutDashboard },
   { title: "My Projects", url: "/portal/projects", icon: FolderKanban },
-  { title: "Work Diary", url: "/portal/work-diary", icon: CalendarDays, hourlyOnly: true },
+  {
+    title: "Work Diary",
+    url: "/portal/work-diary",
+    icon: CalendarDays,
+    hourlyOnly: true,
+  },
   { title: "Payslips", url: "/portal/payslips", icon: ReceiptText },
   { title: "Profile", url: "/portal/profile/settings", icon: UserCircle },
   { title: "Settings", url: "/settings", icon: Settings },
@@ -51,7 +56,9 @@ export function PortalSidebar({
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
-  const navItems = PORTAL_NAV.filter((item) => !item.hourlyOnly || showWorkDiary);
+  const navItems = PORTAL_NAV.filter(
+    (item) => !item.hourlyOnly || showWorkDiary,
+  );
 
   // The sidebar is a full-screen overlay on mobile — after tapping a link
   // it's navigating away anyway, so leaving the drawer open just blocks the

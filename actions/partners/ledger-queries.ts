@@ -37,7 +37,9 @@ export type PartnerLedgerFilters = {
  * raised manually via a payslip) with its full cost breakdown — the
  * partner-side equivalent of the Balance Sheet's ledger table. Also the
  * data source behind the downloadable partner earnings report. */
-export async function getPartnerLedger(filters: PartnerLedgerFilters = {}): Promise<PartnerLedgerRow[]> {
+export async function getPartnerLedger(
+  filters: PartnerLedgerFilters = {},
+): Promise<PartnerLedgerRow[]> {
   const payments = await prisma.partnerPayment.findMany({
     where: {
       date: filters.dateRange ? dateWhere(filters.dateRange) : undefined,
@@ -63,9 +65,11 @@ export async function getPartnerLedger(filters: PartnerLedgerFilters = {}): Prom
     contractStatus: (p.contract?.status as ContractStatus | undefined) ?? null,
     revenueAmount: p.revenueAmount != null ? Number(p.revenueAmount) : null,
     workCostAmount: p.workCostAmount != null ? Number(p.workCostAmount) : null,
-    projectExpensesAmount: p.projectExpensesAmount != null ? Number(p.projectExpensesAmount) : null,
+    projectExpensesAmount:
+      p.projectExpensesAmount != null ? Number(p.projectExpensesAmount) : null,
     profitAmount: p.profitAmount != null ? Number(p.profitAmount) : null,
-    sharePercentageUsed: p.sharePercentageUsed != null ? Number(p.sharePercentageUsed) : null,
+    sharePercentageUsed:
+      p.sharePercentageUsed != null ? Number(p.sharePercentageUsed) : null,
     amount: Number(p.amount),
     issued: p.partnerPayslipId != null,
     payslipNumber: p.partnerPayslip?.number ?? null,
@@ -81,7 +85,9 @@ export type PartnerLedgerTotals = {
   totalPending: number;
 };
 
-export function summarizePartnerLedger(rows: PartnerLedgerRow[]): PartnerLedgerTotals {
+export function summarizePartnerLedger(
+  rows: PartnerLedgerRow[],
+): PartnerLedgerTotals {
   return rows.reduce(
     (acc, r) => ({
       totalRevenue: acc.totalRevenue + (r.revenueAmount ?? 0),
@@ -91,6 +97,13 @@ export function summarizePartnerLedger(rows: PartnerLedgerRow[]): PartnerLedgerT
       totalPaid: acc.totalPaid + (r.issued ? r.amount : 0),
       totalPending: acc.totalPending + (r.issued ? 0 : r.amount),
     }),
-    { totalRevenue: 0, totalWorkCost: 0, totalExpenses: 0, totalShare: 0, totalPaid: 0, totalPending: 0 },
+    {
+      totalRevenue: 0,
+      totalWorkCost: 0,
+      totalExpenses: 0,
+      totalShare: 0,
+      totalPaid: 0,
+      totalPending: 0,
+    },
   );
 }

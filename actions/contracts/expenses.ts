@@ -30,7 +30,10 @@ function readExpenseFields(formData: FormData) {
  * time — independent of the parent contract's status or invoice payment —
  * unlike teamPay/partner-share, which only book once at contract
  * completion (see markInvoicePaid). */
-export async function createProjectExpense(contractId: string, formData: FormData) {
+export async function createProjectExpense(
+  contractId: string,
+  formData: FormData,
+) {
   const { appUser } = await requirePagePermission("contracts", "create");
   const createdByUserId = appUser.authUserId;
   const { date, name, amount } = readExpenseFields(formData);
@@ -51,7 +54,12 @@ export async function createProjectExpense(contractId: string, formData: FormDat
   revalidatePath("/projects/contracts");
   revalidatePath("/account/balance-sheet");
 
-  return { id: created.id, date: created.date, name: created.name, amount: Number(created.amount) };
+  return {
+    id: created.id,
+    date: created.date,
+    name: created.name,
+    amount: Number(created.amount),
+  };
 }
 
 export async function updateProjectExpense(id: string, formData: FormData) {
@@ -77,7 +85,12 @@ export async function updateProjectExpense(id: string, formData: FormData) {
   revalidatePath("/projects/contracts");
   revalidatePath("/account/balance-sheet");
 
-  return { id: updated.id, date: updated.date, name: updated.name, amount: Number(updated.amount) };
+  return {
+    id: updated.id,
+    date: updated.date,
+    name: updated.name,
+    amount: Number(updated.amount),
+  };
 }
 
 export async function deleteProjectExpense(id: string) {

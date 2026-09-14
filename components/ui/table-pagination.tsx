@@ -69,7 +69,9 @@ export function TablePagination({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-2.5 text-sm text-muted-foreground">
       <div className="flex items-center gap-2">
-        <span>Showing {from}–{to} of {totalItems}</span>
+        <span>
+          Showing {from}–{to} of {totalItems}
+        </span>
         <Select value={String(pageSize)} onValueChange={changePageSize}>
           <SelectTrigger size="sm" className="h-7 w-auto gap-1 text-xs">
             <SelectValue />

@@ -18,7 +18,9 @@ export type PortalOverview = {
   paidThisYearPkr: number;
 };
 
-export async function getPortalOverview(teamMemberId: string): Promise<PortalOverview> {
+export async function getPortalOverview(
+  teamMemberId: string,
+): Promise<PortalOverview> {
   const now = new Date();
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const yearEnd = new Date(now.getFullYear(), 11, 31);
@@ -42,12 +44,17 @@ export async function getPortalOverview(teamMemberId: string): Promise<PortalOve
       _sum: { amount: true },
     }),
     prisma.teamPayment.aggregate({
-      where: { payslip: { teamMemberId }, date: { gte: yearStart, lte: yearEnd } },
+      where: {
+        payslip: { teamMemberId },
+        date: { gte: yearStart, lte: yearEnd },
+      },
       _sum: { amount: true },
     }),
   ]);
 
-  const completedProjects = contracts.filter((c) => c.status === "COMPLETED").length;
+  const completedProjects = contracts.filter(
+    (c) => c.status === "COMPLETED",
+  ).length;
   const pendingProjects = contracts.length - completedProjects;
   const openTeamPay = openContracts.reduce(
     (sum, c) => sum + Number(c.teamPayAmount ?? 0),
@@ -71,7 +78,9 @@ export type MyProject = {
 
 /** Project name and deadline only — the contract amount and client
  * details are confidential and never exposed here. */
-export async function listMyProjects(teamMemberId: string): Promise<MyProject[]> {
+export async function listMyProjects(
+  teamMemberId: string,
+): Promise<MyProject[]> {
   return prisma.contract.findMany({
     where: { teamMemberId },
     select: { id: true, projectName: true, deadline: true, status: true },

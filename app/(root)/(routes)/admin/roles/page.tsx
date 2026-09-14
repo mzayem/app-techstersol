@@ -24,7 +24,11 @@ export default async function RolesPage({
   const params = await searchParams;
 
   const roles = await listRoles();
-  const paginated = paginate(roles, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    roles,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -32,8 +36,8 @@ export default async function RolesPage({
         <div>
           <h1 className="text-lg font-medium">Roles</h1>
           <p className="text-sm text-muted-foreground">
-            Control which pages a dashboard user can view, and whether they
-            can create, edit, or delete on each one.
+            Control which pages a dashboard user can view, and whether they can
+            create, edit, or delete on each one.
           </p>
         </div>
         {permission.canCreate && <RoleDialog />}
@@ -52,7 +56,10 @@ export default async function RolesPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={4}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No roles yet.
                 </TableCell>
               </TableRow>

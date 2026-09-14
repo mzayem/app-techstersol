@@ -7,7 +7,9 @@ export function parsePageParam(value: string | string[] | undefined): number {
   return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
 }
 
-export function parsePageSizeParam(value: string | string[] | undefined): number {
+export function parsePageSizeParam(
+  value: string | string[] | undefined,
+): number {
   const raw = Array.isArray(value) ? value[0] : value;
   const n = Number(raw);
   return (PAGE_SIZE_OPTIONS as readonly number[]).includes(n)

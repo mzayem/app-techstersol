@@ -13,9 +13,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatPkr } from "@/lib/finance/constants";
-import { formatContractAmount, CONTRACT_STATUS_LABELS } from "@/lib/contracts/constants";
+import {
+  formatContractAmount,
+  CONTRACT_STATUS_LABELS,
+} from "@/lib/contracts/constants";
 import { requirePartnerUser } from "@/lib/rbac/permissions";
-import { getPartnerOverview, listPartnerContracts } from "@/actions/partner-portal/queries";
+import {
+  getPartnerOverview,
+  listPartnerContracts,
+} from "@/actions/partner-portal/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +45,10 @@ export default async function PartnerPortalOverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatTile label="Paid this year" value={formatPkr(overview.paidThisYearPkr)} />
+        <StatTile
+          label="Paid this year"
+          value={formatPkr(overview.paidThisYearPkr)}
+        />
         <StatTile label="Pending" value={formatPkr(overview.pendingPkr)} />
         <StatTile
           label="Projects"
@@ -83,7 +92,10 @@ export default async function PartnerPortalOverviewPage() {
             <TableBody>
               {contracts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="py-8 text-center text-muted-foreground"
+                  >
                     No projects assigned to you yet.
                   </TableCell>
                 </TableRow>
@@ -95,15 +107,21 @@ export default async function PartnerPortalOverviewPage() {
                     : contract.milestones.reduce((sum, m) => sum + m.amount, 0);
                 return (
                   <TableRow key={contract.id}>
-                    <TableCell className="font-medium">{contract.projectName}</TableCell>
-                    <TableCell className="text-muted-foreground">{contract.clientName}</TableCell>
+                    <TableCell className="font-medium">
+                      {contract.projectName}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {contract.clientName}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(contract.deadline)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatContractAmount(total, contract.currency)}
                     </TableCell>
-                    <TableCell>{CONTRACT_STATUS_LABELS[contract.status]}</TableCell>
+                    <TableCell>
+                      {CONTRACT_STATUS_LABELS[contract.status]}
+                    </TableCell>
                     <TableCell>
                       <ContractChatButton
                         contractId={contract.id}

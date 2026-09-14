@@ -6,7 +6,10 @@ import {
   Section,
   renderAnalysisPdf,
 } from "@/lib/reports/analysis/layout";
-import { resolveAnalysisRange, periodLabel } from "@/lib/reports/analysis/period";
+import {
+  resolveAnalysisRange,
+  periodLabel,
+} from "@/lib/reports/analysis/period";
 
 const TYPE_LABELS: Record<string, string> = {
   EARNING: "Earning",
@@ -57,13 +60,16 @@ export async function renderBalanceSheetAudit(
       <Section heading="Summary">
         <Paragraph>
           This audit covers every credit and debit posted to the ledger
-          {label === "All time" ? " across its full recorded history" : ` during ${label}`}.
-          Over this period the company recorded {formatPkr(periodCredit)} in credits against{" "}
-          {formatPkr(periodDebit)} in debits, a net movement of {formatPkr(periodNet)}. The
-          ledger’s all-time balance — every credit and debit ever recorded, independent of the
-          period selected for this report — currently stands at {formatPkr(balance.balance)} (
-          {formatPkr(balance.totalCredit)} total credit against {formatPkr(balance.totalDebit)}{" "}
-          total debit).
+          {label === "All time"
+            ? " across its full recorded history"
+            : ` during ${label}`}
+          . Over this period the company recorded {formatPkr(periodCredit)} in
+          credits against {formatPkr(periodDebit)} in debits, a net movement of{" "}
+          {formatPkr(periodNet)}. The ledger’s all-time balance — every credit
+          and debit ever recorded, independent of the period selected for this
+          report — currently stands at {formatPkr(balance.balance)} (
+          {formatPkr(balance.totalCredit)} total credit against{" "}
+          {formatPkr(balance.totalDebit)} total debit).
         </Paragraph>
         <Paragraph>
           {periodNet >= 0
@@ -95,5 +101,10 @@ export async function renderBalanceSheetAudit(
     </>
   );
 
-  return renderAnalysisPdf("BALANCE SHEET AUDIT REPORT", label, generatedBy, body);
+  return renderAnalysisPdf(
+    "BALANCE SHEET AUDIT REPORT",
+    label,
+    generatedBy,
+    body,
+  );
 }

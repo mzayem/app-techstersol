@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 import { getCurrentAppUser } from "@/lib/rbac/permissions";
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { renderPayslipPdf } from "@/lib/team/payslip-pdf";
-import { getPayslipForPdf, toPayslipPdfData } from "@/actions/team/payslip-queries";
+import {
+  getPayslipForPdf,
+  toPayslipPdfData,
+} from "@/actions/team/payslip-queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +26,10 @@ export async function GET(
     return NextResponse.json({ error: "Payslip not found" }, { status: 404 });
   }
 
-  if (appUser.kind === "TEAM" && payslip.teamMemberId !== appUser.teamMember?.id) {
+  if (
+    appUser.kind === "TEAM" &&
+    payslip.teamMemberId !== appUser.teamMember?.id
+  ) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

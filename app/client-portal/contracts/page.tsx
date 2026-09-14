@@ -14,8 +14,14 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatContractAmount } from "@/lib/contracts/constants";
-import { getActiveClientProfiles, requireClientUser } from "@/lib/rbac/permissions";
-import { getClientOverview, listMyContracts } from "@/actions/client-portal/queries";
+import {
+  getActiveClientProfiles,
+  requireClientUser,
+} from "@/lib/rbac/permissions";
+import {
+  getClientOverview,
+  listMyContracts,
+} from "@/actions/client-portal/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +37,16 @@ export default async function ClientContractsPage({
 
   const [overview, contracts] = await Promise.all([
     getClientOverview(profiles),
-    listMyContracts(profiles, { search: params.q, profileClientId: params.profile }),
+    listMyContracts(profiles, {
+      search: params.q,
+      profileClientId: params.profile,
+    }),
   ]);
-  const paginated = paginate(contracts, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    contracts,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -41,7 +54,8 @@ export default async function ClientContractsPage({
         <div>
           <h1 className="text-lg font-medium">Contracts</h1>
           <p className="text-sm text-muted-foreground">
-            Your projects with us. Add a note any time — our team sees it right away.
+            Your projects with us. Add a note any time — our team sees it right
+            away.
           </p>
         </div>
         <ClientContractRequestDialog profiles={profiles} />
@@ -115,7 +129,9 @@ export default async function ClientContractsPage({
                     )}
                   </TableCell>
                   {isMultiProfile && (
-                    <TableCell className="text-muted-foreground">{contract.clientName}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {contract.clientName}
+                    </TableCell>
                   )}
                   <TableCell className="text-muted-foreground">
                     {formatDate(contract.deadline)}

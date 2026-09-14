@@ -28,21 +28,28 @@ export async function renderCustomerPerformance(
   const sorted = [...slices].sort((a, b) => b.revenue - a.revenue);
   const top = sorted.slice(0, TOP_N);
   const topClient = sorted.find((s) => !s.isOther);
-  const topShare = topClient && totalRevenue > 0 ? (topClient.revenue / totalRevenue) * 100 : 0;
+  const topShare =
+    topClient && totalRevenue > 0
+      ? (topClient.revenue / totalRevenue) * 100
+      : 0;
 
   const rows = sorted.map((s) => ({
     client: s.isOther ? "Other (no linked client)" : s.clientName,
     projects: s.isOther ? "" : String(s.projectCount),
     revenue: formatPkr(s.revenue),
-    share: totalRevenue > 0 ? `${((s.revenue / totalRevenue) * 100).toFixed(1)}%` : "0%",
+    share:
+      totalRevenue > 0
+        ? `${((s.revenue / totalRevenue) * 100).toFixed(1)}%`
+        : "0%",
   }));
 
   const body = (
     <>
       <Section heading="Summary">
         <Paragraph>
-          During {label}, Techstersol recorded {formatPkr(totalRevenue)} in revenue attributed
-          to invoiced client work across {slices.filter((s) => !s.isOther).length} client
+          During {label}, Techstersol recorded {formatPkr(totalRevenue)} in
+          revenue attributed to invoiced client work across{" "}
+          {slices.filter((s) => !s.isOther).length} client
           {slices.filter((s) => !s.isOther).length === 1 ? "" : "s"}.{" "}
           {topClient
             ? `The top client, ${topClient.clientName}, accounted for ${formatPkr(topClient.revenue)} — ${topShare.toFixed(1)}% of revenue for the period.`
@@ -59,7 +66,13 @@ export async function renderCustomerPerformance(
         <Section heading="Top clients by revenue">
           <HorizontalGroupedBarChart
             categories={top.map((s) => (s.isOther ? "Other" : s.clientName))}
-            series={[{ label: "Revenue", color: "#0ea5e9", values: top.map((s) => s.revenue) }]}
+            series={[
+              {
+                label: "Revenue",
+                color: "#0ea5e9",
+                values: top.map((s) => s.revenue),
+              },
+            ]}
             width={480}
             valueFormatter={(v) => formatPkr(v)}
           />
@@ -86,5 +99,10 @@ export async function renderCustomerPerformance(
     </>
   );
 
-  return renderAnalysisPdf("CUSTOMER PERFORMANCE REPORT", label, generatedBy, body);
+  return renderAnalysisPdf(
+    "CUSTOMER PERFORMANCE REPORT",
+    label,
+    generatedBy,
+    body,
+  );
 }

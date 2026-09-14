@@ -1,5 +1,8 @@
 import { AnalysisReportDialog } from "@/components/reports/analysis-report-dialog";
-import { ANALYSIS_REPORTS, type AnalysisReportType } from "@/lib/reports/analysis/registry";
+import {
+  ANALYSIS_REPORTS,
+  type AnalysisReportType,
+} from "@/lib/reports/analysis/registry";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +11,10 @@ export default async function PerformanceReportsPage() {
   await requirePagePermission("reports-performance");
 
   const entries = (
-    Object.entries(ANALYSIS_REPORTS) as [AnalysisReportType, (typeof ANALYSIS_REPORTS)[AnalysisReportType]][]
+    Object.entries(ANALYSIS_REPORTS) as [
+      AnalysisReportType,
+      (typeof ANALYSIS_REPORTS)[AnalysisReportType],
+    ][]
   ).filter(([, def]) => def.tab === "performance");
 
   return (

@@ -6,7 +6,11 @@ import type { DateRange } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { DATE_DISPLAY_FORMAT, parseIsoDate, toIsoDate } from "@/lib/date/iso";
 
 /** A single combined "from – to" range picker — one button that opens a
@@ -69,7 +73,12 @@ export function DateRangePicker({
         }
       >
         <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className={cn("flex-1 text-left", !fromDate && "text-muted-foreground")}>
+        <span
+          className={cn(
+            "flex-1 text-left",
+            !fromDate && "text-muted-foreground",
+          )}
+        >
           {label}
         </span>
       </PopoverTrigger>

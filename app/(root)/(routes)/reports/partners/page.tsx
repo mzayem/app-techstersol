@@ -28,7 +28,8 @@ export default async function PartnerEarningsReportPage() {
         <div>
           <h1 className="text-lg font-medium">Earnings shared with partners</h1>
           <p className="text-sm text-muted-foreground">
-            Who your partner share is owed to, paid vs. pending, and a downloadable breakdown.
+            Who your partner share is owed to, paid vs. pending, and a
+            downloadable breakdown.
           </p>
         </div>
         <PartnerReportExportDialog partners={partnerOptions} />
@@ -47,7 +48,9 @@ export default async function PartnerEarningsReportPage() {
           <p className="mt-1 text-xl font-semibold tabular-nums">
             {formatPkr(partnerEarnings.totalPending)}
           </p>
-          <p className="text-xs text-muted-foreground">Accrued, no payslip issued yet</p>
+          <p className="text-xs text-muted-foreground">
+            Accrued, no payslip issued yet
+          </p>
         </div>
       </div>
 
@@ -64,7 +67,10 @@ export default async function PartnerEarningsReportPage() {
           <TableBody>
             {partnerEarnings.byPartner.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={4}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No partner earnings booked yet.
                 </TableCell>
               </TableRow>
@@ -72,8 +78,12 @@ export default async function PartnerEarningsReportPage() {
             {partnerEarnings.byPartner.map((row) => (
               <TableRow key={row.partnerId}>
                 <TableCell className="font-medium">{row.partnerName}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatPkr(row.paid)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatPkr(row.pending)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatPkr(row.paid)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatPkr(row.pending)}
+                </TableCell>
                 <TableCell className="text-right tabular-nums font-medium">
                   {formatPkr(row.total)}
                 </TableCell>

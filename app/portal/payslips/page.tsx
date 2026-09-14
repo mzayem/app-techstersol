@@ -26,7 +26,11 @@ export default async function PortalPayslipsPage({
   const appUser = await requireTeamUser();
   const params = await searchParams;
   const payslips = await listMyPayslips(appUser.teamMember!.id);
-  const paginated = paginate(payslips, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    payslips,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -52,7 +56,10 @@ export default async function PortalPayslipsPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No payslips issued yet.
                 </TableCell>
               </TableRow>
@@ -66,7 +73,8 @@ export default async function PortalPayslipsPage({
                   {payslip.contract?.projectName ?? "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {formatDate(payslip.periodStart)} – {formatDate(payslip.periodEnd)}
+                  {formatDate(payslip.periodStart)} –{" "}
+                  {formatDate(payslip.periodEnd)}
                 </TableCell>
                 <TableCell>{formatDate(payslip.issueDate)}</TableCell>
                 <TableCell className="text-right tabular-nums">

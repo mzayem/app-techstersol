@@ -40,7 +40,9 @@ export default async function ExpensesPage({
   const { permission } = await requirePagePermission("expenses");
   const params = await searchParams;
   const dateRange = resolveDateRange(params.range, params.from, params.to);
-  const category = EXPENSE_CATEGORIES.includes(params.category as ExpenseCategory)
+  const category = EXPENSE_CATEGORIES.includes(
+    params.category as ExpenseCategory,
+  )
     ? (params.category as ExpenseCategory)
     : undefined;
 
@@ -53,7 +55,11 @@ export default async function ExpensesPage({
     }),
     getBucketBalances(),
   ]);
-  const paginated = paginate(expenses, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    expenses,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">

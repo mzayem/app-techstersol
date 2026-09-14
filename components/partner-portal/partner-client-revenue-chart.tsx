@@ -3,21 +3,39 @@
 import { Cell, Pie, PieChart } from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/chart";
+import {
+  ChartContainer,
+  ChartTooltip,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { formatPkr } from "@/lib/finance/constants";
 import type { PartnerClientRevenue } from "@/actions/partner-portal/queries";
 
-const PALETTE = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ec4899", "#64748b"];
+const PALETTE = [
+  "#10b981",
+  "#0ea5e9",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ec4899",
+  "#64748b",
+];
 
 /** Same donut shape as components/portal/portal-projects-chart.tsx, but fed
  * a dynamic per-client breakdown instead of a fixed completed/pending pair
  * — revenue (converted to a comparable PKR estimate) for every client this
  * partner brought in (Client.broughtByPartnerId). A rough breakdown, not
  * an accounting figure — see getPartnerOverview's revenueByClient. */
-export function PartnerClientRevenueChart({ data }: { data: PartnerClientRevenue[] }) {
+export function PartnerClientRevenueChart({
+  data,
+}: {
+  data: PartnerClientRevenue[];
+}) {
   const top = data.slice(0, PALETTE.length);
   const chartConfig = Object.fromEntries(
-    top.map((d, i) => [d.clientId, { label: d.clientName, color: PALETTE[i % PALETTE.length] }]),
+    top.map((d, i) => [
+      d.clientId,
+      { label: d.clientName, color: PALETTE[i % PALETTE.length] },
+    ]),
   ) satisfies ChartConfig;
 
   return (
@@ -31,7 +49,10 @@ export function PartnerClientRevenueChart({ data }: { data: PartnerClientRevenue
             No revenue from your clients yet.
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="mx-auto aspect-square h-52">
+          <ChartContainer
+            config={chartConfig}
+            className="mx-auto aspect-square h-52"
+          >
             <PieChart>
               <Pie
                 data={top}

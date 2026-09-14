@@ -54,8 +54,10 @@ export function SendEmailDialog({
     startTransition(async () => {
       try {
         if (record.kind === "contract") await sendContractEmail(to, record.id);
-        else if (record.kind === "invoice") await sendInvoiceEmail(to, record.id);
-        else if (record.kind === "partner-payslip") await sendPartnerPayslipEmail(to, record.id);
+        else if (record.kind === "invoice")
+          await sendInvoiceEmail(to, record.id);
+        else if (record.kind === "partner-payslip")
+          await sendPartnerPayslipEmail(to, record.id);
         else await sendPayslipEmail(to, record.id);
         toast.add({ title: `Email sent to ${to}`, type: "success" });
         setOpen(false);

@@ -2,7 +2,11 @@
 
 import * as React from "react";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type StatBreakdownEntry = { label: string; value: string };
 
@@ -59,7 +63,10 @@ function StatValueWithBreakdown({
       <TooltipContent>
         <div className="flex flex-col gap-1">
           {breakdown.map((entry) => (
-            <div key={entry.label} className="flex items-center justify-between gap-4">
+            <div
+              key={entry.label}
+              className="flex items-center justify-between gap-4"
+            >
               <span className="text-muted-foreground">{entry.label}</span>
               <span className="tabular-nums">{entry.value}</span>
             </div>

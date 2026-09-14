@@ -13,7 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { OVERVIEW_PERIODS, OVERVIEW_PERIOD_LABELS } from "@/lib/overview/period";
+import {
+  OVERVIEW_PERIODS,
+  OVERVIEW_PERIOD_LABELS,
+} from "@/lib/overview/period";
 
 export function PeriodSelector() {
   const router = useRouter();
@@ -67,7 +70,9 @@ export function PeriodSelector() {
           className="basis-full sm:w-64 sm:basis-auto"
           from={searchParams.get("from") ?? ""}
           to={searchParams.get("to") ?? ""}
-          onChange={({ from, to }) => updateParams({ from: from || null, to: to || null })}
+          onChange={({ from, to }) =>
+            updateParams({ from: from || null, to: to || null })
+          }
         />
       )}
 

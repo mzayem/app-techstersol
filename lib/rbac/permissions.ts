@@ -42,11 +42,24 @@ export async function getCurrentAppUser() {
       clientProfiles: {
         include: {
           client: {
-            select: { id: true, name: true, email: true, currency: true, status: true },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              currency: true,
+              status: true,
+            },
           },
         },
       },
-      partner: { select: { id: true, name: true, chatEnabled: true, sharePercentage: true } },
+      partner: {
+        select: {
+          id: true,
+          name: true,
+          chatEnabled: true,
+          sharePercentage: true,
+        },
+      },
     },
   });
 
@@ -55,9 +68,14 @@ export async function getCurrentAppUser() {
   return { ...appUser, image: data.user.image ?? null };
 }
 
-export type CurrentAppUser = NonNullable<Awaited<ReturnType<typeof getCurrentAppUser>>>;
+export type CurrentAppUser = NonNullable<
+  Awaited<ReturnType<typeof getCurrentAppUser>>
+>;
 
-function resolvePermission(appUser: CurrentAppUser, page: PageKey): PagePermission {
+function resolvePermission(
+  appUser: CurrentAppUser,
+  page: PageKey,
+): PagePermission {
   if (appUser.kind !== "DASHBOARD_HANDLER") return NO_ACCESS;
   const permission = appUser.role?.permissions.find((p) => p.page === page);
   if (!permission) return NO_ACCESS;
@@ -92,7 +110,10 @@ export function checkPermission(
  * to Overview. Returns the AppUser and its resolved permission for this
  * page, so a page can also use it to conditionally render create/edit/delete
  * controls. */
-export async function requirePagePermission(page: PageKey, action: PermissionAction = "view") {
+export async function requirePagePermission(
+  page: PageKey,
+  action: PermissionAction = "view",
+) {
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/auth/sign-in");
   if (appUser.kind === "TEAM") redirect("/portal");
@@ -137,7 +158,9 @@ export async function requirePartnerUser() {
  * several (e.g. a personal-project profile and a separate company profile);
  * the portal always shows their combined data. */
 export function getActiveClientProfiles(appUser: CurrentAppUser) {
-  return appUser.clientProfiles.map((p) => p.client).filter((c) => c.status === "ACTIVE");
+  return appUser.clientProfiles
+    .map((p) => p.client)
+    .filter((c) => c.status === "ACTIVE");
 }
 
 /** Call as the first statement in every client-portal page. Redirects
@@ -147,7 +170,10 @@ export function getActiveClientProfiles(appUser: CurrentAppUser) {
 export async function requireClientUser() {
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/auth/sign-in");
-  if (appUser.kind !== "CLIENT" || getActiveClientProfiles(appUser).length === 0) {
+  if (
+    appUser.kind !== "CLIENT" ||
+    getActiveClientProfiles(appUser).length === 0
+  ) {
     redirect("/");
   }
   return appUser;
@@ -157,6 +183,7 @@ export async function requireClientUser() {
  * sidebar nav. Empty for anything else (a TEAM login never sees this nav). */
 export function getVisiblePages(appUser: CurrentAppUser): PageKey[] {
   if (appUser.kind !== "DASHBOARD_HANDLER") return [];
-  return (appUser.role?.permissions.filter((p) => p.canView).map((p) => p.page) ??
-    []) as PageKey[];
+  return (appUser.role?.permissions
+    .filter((p) => p.canView)
+    .map((p) => p.page) ?? []) as PageKey[];
 }

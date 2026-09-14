@@ -31,15 +31,21 @@ export function OfflineToggle() {
   return (
     <div className="flex items-start justify-between gap-4 rounded-md border p-4">
       <div className="flex flex-col gap-1">
-        <Label htmlFor="offline-mode-toggle">Enable offline mode for this device</Label>
+        <Label htmlFor="offline-mode-toggle">
+          Enable offline mode for this device
+        </Label>
         <p className="text-sm text-muted-foreground">
-          Caches the app and your last-seen data locally so it still opens with no
-          connection. Any create or update you make offline is saved locally and
-          synced automatically once you&apos;re back online. Uses additional local
-          storage on this device; off by default.
+          Caches the app and your last-seen data locally so it still opens with
+          no connection. Any create or update you make offline is saved locally
+          and synced automatically once you&apos;re back online. Uses additional
+          local storage on this device; off by default.
         </p>
       </div>
-      <Switch id="offline-mode-toggle" checked={enabled} onCheckedChange={setOfflineModeEnabled} />
+      <Switch
+        id="offline-mode-toggle"
+        checked={enabled}
+        onCheckedChange={setOfflineModeEnabled}
+      />
     </div>
   );
 }

@@ -48,7 +48,11 @@ export default async function EarningPage({
     }),
     getBucketBalances(),
   ]);
-  const paginated = paginate(earnings, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    earnings,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -106,9 +110,10 @@ export default async function EarningPage({
               const teamPay = Number(earning.teamPay);
               const partnerShare = Number(earning.partnerShare);
               const projectExpenses = Number(earning.projectExpenses);
-              const gross = earning.invoice?.pkrAmount != null
-                ? Number(earning.invoice.pkrAmount)
-                : amount + partnerShare + projectExpenses;
+              const gross =
+                earning.invoice?.pkrAmount != null
+                  ? Number(earning.invoice.pkrAmount)
+                  : amount + partnerShare + projectExpenses;
               const entry = {
                 id: earning.id,
                 date: earning.date,

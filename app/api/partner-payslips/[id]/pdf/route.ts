@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 import { getCurrentAppUser } from "@/lib/rbac/permissions";
 import { formatPartnerPayslipNumber } from "@/lib/partners/constants";
 import { renderPartnerPayslipPdf } from "@/lib/partners/payslip-pdf";
-import { getPartnerPayslipForPdf, toPartnerPayslipPdfData } from "@/actions/partners/payslip-queries";
+import {
+  getPartnerPayslipForPdf,
+  toPartnerPayslipPdfData,
+} from "@/actions/partners/payslip-queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +31,10 @@ export async function GET(
   }
 
   const origin = new URL(request.url).origin;
-  const buffer = await renderPartnerPayslipPdf(toPartnerPayslipPdfData(payslip), origin);
+  const buffer = await renderPartnerPayslipPdf(
+    toPartnerPayslipPdfData(payslip),
+    origin,
+  );
 
   const filename = `Payslip-${formatPartnerPayslipNumber(payslip.number)}.pdf`;
 

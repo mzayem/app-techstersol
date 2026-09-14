@@ -62,7 +62,11 @@ export default async function InvoicesPage({
     bankName: b.bankName,
     accountHolderName: b.accountHolderName,
   }));
-  const paginated = paginate(invoices, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    invoices,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -139,7 +143,8 @@ export default async function InvoicesPage({
                     )}
                     {invoice.pkrAmount != null && (
                       <span className="block text-xs text-muted-foreground">
-                        Received {formatContractAmount(Number(invoice.pkrAmount), "PKR")}
+                        Received{" "}
+                        {formatContractAmount(Number(invoice.pkrAmount), "PKR")}
                       </span>
                     )}
                   </TableCell>

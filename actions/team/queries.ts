@@ -43,7 +43,13 @@ export async function listTeamMembers(filters: ListFilters) {
  * cross the Server → Client Component boundary as-is. */
 export async function listTeamMemberOptions() {
   const members = await prisma.teamMember.findMany({
-    select: { id: true, name: true, type: true, hourlyRate: true, currency: true },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      hourlyRate: true,
+      currency: true,
+    },
     orderBy: { name: "asc" },
     take: 100,
   });

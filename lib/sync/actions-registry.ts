@@ -18,11 +18,22 @@ import {
   updateDonation,
   deleteDonation,
 } from "@/actions/finance/actions";
-import { createContract, updateContract, deleteContract } from "@/actions/contracts/actions";
+import {
+  createContract,
+  updateContract,
+  deleteContract,
+} from "@/actions/contracts/actions";
 import { createInvoice, deleteInvoice } from "@/actions/invoices/actions";
 import { createPayslip, deletePayslip } from "@/actions/team/payslip-actions";
-import { createPartnerPayslip, deletePartnerPayslip } from "@/actions/partners/payslip-actions";
-import { createClient, updateClient, deleteClient } from "@/actions/clients/actions";
+import {
+  createPartnerPayslip,
+  deletePartnerPayslip,
+} from "@/actions/partners/payslip-actions";
+import {
+  createClient,
+  updateClient,
+  deleteClient,
+} from "@/actions/clients/actions";
 import {
   createBankAccount,
   updateBankAccount,
@@ -37,7 +48,8 @@ import type { InvoiceItemInput } from "@/actions/invoices/actions";
  * (no file inputs), so this round-trip is lossless. */
 function toFormData(fields: Record<string, string>): FormData {
   const formData = new FormData();
-  for (const [key, value] of Object.entries(fields)) formData.append(key, value);
+  for (const [key, value] of Object.entries(fields))
+    formData.append(key, value);
   return formData;
 }
 
@@ -66,17 +78,23 @@ export type InvoiceCreatePayload = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- payload shape varies per action; each entry's own type is what call sites actually use.
-export const ACTION_REGISTRY: Record<string, (payload: any) => Promise<unknown>> = {
+export const ACTION_REGISTRY: Record<
+  string,
+  (payload: any) => Promise<unknown>
+> = {
   createEarning: (p: FieldsPayload) => createEarning(toFormData(p)),
-  updateEarning: (p: UpdatePayload) => updateEarning(p.id, toFormData(p.formData)),
+  updateEarning: (p: UpdatePayload) =>
+    updateEarning(p.id, toFormData(p.formData)),
   deleteEarning: (p: IdPayload) => deleteEarning(p.id),
 
   createExpense: (p: FieldsPayload) => createExpense(toFormData(p)),
-  updateExpense: (p: UpdatePayload) => updateExpense(p.id, toFormData(p.formData)),
+  updateExpense: (p: UpdatePayload) =>
+    updateExpense(p.id, toFormData(p.formData)),
   deleteExpense: (p: IdPayload) => deleteExpense(p.id),
 
   createDonation: (p: FieldsPayload) => createDonation(toFormData(p)),
-  updateDonation: (p: UpdatePayload) => updateDonation(p.id, toFormData(p.formData)),
+  updateDonation: (p: UpdatePayload) =>
+    updateDonation(p.id, toFormData(p.formData)),
   deleteDonation: (p: IdPayload) => deleteDonation(p.id),
 
   createContract: (p: ContractCreatePayload) =>
@@ -85,21 +103,25 @@ export const ACTION_REGISTRY: Record<string, (payload: any) => Promise<unknown>>
     updateContract(p.id, toFormData(p.formData), p.milestones),
   deleteContract: (p: IdPayload) => deleteContract(p.id),
 
-  createInvoice: (p: InvoiceCreatePayload) => createInvoice(toFormData(p.formData), p.items),
+  createInvoice: (p: InvoiceCreatePayload) =>
+    createInvoice(toFormData(p.formData), p.items),
   deleteInvoice: (p: IdPayload) => deleteInvoice(p.id),
 
   createPayslip: (p: FieldsPayload) => createPayslip(toFormData(p)),
   deletePayslip: (p: IdPayload) => deletePayslip(p.id),
 
-  createPartnerPayslip: (p: FieldsPayload) => createPartnerPayslip(toFormData(p)),
+  createPartnerPayslip: (p: FieldsPayload) =>
+    createPartnerPayslip(toFormData(p)),
   deletePartnerPayslip: (p: IdPayload) => deletePartnerPayslip(p.id),
 
   createClient: (p: FieldsPayload) => createClient(toFormData(p)),
-  updateClient: (p: UpdatePayload) => updateClient(p.id, toFormData(p.formData)),
+  updateClient: (p: UpdatePayload) =>
+    updateClient(p.id, toFormData(p.formData)),
   deleteClient: (p: IdPayload) => deleteClient(p.id),
 
   createBankAccount: (p: FieldsPayload) => createBankAccount(toFormData(p)),
-  updateBankAccount: (p: UpdatePayload) => updateBankAccount(p.id, toFormData(p.formData)),
+  updateBankAccount: (p: UpdatePayload) =>
+    updateBankAccount(p.id, toFormData(p.formData)),
   deleteBankAccount: (p: IdPayload) => deleteBankAccount(p.id),
 };
 

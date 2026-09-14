@@ -47,14 +47,23 @@ function computeFixedColumnWidth(
   const headerWidth = estimateTextWidth(column.label, HEADER_FONT_SIZE);
   let maxDataWidth = 0;
   for (const row of rows) {
-    const width = estimateTextWidth(formatCell(row[column.key]), BODY_FONT_SIZE);
+    const width = estimateTextWidth(
+      formatCell(row[column.key]),
+      BODY_FONT_SIZE,
+    );
     if (width > maxDataWidth) maxDataWidth = width;
   }
   if (totals) {
-    const width = estimateTextWidth(formatCell(totals[column.key]), BODY_FONT_SIZE);
+    const width = estimateTextWidth(
+      formatCell(totals[column.key]),
+      BODY_FONT_SIZE,
+    );
     if (width > maxDataWidth) maxDataWidth = width;
   }
-  return Math.max(MIN_COLUMN_WIDTH, Math.ceil(Math.max(headerWidth, maxDataWidth) + CELL_PADDING));
+  return Math.max(
+    MIN_COLUMN_WIDTH,
+    Math.ceil(Math.max(headerWidth, maxDataWidth) + CELL_PADDING),
+  );
 }
 
 /** Picks portrait unless the report has too many columns, or its
@@ -75,7 +84,9 @@ export function chooseOrientation(
   }
 
   const reservedForFlexible = flexibleCount * MIN_FLEXIBLE_WIDTH;
-  return fixedTotal + reservedForFlexible > contentWidthFor("portrait") ? "landscape" : "portrait";
+  return fixedTotal + reservedForFlexible > contentWidthFor("portrait")
+    ? "landscape"
+    : "portrait";
 }
 
 /** Final per-column widths for the given content width: fixed columns get
@@ -89,15 +100,20 @@ export function computeColumnWidths(
   contentWidth: number,
 ): number[] {
   const fixedWidths: (number | null)[] = columns.map((column) =>
-    isFlexibleColumn(column) ? null : computeFixedColumnWidth(column, rows, totals),
+    isFlexibleColumn(column)
+      ? null
+      : computeFixedColumnWidth(column, rows, totals),
   );
 
   const usedWidth = fixedWidths.reduce((sum: number, w) => sum + (w ?? 0), 0);
   const remaining = Math.max(contentWidth - usedWidth, 0);
 
-  const flexibleIndices = columns.map((_, i) => i).filter((i) => fixedWidths[i] === null);
+  const flexibleIndices = columns
+    .map((_, i) => i)
+    .filter((i) => fixedWidths[i] === null);
   const totalWeight =
-    flexibleIndices.reduce((sum, i) => sum + (columns[i].flexWeight ?? 1), 0) || 1;
+    flexibleIndices.reduce((sum, i) => sum + (columns[i].flexWeight ?? 1), 0) ||
+    1;
 
   const widths = columns.map((column, i) => {
     if (fixedWidths[i] !== null) return fixedWidths[i]!;

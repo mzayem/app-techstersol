@@ -21,7 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DATE_PRESETS, DATE_PRESET_LABELS, type DatePreset } from "@/lib/finance/date-range";
+import {
+  DATE_PRESETS,
+  DATE_PRESET_LABELS,
+  type DatePreset,
+} from "@/lib/finance/date-range";
 
 /** Export dialog for list pages with no date filter of their own (Clients,
  * Contracts, Invoices, Payslips) — picks a range here rather than reading
@@ -71,7 +75,10 @@ export function ExportReportDialog({
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Date range</span>
-            <Select value={preset} onValueChange={(v) => setPreset(v as DatePreset)}>
+            <Select
+              value={preset}
+              onValueChange={(v) => setPreset(v as DatePreset)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -97,8 +104,8 @@ export function ExportReportDialog({
           )}
 
           <p className="text-xs text-muted-foreground">
-            Exports whatever search or status filter is currently applied on
-            the page, for the range chosen here.
+            Exports whatever search or status filter is currently applied on the
+            page, for the range chosen here.
           </p>
         </div>
         <DialogFooter>

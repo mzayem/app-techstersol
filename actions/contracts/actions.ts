@@ -19,7 +19,10 @@ import {
 } from "@/lib/contracts/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { validateMilestones } from "@/lib/contracts/validation";
-import { notifyContractCreated, notifyContractStatusChanged } from "@/lib/mail/notifications/contracts";
+import {
+  notifyContractCreated,
+  notifyContractStatusChanged,
+} from "@/lib/mail/notifications/contracts";
 import { getRatesToPkr } from "@/lib/fx/rates";
 
 function str(formData: FormData, key: string) {
@@ -51,7 +54,8 @@ async function readContractFields(
   const teamMemberId = str(formData, "teamMemberId");
   const teamPayAmountRaw = str(formData, "teamPayAmount");
   const statusEmailsEnabled = str(formData, "statusEmailsEnabled") !== "false";
-  const chatNotificationsEnabled = str(formData, "chatNotificationsEnabled") === "true";
+  const chatNotificationsEnabled =
+    str(formData, "chatNotificationsEnabled") === "true";
   const partnerId = str(formData, "partnerId");
   const workCostModeRaw = str(formData, "workCostMode");
   const workCostPercentRaw = str(formData, "workCostPercent");
@@ -155,8 +159,14 @@ async function readContractFields(
       // same rule as the no-partner case below.
       if (teamMemberId) {
         teamPayAmount = Number(teamPayAmountRaw);
-        if (!teamPayAmountRaw || Number.isNaN(teamPayAmount) || teamPayAmount <= 0) {
-          throw new Error("Enter the team member's pay (PKR) for an outsourced contract");
+        if (
+          !teamPayAmountRaw ||
+          Number.isNaN(teamPayAmount) ||
+          teamPayAmount <= 0
+        ) {
+          throw new Error(
+            "Enter the team member's pay (PKR) for an outsourced contract",
+          );
         }
       } else {
         teamPayAmount = teamPayAmountRaw ? Number(teamPayAmountRaw) : 0;
@@ -167,8 +177,14 @@ async function readContractFields(
     }
   } else if (teamMemberId) {
     teamPayAmount = Number(teamPayAmountRaw);
-    if (!teamPayAmountRaw || Number.isNaN(teamPayAmount) || teamPayAmount <= 0) {
-      throw new Error("Enter the team member's pay (PKR) for an outsourced contract");
+    if (
+      !teamPayAmountRaw ||
+      Number.isNaN(teamPayAmount) ||
+      teamPayAmount <= 0
+    ) {
+      throw new Error(
+        "Enter the team member's pay (PKR) for an outsourced contract",
+      );
     }
   }
 
@@ -228,7 +244,10 @@ export async function updateContract(
     milestones,
   );
 
-  const before = await prisma.contract.findUnique({ where: { id }, select: { status: true } });
+  const before = await prisma.contract.findUnique({
+    where: { id },
+    select: { status: true },
+  });
 
   await prisma.contract.update({
     where: { id },
@@ -277,7 +296,9 @@ export async function bulkUpdateContractStatus(
   });
 
   const changedIds = before.filter((c) => c.status !== status).map((c) => c.id);
-  await Promise.all(changedIds.map((changedId) => notifyContractStatusChanged(changedId)));
+  await Promise.all(
+    changedIds.map((changedId) => notifyContractStatusChanged(changedId)),
+  );
 
   revalidatePath("/projects/contracts");
 }

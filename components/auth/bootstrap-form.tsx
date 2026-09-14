@@ -34,7 +34,12 @@ export function BootstrapForm() {
       </div>
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="text-muted-foreground">Name</span>
-        <Input name="name" required placeholder="Full name" disabled={pending} />
+        <Input
+          name="name"
+          required
+          placeholder="Full name"
+          disabled={pending}
+        />
       </label>
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="text-muted-foreground">Email</span>

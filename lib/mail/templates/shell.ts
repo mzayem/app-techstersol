@@ -29,9 +29,13 @@ const FONT_STACK = "'Outfit', Arial, Helvetica, sans-serif";
  * theme tokens. Light value mirrors that component's base `text-*-600`,
  * dark value mirrors its `dark:text-*-400`; the background tint (~12%
  * alpha) is the same in both modes there, so it stays constant here too. */
-export type StatusTone = "neutral" | "violet" | "emerald" | "amber" | "orange" | "sky" | "red";
+export type StatusTone =
+  "neutral" | "violet" | "emerald" | "amber" | "orange" | "sky" | "red";
 
-const STATUS_TONES: Record<StatusTone, { rgb: string; light: string; dark: string }> = {
+const STATUS_TONES: Record<
+  StatusTone,
+  { rgb: string; light: string; dark: string }
+> = {
   neutral: { rgb: "100,116,139", light: "#475569", dark: "#94a3b8" },
   violet: { rgb: "139,92,246", light: "#7c3aed", dark: "#a78bfa" },
   emerald: { rgb: "16,185,129", light: "#059669", dark: "#34d399" },
@@ -113,7 +117,11 @@ export function emailStatusBadge(label: string, tone: StatusTone) {
  * (a project/client name) so it's escaped by default — pass `raw: true`
  * only for HTML we built ourselves (e.g. a status badge), never for
  * anything that echoes back user input. */
-export function emailInfoRow(label: string, value: string, options?: { raw?: boolean }) {
+export function emailInfoRow(
+  label: string,
+  value: string,
+  options?: { raw?: boolean },
+) {
   return `
     <tr>
       <td class="em-heading em-divider" style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.08);border-right:1px solid rgba(0,0,0,0.08);color:#18181b;font-size:13px;font-weight:600;font-family:${FONT_STACK};white-space:nowrap;">

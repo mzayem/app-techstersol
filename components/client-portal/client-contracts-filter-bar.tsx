@@ -72,7 +72,9 @@ export function ClientContractsFilterBar({
       {profiles.length > 1 && (
         <Select
           value={profile}
-          onValueChange={(value) => updateParams({ profile: value === "all" ? null : value })}
+          onValueChange={(value) =>
+            updateParams({ profile: value === "all" ? null : value })
+          }
         >
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue />

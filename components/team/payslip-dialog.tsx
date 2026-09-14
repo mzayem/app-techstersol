@@ -23,7 +23,11 @@ import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 
 export type TeamMemberOption = { id: string; name: string };
-export type ContractOption = { id: string; projectName: string; teamMemberId: string | null };
+export type ContractOption = {
+  id: string;
+  projectName: string;
+  teamMemberId: string | null;
+};
 export type WorkDiaryOption = {
   id: string;
   teamMemberId: string;
@@ -62,7 +66,9 @@ export function PayslipDialog({
   const [periodEnd, setPeriodEnd] = React.useState(todayInput());
   const [amount, setAmount] = React.useState("");
 
-  const projectOptions = contracts.filter((c) => c.teamMemberId === teamMemberId);
+  const projectOptions = contracts.filter(
+    (c) => c.teamMemberId === teamMemberId,
+  );
   const memberDiaryEntries = workDiaryEntries
     .filter((e) => e.teamMemberId === teamMemberId)
     .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
@@ -148,7 +154,10 @@ export function PayslipDialog({
               <Combobox
                 value={contractId}
                 onValueChange={setContractId}
-                options={projectOptions.map((c) => ({ value: c.id, label: c.projectName }))}
+                options={projectOptions.map((c) => ({
+                  value: c.id,
+                  label: c.projectName,
+                }))}
                 placeholder="No specific project"
                 searchPlaceholder="Search projects…"
                 emptyText="This team member has no assigned projects."
@@ -183,7 +192,8 @@ export function PayslipDialog({
                         onCheckedChange={() => toggleEntry(e.id)}
                       />
                       <span className="flex-1 text-muted-foreground">
-                        {formatWeekRange(e.weekStart, e.weekEnd)} · {e.hours} hrs
+                        {formatWeekRange(e.weekStart, e.weekEnd)} · {e.hours}{" "}
+                        hrs
                       </span>
                       <span className="tabular-nums">
                         {e.amount !== null ? formatPkr(e.amount) : "—"}
@@ -216,7 +226,11 @@ export function PayslipDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Issue date">
-              <DatePicker name="issueDate" required defaultValue={todayInput()} />
+              <DatePicker
+                name="issueDate"
+                required
+                defaultValue={todayInput()}
+              />
             </Field>
             <Field label="Amount (PKR)">
               <Input
@@ -248,7 +262,13 @@ export function PayslipDialog({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>

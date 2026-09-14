@@ -6,7 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import { formatInvoiceNumber, COMPANY_INFO } from "@/lib/invoices/constants";
-import { getActiveClientProfiles, requireClientUser } from "@/lib/rbac/permissions";
+import {
+  getActiveClientProfiles,
+  requireClientUser,
+} from "@/lib/rbac/permissions";
 import { getClientOverview } from "@/actions/client-portal/queries";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +20,9 @@ function formatCurrencyMap(
 ) {
   const entries = Object.entries(map) as [PaymentCurrency, number][];
   if (entries.length === 0) return formatContractAmount(0, fallback);
-  return entries.map(([currency, amount]) => formatContractAmount(amount, currency)).join(" · ");
+  return entries
+    .map(([currency, amount]) => formatContractAmount(amount, currency))
+    .join(" · ");
 }
 
 export default async function ClientPortalOverviewPage() {
@@ -54,7 +59,10 @@ export default async function ClientPortalOverviewPage() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label="Pending payment"
-          value={formatCurrencyMap(overview.pendingPaymentByCurrency, profiles[0]?.currency)}
+          value={formatCurrencyMap(
+            overview.pendingPaymentByCurrency,
+            profiles[0]?.currency,
+          )}
           breakdown={overview.pendingPaymentByProfile.map((p) => ({
             label: p.clientName,
             value: formatCurrencyMap(p.value, profiles[0]?.currency),
@@ -91,8 +99,8 @@ export default async function ClientPortalOverviewPage() {
           <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4">
             <div>
               <p className="text-sm font-medium">
-                Invoice {formatInvoiceNumber(overview.nextDueInvoice.number)} is due{" "}
-                {formatDate(overview.nextDueInvoice.dueDate)}
+                Invoice {formatInvoiceNumber(overview.nextDueInvoice.number)} is
+                due {formatDate(overview.nextDueInvoice.dueDate)}
                 {isMultiProfile && ` (${overview.nextDueInvoice.clientName})`}
               </p>
               <p className="text-sm text-muted-foreground">
@@ -119,7 +127,8 @@ export default async function ClientPortalOverviewPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm">
             <p className="text-muted-foreground">
-              Reach out any time — we&apos;re happy to help with your projects and invoices.
+              Reach out any time — we&apos;re happy to help with your projects
+              and invoices.
             </p>
             <a
               href={`mailto:${COMPANY_INFO.email}`}

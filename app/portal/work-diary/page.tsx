@@ -38,7 +38,13 @@ export default async function PortalWorkDiaryPage({
   const [member, entries, ratesToPkr] = await Promise.all([
     prisma.teamMember.findUniqueOrThrow({
       where: { id: teamMemberId },
-      select: { id: true, name: true, type: true, hourlyRate: true, currency: true },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        hourlyRate: true,
+        currency: true,
+      },
     }),
     listWorkDiaryEntries({ teamMemberId, period: "all" }),
     getRatesToPkr(),
@@ -53,7 +59,11 @@ export default async function PortalWorkDiaryPage({
       currency: member.currency as PaymentCurrency,
     },
   ];
-  const paginated = paginate(entries, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    entries,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -81,7 +91,10 @@ export default async function PortalWorkDiaryPage({
           <TableBody>
             {paginated.totalItems === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={5}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   No entries yet.
                 </TableCell>
               </TableRow>

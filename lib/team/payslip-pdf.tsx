@@ -18,7 +18,9 @@ import { formatPayslipNumber } from "@/lib/team/constants";
 
 function readImageAsDataUrl(filename: string) {
   try {
-    const buffer = fs.readFileSync(path.join(process.cwd(), "public", "images", filename));
+    const buffer = fs.readFileSync(
+      path.join(process.cwd(), "public", "images", filename),
+    );
     return `data:image/png;base64,${buffer.toString("base64")}`;
   } catch {
     return null;
@@ -33,7 +35,12 @@ function getLogoDataUrl(): Promise<string | null> {
   if (!logoDataUrlPromise) {
     logoDataUrlPromise = (async () => {
       try {
-        const webpPath = path.join(process.cwd(), "public", "images", "logo-black.webp");
+        const webpPath = path.join(
+          process.cwd(),
+          "public",
+          "images",
+          "logo-black.webp",
+        );
         const pngBuffer = await sharp(webpPath).png().toBuffer();
         return `data:image/png;base64,${pngBuffer.toString("base64")}`;
       } catch {
@@ -133,7 +140,12 @@ const styles = StyleSheet.create({
   },
   signatureImage: { width: 110, height: 42 },
   stampImage: { width: 78, height: 78 },
-  signCaption: { fontSize: 8, color: "#6b7280", marginTop: 2, textAlign: "center" },
+  signCaption: {
+    fontSize: 8,
+    color: "#6b7280",
+    marginTop: 2,
+    textAlign: "center",
+  },
   footer: {
     position: "absolute",
     bottom: 30,
@@ -175,7 +187,9 @@ function PayslipDocument({
             // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is not an HTML <img>
             <Image src={logoDataUrl} style={{ width: 150, height: 30 }} />
           ) : (
-            <Text style={{ fontSize: 17, fontWeight: 700 }}>{COMPANY_INFO.name.toUpperCase()}</Text>
+            <Text style={{ fontSize: 17, fontWeight: 700 }}>
+              {COMPANY_INFO.name.toUpperCase()}
+            </Text>
           )}
           <Text style={styles.title}>PAYSLIP</Text>
         </View>
@@ -195,20 +209,31 @@ function PayslipDocument({
           <View style={styles.payToCol}>
             <Text style={styles.label}>PAY TO</Text>
             <Text style={styles.bold}>{payslip.teamMember.name}</Text>
-            {payslip.teamMember.phone && <Text>{payslip.teamMember.phone}</Text>}
-            {payslip.teamMember.email && <Text>{payslip.teamMember.email}</Text>}
-            {payslip.teamMember.address && <Text>{payslip.teamMember.address}</Text>}
-            {payslip.teamMember.country && <Text>{payslip.teamMember.country}</Text>}
+            {payslip.teamMember.phone && (
+              <Text>{payslip.teamMember.phone}</Text>
+            )}
+            {payslip.teamMember.email && (
+              <Text>{payslip.teamMember.email}</Text>
+            )}
+            {payslip.teamMember.address && (
+              <Text>{payslip.teamMember.address}</Text>
+            )}
+            {payslip.teamMember.country && (
+              <Text>{payslip.teamMember.country}</Text>
+            )}
           </View>
           <View style={{ maxWidth: 220, gap: 4 }}>
             <Text>
-              <Text style={styles.bold}>Payslip No</Text>: {formatPayslipNumber(payslip.number)}
+              <Text style={styles.bold}>Payslip No</Text>:{" "}
+              {formatPayslipNumber(payslip.number)}
             </Text>
             <Text>
-              <Text style={styles.bold}>Issue Date</Text>: {formatDate(payslip.issueDate)}
+              <Text style={styles.bold}>Issue Date</Text>:{" "}
+              {formatDate(payslip.issueDate)}
             </Text>
             <Text>
-              <Text style={styles.bold}>Period</Text>: {formatDate(payslip.periodStart)} –{" "}
+              <Text style={styles.bold}>Period</Text>:{" "}
+              {formatDate(payslip.periodStart)} –{" "}
               {formatDate(payslip.periodEnd)}
             </Text>
             {payslip.projectName && (
@@ -256,8 +281,14 @@ function PayslipDocument({
         </View>
 
         <View style={styles.footer} fixed>
-          <Text style={[styles.small, { maxWidth: 340, color: "#8d8d8d", fontStyle: "italic" }]}>
-            Computer-generated payslip — no physical signature required for validity.
+          <Text
+            style={[
+              styles.small,
+              { maxWidth: 340, color: "#8d8d8d", fontStyle: "italic" },
+            ]}
+          >
+            Computer-generated payslip — no physical signature required for
+            validity.
           </Text>
           <View style={styles.verifyGroup}>
             <Text style={styles.bold}>E-Verify</Text>
@@ -270,13 +301,20 @@ function PayslipDocument({
   );
 }
 
-export async function renderPayslipPdf(payslip: PayslipPdfData, origin: string) {
+export async function renderPayslipPdf(
+  payslip: PayslipPdfData,
+  origin: string,
+) {
   const verifyUrl = `${origin}/verify/payslip/${payslip.id}`;
   const [qrDataUrl, logoDataUrl] = await Promise.all([
     QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 }),
     getLogoDataUrl(),
   ]);
   return renderToBuffer(
-    <PayslipDocument payslip={payslip} qrDataUrl={qrDataUrl} logoDataUrl={logoDataUrl} />,
+    <PayslipDocument
+      payslip={payslip}
+      qrDataUrl={qrDataUrl}
+      logoDataUrl={logoDataUrl}
+    />,
   );
 }

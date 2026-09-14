@@ -30,7 +30,12 @@ export type BlockNode =
 
 type RawNode =
   | { type: "text"; value: string }
-  | { type: "element"; tag: string; attrs: Record<string, string>; children: RawNode[] };
+  | {
+      type: "element";
+      tag: string;
+      attrs: Record<string, string>;
+      children: RawNode[];
+    };
 
 const BLOCK_TAGS = new Set(["div", "p"]);
 const VOID_TAGS = new Set(["br", "hr", "img"]);
@@ -45,12 +50,16 @@ const ENTITIES: Record<string, string> = {
 };
 
 function decodeEntities(text: string): string {
-  return text.replace(/&(#?\w+);/g, (match, name: string) => ENTITIES[name] ?? match);
+  return text.replace(
+    /&(#?\w+);/g,
+    (match, name: string) => ENTITIES[name] ?? match,
+  );
 }
 
 function parseAttrs(tagSource: string): Record<string, string> {
   const attrs: Record<string, string> = {};
-  const attrPattern = /([a-zA-Z-]+)\s*=\s*"([^"]*)"|([a-zA-Z-]+)\s*=\s*'([^']*)'/g;
+  const attrPattern =
+    /([a-zA-Z-]+)\s*=\s*"([^"]*)"|([a-zA-Z-]+)\s*=\s*'([^']*)'/g;
   let match: RegExpExecArray | null;
   while ((match = attrPattern.exec(tagSource))) {
     const name = (match[1] ?? match[3]).toLowerCase();
@@ -67,7 +76,11 @@ function parseAttrs(tagSource: string): Record<string, string> {
 function parseHtml(html: string): RawNode[] {
   const tagPattern = /<\/?([a-zA-Z][a-zA-Z0-9]*)((?:\s+[^<>]*)?)\/?>/g;
   const root: RawNode[] = [];
-  const stack: { tag: string; attrs: Record<string, string>; children: RawNode[] }[] = [];
+  const stack: {
+    tag: string;
+    attrs: Record<string, string>;
+    children: RawNode[];
+  }[] = [];
 
   function currentChildren(): RawNode[] {
     return stack.length > 0 ? stack[stack.length - 1].children : root;
@@ -77,7 +90,8 @@ function parseHtml(html: string): RawNode[] {
   let match: RegExpExecArray | null;
   while ((match = tagPattern.exec(html))) {
     const text = html.slice(lastIndex, match.index);
-    if (text) currentChildren().push({ type: "text", value: decodeEntities(text) });
+    if (text)
+      currentChildren().push({ type: "text", value: decodeEntities(text) });
     lastIndex = tagPattern.lastIndex;
 
     const [fullTag, tagName, attrSource] = match;
@@ -102,13 +116,19 @@ function parseHtml(html: string): RawNode[] {
         }
       }
     } else if (isSelfClosing) {
-      currentChildren().push({ type: "element", tag, attrs: parseAttrs(attrSource), children: [] });
+      currentChildren().push({
+        type: "element",
+        tag,
+        attrs: parseAttrs(attrSource),
+        children: [],
+      });
     } else {
       stack.push({ tag, attrs: parseAttrs(attrSource), children: [] });
     }
   }
   const tail = html.slice(lastIndex);
-  if (tail) currentChildren().push({ type: "text", value: decodeEntities(tail) });
+  if (tail)
+    currentChildren().push({ type: "text", value: decodeEntities(tail) });
   // Unclosed tags at the end — flush them in open order.
   while (stack.length > 0) {
     const node = stack.pop()!;
@@ -141,7 +161,11 @@ function parseInlineCssStyle(styleAttr: string): Partial<TextStyle> {
         result.fontSize = m[2] === "px" ? num * 0.75 : num;
       }
     } else if (prop === "font-weight") {
-      if (val === "bold" || (Number.isFinite(Number(val)) && Number(val) >= 600)) result.bold = true;
+      if (
+        val === "bold" ||
+        (Number.isFinite(Number(val)) && Number(val) >= 600)
+      )
+        result.bold = true;
     } else if (prop === "font-style") {
       if (val === "italic" || val === "oblique") result.italic = true;
     } else if (prop === "text-decoration" || prop === "text-decoration-line") {
@@ -181,8 +205,10 @@ function mergeElementStyle(
   if (tag === "u") style.underline = true;
   if (tag === "font") {
     if (attrs.color) style.color = attrs.color;
-    if (attrs.face) style.fontFamily = attrs.face.split(",")[0].replace(/["']/g, "").trim();
-    if (attrs.size && LEGACY_FONT_SIZE_PT[attrs.size]) style.fontSize = LEGACY_FONT_SIZE_PT[attrs.size];
+    if (attrs.face)
+      style.fontFamily = attrs.face.split(",")[0].replace(/["']/g, "").trim();
+    if (attrs.size && LEGACY_FONT_SIZE_PT[attrs.size])
+      style.fontSize = LEGACY_FONT_SIZE_PT[attrs.size];
   }
   if (attrs.style) style = { ...style, ...parseInlineCssStyle(attrs.style) };
   return style;
@@ -192,7 +218,11 @@ type ParseCtx = { blocks: BlockNode[]; pending: TextRun[] };
 
 function flushPending(ctx: ParseCtx, align?: TextAlign) {
   if (ctx.pending.length > 0) {
-    ctx.blocks.push({ type: "paragraph", runs: ctx.pending, ...(align ? { align } : {}) });
+    ctx.blocks.push({
+      type: "paragraph",
+      runs: ctx.pending,
+      ...(align ? { align } : {}),
+    });
     ctx.pending = [];
   }
 }
@@ -351,7 +381,10 @@ export function LetterBody({
           return (
             <View key={i} style={{ marginBottom: 10 }}>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is not an HTML <img> */}
-              <Image src={block.src} style={{ width: block.width, height: block.height }} />
+              <Image
+                src={block.src}
+                style={{ width: block.width, height: block.height }}
+              />
             </View>
           );
         }
@@ -370,7 +403,11 @@ export function LetterBody({
         return (
           <Text
             key={i}
-            style={block.align ? [paragraphStyle, { textAlign: block.align }] : paragraphStyle}
+            style={
+              block.align
+                ? [paragraphStyle, { textAlign: block.align }]
+                : paragraphStyle
+            }
           >
             {block.runs.map((run, j) => (
               <RunText key={j} run={run} />

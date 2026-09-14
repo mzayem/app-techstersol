@@ -24,7 +24,10 @@ export type ReportGroup = {
  * year divider inserted whenever the data crosses a year boundary. Returns
  * null when everything falls in the same calendar month — the caller then
  * renders a single flat table instead. */
-export function groupRowsByMonth(rows: ReportRow[], dateKey: string): ReportGroup[] | null {
+export function groupRowsByMonth(
+  rows: ReportRow[],
+  dateKey: string,
+): ReportGroup[] | null {
   const dates = rows
     .map((row) => row[dateKey])
     .filter((value): value is Date => value instanceof Date);
@@ -61,19 +64,31 @@ export function groupRowsByMonth(rows: ReportRow[], dateKey: string): ReportGrou
     const sample = groupRows
       .map((row) => row[dateKey])
       .find((value): value is Date => value instanceof Date);
-    const periodLabel = sample ? MONTH_YEAR_FORMAT.format(sample) : "Unspecified date";
+    const periodLabel = sample
+      ? MONTH_YEAR_FORMAT.format(sample)
+      : "Unspecified date";
     const year = sample?.getFullYear() ?? null;
     const yearDivider =
-      spansMultipleYears && year !== null && year !== previousYear ? String(year) : undefined;
+      spansMultipleYears && year !== null && year !== previousYear
+        ? String(year)
+        : undefined;
     previousYear = year;
-    return { yearDivider, periodLabel, rows: groupRows, sortKey: sample?.getTime() ?? 0 };
+    return {
+      yearDivider,
+      periodLabel,
+      rows: groupRows,
+      sortKey: sample?.getTime() ?? 0,
+    };
   });
 }
 
 /** The chronologically first and last group in a section — independent of
  * the section's own array order, which follows the rows' display sort
  * (e.g. newest-first) rather than calendar order. */
-export function chronologicalBounds(groups: ReportGroup[]): { first: ReportGroup; last: ReportGroup } {
+export function chronologicalBounds(groups: ReportGroup[]): {
+  first: ReportGroup;
+  last: ReportGroup;
+} {
   const sorted = [...groups].sort((a, b) => a.sortKey - b.sortKey);
   return { first: sorted[0], last: sorted[sorted.length - 1] };
 }
@@ -83,7 +98,9 @@ export function chronologicalBounds(groups: ReportGroup[]): { first: ReportGroup
  * `groupRowsByMonth` only does when the data actually crosses a year
  * boundary), so a single-year report comes back as one section covering
  * every group. */
-export function partitionIntoYearSections(groups: ReportGroup[]): ReportGroup[][] {
+export function partitionIntoYearSections(
+  groups: ReportGroup[],
+): ReportGroup[][] {
   const sections: ReportGroup[][] = [];
   let current: ReportGroup[] = [];
   groups.forEach((group, index) => {
@@ -102,7 +119,10 @@ export function partitionIntoYearSections(groups: ReportGroup[]): ReportGroup[][
  * "Subtotal" instead of the template's own label), and leaves the rest
  * blank — so callers don't need to special-case which columns are
  * summable per report. */
-export function computeGroupTotals(rows: ReportRow[], totalsTemplate: ReportRow): ReportRow {
+export function computeGroupTotals(
+  rows: ReportRow[],
+  totalsTemplate: ReportRow,
+): ReportRow {
   const result: ReportRow = {};
   for (const [key, templateValue] of Object.entries(totalsTemplate)) {
     if (typeof templateValue === "number") {

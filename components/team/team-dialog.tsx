@@ -23,7 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PAYMENT_CURRENCIES, type PaymentCurrency } from "@/lib/clients/constants";
+import {
+  PAYMENT_CURRENCIES,
+  type PaymentCurrency,
+} from "@/lib/clients/constants";
 import { COUNTRIES } from "@/lib/clients/countries";
 import {
   TEAM_MEMBER_TYPES,
@@ -122,7 +125,9 @@ export function TeamMemberDialog({
       )}
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit team member" : "Add team member"}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Edit team member" : "Add team member"}
+          </DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <Field label="Name">
@@ -268,7 +273,11 @@ export function TeamMemberDialog({
           {!locked && (
             <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
-                {pending ? "Saving…" : isEdit ? "Save changes" : "Save team member"}
+                {pending
+                  ? "Saving…"
+                  : isEdit
+                    ? "Save changes"
+                    : "Save team member"}
               </Button>
             </DialogFooter>
           )}

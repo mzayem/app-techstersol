@@ -4,7 +4,11 @@ import { AppSidebar } from "@/components/nav/app-sidebar";
 import { ClientPortalSidebar } from "@/components/client-portal/client-portal-sidebar";
 import { PortalSidebar } from "@/components/portal/portal-sidebar";
 import { PartnerPortalSidebar } from "@/components/partner-portal/partner-portal-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { getCurrentAppUser, getVisiblePages } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
@@ -37,9 +41,17 @@ export default async function SettingsLayout({
         userImage={userImage}
       />
     ) : appUser.kind === "CLIENT" ? (
-      <ClientPortalSidebar userName={userName} userEmail={userEmail} userImage={userImage} />
+      <ClientPortalSidebar
+        userName={userName}
+        userEmail={userEmail}
+        userImage={userImage}
+      />
     ) : appUser.kind === "PARTNER" ? (
-      <PartnerPortalSidebar userName={userName} userEmail={userEmail} userImage={userImage} />
+      <PartnerPortalSidebar
+        userName={userName}
+        userEmail={userEmail}
+        userImage={userImage}
+      />
     ) : (
       <AppSidebar
         visiblePages={getVisiblePages(appUser)}

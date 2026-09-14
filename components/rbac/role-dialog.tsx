@@ -17,7 +17,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { PAGE_REGISTRY } from "@/lib/rbac/pages";
-import { createRole, deleteRole, updateRole } from "@/actions/rbac/role-actions";
+import {
+  createRole,
+  deleteRole,
+  updateRole,
+} from "@/actions/rbac/role-actions";
 import { TeamActionsMenu } from "@/components/team/team-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 
@@ -130,7 +134,10 @@ export function RoleDialog({
                 <tr className="border-b text-left text-xs text-muted-foreground">
                   <th className="px-3 py-2 font-medium">Page</th>
                   {ACTIONS.map((action) => (
-                    <th key={action} className="px-2 py-2 text-center font-medium">
+                    <th
+                      key={action}
+                      className="px-2 py-2 text-center font-medium"
+                    >
                       {ACTION_LABELS[action]}
                     </th>
                   ))}
@@ -138,7 +145,9 @@ export function RoleDialog({
               </thead>
               <tbody>
                 {PAGE_REGISTRY.map((p) => {
-                  const existing = role?.permissions.find((perm) => perm.page === p.key);
+                  const existing = role?.permissions.find(
+                    (perm) => perm.page === p.key,
+                  );
                   return (
                     <tr key={p.key} className="border-b last:border-0">
                       <td className="px-3 py-1.5 font-medium">{p.label}</td>
@@ -146,7 +155,9 @@ export function RoleDialog({
                         <td key={action} className="px-2 py-1.5 text-center">
                           <Checkbox
                             name={`perm_${p.key}_${action}`}
-                            defaultChecked={existing?.[ACTION_FIELD[action]] ?? false}
+                            defaultChecked={
+                              existing?.[ACTION_FIELD[action]] ?? false
+                            }
                             disabled={locked}
                           />
                         </td>

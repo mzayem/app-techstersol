@@ -16,8 +16,13 @@ export function sundayOf(monday: Date) {
 }
 
 export function formatWeekRange(weekStart: Date, weekEnd: Date) {
-  const fmt = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" });
-  const year = new Intl.DateTimeFormat("en-GB", { year: "numeric" }).format(weekEnd);
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+  });
+  const year = new Intl.DateTimeFormat("en-GB", { year: "numeric" }).format(
+    weekEnd,
+  );
   return `${fmt.format(weekStart)} – ${fmt.format(weekEnd)}, ${year}`;
 }
 

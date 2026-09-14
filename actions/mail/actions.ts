@@ -7,16 +7,23 @@ import { formatContractAmount } from "@/lib/contracts/constants";
 import { formatInvoiceNumber } from "@/lib/invoices/constants";
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { getInvoiceForPdf, toInvoicePdfData } from "@/actions/invoices/queries";
-import { getPayslipForPdf, toPayslipPdfData } from "@/actions/team/payslip-queries";
+import {
+  getPayslipForPdf,
+  toPayslipPdfData,
+} from "@/actions/team/payslip-queries";
 import { renderPartnerPayslipPdf } from "@/lib/partners/payslip-pdf";
 import { formatPartnerPayslipNumber } from "@/lib/partners/constants";
-import { getPartnerPayslipForPdf, toPartnerPayslipPdfData } from "@/actions/partners/payslip-queries";
+import {
+  getPartnerPayslipForPdf,
+  toPartnerPayslipPdfData,
+} from "@/actions/partners/payslip-queries";
 import { prisma } from "@/lib/prisma";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { renderContractDetailsEmail } from "@/lib/mail/templates/contract";
 import {
-  renderContractDetailsEmail,
-} from "@/lib/mail/templates/contract";
-import { renderInvoiceCreatedEmail, renderInvoicePaidEmail } from "@/lib/mail/templates/invoice";
+  renderInvoiceCreatedEmail,
+  renderInvoicePaidEmail,
+} from "@/lib/mail/templates/invoice";
 import { renderPayslipIssuedEmail } from "@/lib/mail/templates/payslip";
 import { renderPartnerPayslipIssuedEmail } from "@/lib/mail/templates/partner-payslip";
 
@@ -80,7 +87,8 @@ export async function sendContractEmail(to: string, contractId: string) {
       status: contract.status,
       deadline: formatDate(contract.deadline),
       description: contract.description,
-      amount: amount > 0 ? formatContractAmount(amount, contract.currency) : null,
+      amount:
+        amount > 0 ? formatContractAmount(amount, contract.currency) : null,
     }),
   });
 }
@@ -104,7 +112,9 @@ export async function sendInvoiceEmail(to: string, invoiceId: string) {
       ? renderInvoicePaidEmail({
           invoiceNumber: formatInvoiceNumber(invoice.number),
           amount: formatContractAmount(balanceDue, pdfData.currency),
-          paidOn: invoice.paidOn ? formatDate(invoice.paidOn) : formatDate(new Date()),
+          paidOn: invoice.paidOn
+            ? formatDate(invoice.paidOn)
+            : formatDate(new Date()),
           verifyUrl: `${appUrl()}/verify/${invoice.id}`,
         })
       : renderInvoiceCreatedEmail({
@@ -156,7 +166,10 @@ export async function sendPayslipEmail(to: string, payslipId: string) {
   });
 }
 
-export async function sendPartnerPayslipEmail(to: string, partnerPayslipId: string) {
+export async function sendPartnerPayslipEmail(
+  to: string,
+  partnerPayslipId: string,
+) {
   await requirePagePermission("partner-payslips", "view");
   const recipient = requireValidEmail(to);
 

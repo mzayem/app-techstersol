@@ -85,7 +85,11 @@ export type PartnerAccrual = {
  * rather than requiring it to be typed in by hand. */
 export async function listPartnerPendingAccruals(): Promise<PartnerAccrual[]> {
   const payments = await prisma.partnerPayment.findMany({
-    where: { source: "AUTO_COMPLETION", partnerPayslipId: null, contractId: { not: null } },
+    where: {
+      source: "AUTO_COMPLETION",
+      partnerPayslipId: null,
+      contractId: { not: null },
+    },
     select: {
       contractId: true,
       partnerId: true,
@@ -107,8 +111,10 @@ export async function listPartnerPendingAccruals(): Promise<PartnerAccrual[]> {
     amount: Number(p.amount),
     revenueAmount: p.revenueAmount != null ? Number(p.revenueAmount) : null,
     workCostAmount: p.workCostAmount != null ? Number(p.workCostAmount) : null,
-    projectExpensesAmount: p.projectExpensesAmount != null ? Number(p.projectExpensesAmount) : null,
+    projectExpensesAmount:
+      p.projectExpensesAmount != null ? Number(p.projectExpensesAmount) : null,
     profitAmount: p.profitAmount != null ? Number(p.profitAmount) : null,
-    sharePercentageUsed: p.sharePercentageUsed != null ? Number(p.sharePercentageUsed) : null,
+    sharePercentageUsed:
+      p.sharePercentageUsed != null ? Number(p.sharePercentageUsed) : null,
   }));
 }

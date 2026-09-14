@@ -69,7 +69,10 @@ export function IncompleteContractsTable({
           <TableBody>
             {contracts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={5}
+                  className="py-8 text-center text-muted-foreground"
+                >
                   Every contract is completed.
                 </TableCell>
               </TableRow>
@@ -79,7 +82,9 @@ export function IncompleteContractsTable({
               return (
                 <TableRow key={contract.id}>
                   <TableCell>{contract.clientName}</TableCell>
-                  <TableCell className="font-medium">{contract.projectName}</TableCell>
+                  <TableCell className="font-medium">
+                    {contract.projectName}
+                  </TableCell>
                   <TableCell>{formatDate(contract.deadline)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatContractAmount(contract.amount, contract.currency)}

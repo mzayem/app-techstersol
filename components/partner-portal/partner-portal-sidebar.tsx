@@ -33,7 +33,11 @@ const PARTNER_NAV = [
   { title: "Projects", url: "/partner-portal/projects", icon: FolderKanban },
   { title: "Invoices", url: "/partner-portal/invoices", icon: ReceiptText },
   { title: "Payslips", url: "/partner-portal/payslips", icon: WalletCards },
-  { title: "Profile", url: "/partner-portal/profile/settings", icon: UserCircle },
+  {
+    title: "Profile",
+    url: "/partner-portal/profile/settings",
+    icon: UserCircle,
+  },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
@@ -90,7 +94,8 @@ export function PartnerPortalSidebar({
                   <SidebarMenuButton
                     isActive={
                       pathname === item.url ||
-                      (item.url !== "/partner-portal" && pathname.startsWith(item.url))
+                      (item.url !== "/partner-portal" &&
+                        pathname.startsWith(item.url))
                     }
                     tooltip={item.title}
                     render={<Link href={item.url} onClick={closeOnMobile} />}

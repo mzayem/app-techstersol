@@ -2,7 +2,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
-  const chars = parts.length > 1 ? [parts[0][0], parts[parts.length - 1][0]] : [parts[0]?.[0] ?? "?"];
+  const chars =
+    parts.length > 1
+      ? [parts[0][0], parts[parts.length - 1][0]]
+      : [parts[0]?.[0] ?? "?"];
   return chars.join("").toUpperCase();
 }
 

@@ -44,7 +44,11 @@ export default async function DonationsPage({
     }),
     getBucketBalances(),
   ]);
-  const paginated = paginate(donations, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
+  const paginated = paginate(
+    donations,
+    parsePageParam(params.page),
+    parsePageSizeParam(params.pageSize),
+  );
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">

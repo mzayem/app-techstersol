@@ -8,7 +8,10 @@ import {
   type ContractPaymentType,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
-import { getActiveClientProfiles, getCurrentAppUser } from "@/lib/rbac/permissions";
+import {
+  getActiveClientProfiles,
+  getCurrentAppUser,
+} from "@/lib/rbac/permissions";
 import { validateMilestones } from "@/lib/contracts/validation";
 import { notifyProposalSubmitted } from "@/lib/mail/notifications/contracts";
 
@@ -17,7 +20,10 @@ function str(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function readClientContractFields(formData: FormData, milestonesInput: MilestoneInput[]) {
+function readClientContractFields(
+  formData: FormData,
+  milestonesInput: MilestoneInput[],
+) {
   const date = str(formData, "date");
   const deadline = str(formData, "deadline");
   const projectName = str(formData, "projectName");
@@ -45,7 +51,10 @@ function readClientContractFields(formData: FormData, milestonesInput: Milestone
   }));
 
   const amount = paymentType === "PROJECT" ? Number(amountRaw) : undefined;
-  if (paymentType === "PROJECT" && (!amountRaw || Number.isNaN(amount) || amount! <= 0)) {
+  if (
+    paymentType === "PROJECT" &&
+    (!amountRaw || Number.isNaN(amount) || amount! <= 0)
+  ) {
     throw new Error("Enter a valid project amount");
   }
 
@@ -77,7 +86,9 @@ export async function createClientContractRequest(
   }
 
   const requestedClientId = str(formData, "clientId");
-  const profile = getActiveClientProfiles(appUser).find((c) => c.id === requestedClientId);
+  const profile = getActiveClientProfiles(appUser).find(
+    (c) => c.id === requestedClientId,
+  );
   if (!profile) {
     throw new Error("Select which profile this project is for");
   }
@@ -100,6 +111,9 @@ export async function createClientContractRequest(
     },
   });
 
-  await notifyProposalSubmitted({ clientName: profile.name, projectName: fields.projectName });
+  await notifyProposalSubmitted({
+    clientName: profile.name,
+    projectName: fields.projectName,
+  });
   revalidatePath("/client-portal/contracts");
 }

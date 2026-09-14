@@ -220,7 +220,9 @@ function ContractChatSheet({
         <div className="flex items-start justify-between gap-2 border-b p-4">
           <div className="flex flex-col gap-0.5">
             <SheetTitle>{projectName}</SheetTitle>
-            <SheetDescription>Notes and messages for this project</SheetDescription>
+            <SheetDescription>
+              Notes and messages for this project
+            </SheetDescription>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <Tooltip>
@@ -236,7 +238,9 @@ function ContractChatSheet({
                   />
                 }
               >
-                <RefreshCwIcon className={cn("size-3.5", loading && "animate-spin")} />
+                <RefreshCwIcon
+                  className={cn("size-3.5", loading && "animate-spin")}
+                />
               </TooltipTrigger>
               <TooltipContent>Refresh</TooltipContent>
             </Tooltip>
@@ -284,48 +288,50 @@ function ContractChatSheet({
                 <p className="text-base font-semibold text-foreground">
                   No messages yet
                 </p>
-                <p className="text-sm">Start the conversation about this project.</p>
+                <p className="text-sm">
+                  Start the conversation about this project.
+                </p>
               </div>
             </div>
           )}
 
           {messages?.map((message) => (
-              <div key={message.id} className="group flex flex-col gap-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm font-medium">
-                    {message.authorName}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatMessageTime(message.createdAt)}
-                  </span>
-                  {message.isMine && (
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <button
-                            type="button"
-                            aria-label="Delete message"
-                            className="ml-auto text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50"
-                            disabled={deletingId === message.id}
-                            onClick={() => handleDelete(message.id)}
-                          />
-                        }
-                      >
-                        {deletingId === message.id ? (
-                          <Loader2Icon className="size-3.5 animate-spin" />
-                        ) : (
-                          <Trash2Icon className="size-3.5" />
-                        )}
-                      </TooltipTrigger>
-                      <TooltipContent>Delete message</TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-                <div className="w-fit max-w-full rounded-lg bg-muted px-3 py-2 text-sm whitespace-pre-wrap wrap-break-word">
-                  {linkify(message.body)}
-                </div>
+            <div key={message.id} className="group flex flex-col gap-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-medium">
+                  {message.authorName}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatMessageTime(message.createdAt)}
+                </span>
+                {message.isMine && (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          type="button"
+                          aria-label="Delete message"
+                          className="ml-auto text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+                          disabled={deletingId === message.id}
+                          onClick={() => handleDelete(message.id)}
+                        />
+                      }
+                    >
+                      {deletingId === message.id ? (
+                        <Loader2Icon className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2Icon className="size-3.5" />
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent>Delete message</TooltipContent>
+                  </Tooltip>
+                )}
               </div>
-            ))}
+              <div className="w-fit max-w-full rounded-lg bg-muted px-3 py-2 text-sm whitespace-pre-wrap wrap-break-word">
+                {linkify(message.body)}
+              </div>
+            </div>
+          ))}
         </div>
 
         {readOnly ? (
@@ -333,53 +339,54 @@ function ContractChatSheet({
             View only — you can&apos;t post messages here.
           </div>
         ) : (
-        <div className="p-3">
-          <div className="flex flex-col gap-1 rounded-2xl bg-muted p-2">
-            <Textarea
-              placeholder="Write a note for this project…"
-              className="min-h-9 max-h-40 resize-none overflow-y-auto border-none bg-transparent px-2 py-1.5 text-sm shadow-none focus-visible:ring-0"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={sending}
-            />
-            <div className="flex items-center justify-between px-0.5 pb-0.5">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon-sm"
-                      className="rounded-full bg-background"
-                      aria-label="About attachments"
-                    />
-                  }
+          <div className="p-3">
+            <div className="flex flex-col gap-1 rounded-2xl bg-muted p-2">
+              <Textarea
+                placeholder="Write a note for this project…"
+                className="min-h-9 max-h-40 resize-none overflow-y-auto border-none bg-transparent px-2 py-1.5 text-sm shadow-none focus-visible:ring-0"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={sending}
+              />
+              <div className="flex items-center justify-between px-0.5 pb-0.5">
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        className="rounded-full bg-background"
+                        aria-label="About attachments"
+                      />
+                    }
+                  >
+                    <InfoIcon className="size-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-56">
+                    No file uploads here — for media, upload it to Drive and
+                    paste the link. Links you type become clickable
+                    automatically.
+                  </TooltipContent>
+                </Tooltip>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  className="rounded-full"
+                  aria-label="Send message"
+                  disabled={sending || !body.trim()}
+                  onClick={handleSend}
                 >
-                  <InfoIcon className="size-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-56">
-                  No file uploads here — for media, upload it to Drive and
-                  paste the link. Links you type become clickable automatically.
-                </TooltipContent>
-              </Tooltip>
-              <Button
-                type="button"
-                size="icon-sm"
-                className="rounded-full"
-                aria-label="Send message"
-                disabled={sending || !body.trim()}
-                onClick={handleSend}
-              >
-                {sending ? (
-                  <Loader2Icon className="size-4 animate-spin" />
-                ) : (
-                  <SendIcon className="size-4" />
-                )}
-              </Button>
+                  {sending ? (
+                    <Loader2Icon className="size-4 animate-spin" />
+                  ) : (
+                    <SendIcon className="size-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
         )}
       </SheetContent>
     </Sheet>

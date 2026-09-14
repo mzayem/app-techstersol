@@ -3,7 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FolderKanban, LayoutDashboard, ReceiptText, Settings, UserCircle } from "lucide-react";
+import {
+  FolderKanban,
+  LayoutDashboard,
+  ReceiptText,
+  Settings,
+  UserCircle,
+} from "lucide-react";
 
 import { NavUser } from "@/components/nav/nav-user";
 import { ModeToggle } from "@/components/ui/mode-toggle";
@@ -25,7 +31,11 @@ const CLIENT_NAV = [
   { title: "Overview", url: "/client-portal", icon: LayoutDashboard },
   { title: "Contracts", url: "/client-portal/contracts", icon: FolderKanban },
   { title: "Invoices", url: "/client-portal/invoices", icon: ReceiptText },
-  { title: "Profile", url: "/client-portal/profile/settings", icon: UserCircle },
+  {
+    title: "Profile",
+    url: "/client-portal/profile/settings",
+    icon: UserCircle,
+  },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
@@ -82,7 +92,8 @@ export function ClientPortalSidebar({
                   <SidebarMenuButton
                     isActive={
                       pathname === item.url ||
-                      (item.url !== "/client-portal" && pathname.startsWith(item.url))
+                      (item.url !== "/client-portal" &&
+                        pathname.startsWith(item.url))
                     }
                     tooltip={item.title}
                     render={<Link href={item.url} onClick={closeOnMobile} />}

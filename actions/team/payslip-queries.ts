@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
-export type SortOption = "number-desc" | "number-asc" | "issue-desc" | "issue-asc";
+export type SortOption =
+  "number-desc" | "number-asc" | "issue-desc" | "issue-asc";
 
 export type ListFilters = {
   search?: string;
@@ -50,7 +51,9 @@ export async function getPayslipForPdf(id: string) {
 /** Maps a `getPayslipForPdf` result into the shape `renderPayslipPdf`
  * expects — shared by the PDF route handler and the payslip-email
  * notifier so both build the exact same document. */
-export function toPayslipPdfData(payslip: NonNullable<Awaited<ReturnType<typeof getPayslipForPdf>>>) {
+export function toPayslipPdfData(
+  payslip: NonNullable<Awaited<ReturnType<typeof getPayslipForPdf>>>,
+) {
   return {
     id: payslip.id,
     number: payslip.number,

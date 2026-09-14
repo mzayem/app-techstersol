@@ -25,7 +25,14 @@ export default async function OverviewPage({
   const params = await searchParams;
   const period = resolveOverviewPeriod(params.period, params.from, params.to);
 
-  const [series, pending, teamPendingPkr, partnerPendingPkr, clients, contracts] = await Promise.all([
+  const [
+    series,
+    pending,
+    teamPendingPkr,
+    partnerPendingPkr,
+    clients,
+    contracts,
+  ] = await Promise.all([
     getMonthlySeries(),
     getPendingPayments(),
     getTeamPendingPayments(),
@@ -80,7 +87,11 @@ export default async function OverviewPage({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
-          <FinanceAreaChart key={areaChartKey} series={series} {...areaChartRange} />
+          <FinanceAreaChart
+            key={areaChartKey}
+            series={series}
+            {...areaChartRange}
+          />
         </div>
         <RevenuePieChart clients={clients} />
       </div>

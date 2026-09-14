@@ -2,7 +2,10 @@
 
 import * as React from "react";
 
-import { isOfflineModeEnabled, subscribeOfflineMode } from "@/lib/offline/settings";
+import {
+  isOfflineModeEnabled,
+  subscribeOfflineMode,
+} from "@/lib/offline/settings";
 
 declare global {
   interface Window {
@@ -29,7 +32,9 @@ async function registerServiceWorker() {
 async function unregisterServiceWorkerAndClearCaches() {
   if ("serviceWorker" in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map((registration) => registration.unregister()));
+    await Promise.all(
+      registrations.map((registration) => registration.unregister()),
+    );
   }
   if (typeof caches !== "undefined") {
     const cacheNames = await caches.keys();

@@ -42,20 +42,42 @@ export const navSettings = {
 export const navGroups = [
   {
     title: "Clients",
-    items: [{ title: "Clients", url: "/clients", icon: Users, key: "clients" as PageKey }],
+    items: [
+      {
+        title: "Clients",
+        url: "/clients",
+        icon: Users,
+        key: "clients" as PageKey,
+      },
+    ],
   },
   {
     title: "Account",
     items: [
-      { title: "Earning", url: "/account/earning", icon: TrendingUp, key: "earning" as PageKey },
-      { title: "Expenses", url: "/account/expenses", icon: Receipt, key: "expenses" as PageKey },
+      {
+        title: "Earning",
+        url: "/account/earning",
+        icon: TrendingUp,
+        key: "earning" as PageKey,
+      },
+      {
+        title: "Expenses",
+        url: "/account/expenses",
+        icon: Receipt,
+        key: "expenses" as PageKey,
+      },
       {
         title: "Distributions",
         url: "/account/distributions",
         icon: Share2,
         key: "distributions" as PageKey,
       },
-      { title: "Donations", url: "/account/donations", icon: Gift, key: "donations" as PageKey },
+      {
+        title: "Donations",
+        url: "/account/donations",
+        icon: Gift,
+        key: "donations" as PageKey,
+      },
       {
         title: "Bank Details",
         url: "/account/bank-details",
@@ -90,7 +112,12 @@ export const navGroups = [
   {
     title: "Team",
     items: [
-      { title: "Team Members", url: "/team", icon: UserCog, key: "team" as PageKey },
+      {
+        title: "Team Members",
+        url: "/team",
+        icon: UserCog,
+        key: "team" as PageKey,
+      },
       {
         title: "Payslips",
         url: "/team/payslips",
@@ -108,7 +135,12 @@ export const navGroups = [
   {
     title: "Partners",
     items: [
-      { title: "Partners", url: "/partners", icon: Handshake, key: "partners" as PageKey },
+      {
+        title: "Partners",
+        url: "/partners",
+        icon: Handshake,
+        key: "partners" as PageKey,
+      },
       {
         title: "Partner Payslips",
         url: "/partners/payslips",
@@ -161,9 +193,24 @@ export const navGroups = [
   {
     title: "Admin",
     items: [
-      { title: "Roles", url: "/admin/roles", icon: ShieldCheck, key: "roles" as PageKey },
-      { title: "Users", url: "/admin/users", icon: UsersRound, key: "users" as PageKey },
-      { title: "Emails", url: "/admin/emails", icon: Mail, key: "emails" as PageKey },
+      {
+        title: "Roles",
+        url: "/admin/roles",
+        icon: ShieldCheck,
+        key: "roles" as PageKey,
+      },
+      {
+        title: "Users",
+        url: "/admin/users",
+        icon: UsersRound,
+        key: "users" as PageKey,
+      },
+      {
+        title: "Emails",
+        url: "/admin/emails",
+        icon: Mail,
+        key: "emails" as PageKey,
+      },
     ],
   },
 ];
