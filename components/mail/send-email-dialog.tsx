@@ -15,9 +15,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
-import { sendContractEmail, sendInvoiceEmail, sendPayslipEmail } from "@/actions/mail/actions";
+import {
+  sendContractEmail,
+  sendInvoiceEmail,
+  sendPartnerPayslipEmail,
+  sendPayslipEmail,
+} from "@/actions/mail/actions";
 
-type Attachable = { kind: "contract"; id: string } | { kind: "invoice"; id: string } | { kind: "payslip"; id: string };
+type Attachable =
+  | { kind: "contract"; id: string }
+  | { kind: "invoice"; id: string }
+  | { kind: "payslip"; id: string }
+  | { kind: "partner-payslip"; id: string };
 
 /** Drop-in "send email" button + dialog for a contract/invoice/payslip
  * row. There's no message box — it always sends that record's own details
@@ -46,6 +55,7 @@ export function SendEmailDialog({
       try {
         if (record.kind === "contract") await sendContractEmail(to, record.id);
         else if (record.kind === "invoice") await sendInvoiceEmail(to, record.id);
+        else if (record.kind === "partner-payslip") await sendPartnerPayslipEmail(to, record.id);
         else await sendPayslipEmail(to, record.id);
         toast.add({ title: `Email sent to ${to}`, type: "success" });
         setOpen(false);
@@ -76,7 +86,9 @@ export function SendEmailDialog({
           <DialogDescription>
             {record.kind === "contract"
               ? "Sends this project's details."
-              : `Sends this ${record.kind}'s details with the PDF attached.`}
+              : record.kind === "partner-payslip"
+                ? "Sends this payslip's details with the PDF attached."
+                : `Sends this ${record.kind}'s details with the PDF attached.`}
           </DialogDescription>
         </DialogHeader>
         <label className="flex flex-col gap-1.5 text-sm">

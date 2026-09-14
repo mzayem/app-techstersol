@@ -16,18 +16,27 @@ import {
 import { formatPartnerPayslipNumber } from "@/lib/partners/constants";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 
 export function PartnerPayslipRowActions({
   id,
   number,
+  partnerEmail,
 }: {
   id: string;
   number: number;
+  partnerEmail: string | null;
 }) {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   return (
     <>
+      <SendEmailDialog
+        defaultTo={partnerEmail ?? ""}
+        record={{ kind: "partner-payslip", id }}
+        disabled={!partnerEmail}
+        disabledReason="This partner has no email on file"
+      />
       <DropdownMenu>
         <DropdownMenuTrigger
           render={<Button variant="ghost" size="icon-sm" aria-label="Open actions menu" />}

@@ -8,6 +8,9 @@ import { formatInvoiceNumber } from "@/lib/invoices/constants";
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { getInvoiceForPdf, toInvoicePdfData } from "@/actions/invoices/queries";
 import { getPayslipForPdf, toPayslipPdfData } from "@/actions/team/payslip-queries";
+import { renderPartnerPayslipPdf } from "@/lib/partners/payslip-pdf";
+import { formatPartnerPayslipNumber } from "@/lib/partners/constants";
+import { getPartnerPayslipForPdf, toPartnerPayslipPdfData } from "@/actions/partners/payslip-queries";
 import { prisma } from "@/lib/prisma";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import {
@@ -15,6 +18,7 @@ import {
 } from "@/lib/mail/templates/contract";
 import { renderInvoiceCreatedEmail, renderInvoicePaidEmail } from "@/lib/mail/templates/invoice";
 import { renderPayslipIssuedEmail } from "@/lib/mail/templates/payslip";
+import { renderPartnerPayslipIssuedEmail } from "@/lib/mail/templates/partner-payslip";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -145,6 +149,55 @@ export async function sendPayslipEmail(to: string, payslipId: string) {
     attachments: [
       {
         filename: `Payslip-${formatPayslipNumber(payslip.number)}.pdf`,
+        content: buffer,
+        contentType: "application/pdf",
+      },
+    ],
+  });
+}
+
+export async function sendPartnerPayslipEmail(to: string, partnerPayslipId: string) {
+  await requirePagePermission("partner-payslips", "view");
+  const recipient = requireValidEmail(to);
+
+  const payslip = await getPartnerPayslipForPdf(partnerPayslipId);
+  if (!payslip) throw new Error("Payslip not found");
+  const pdfData = toPartnerPayslipPdfData(payslip);
+  const buffer = await renderPartnerPayslipPdf(pdfData, appUrl());
+
+  await sendMail({
+    to: recipient,
+    subject: `Payslip ${formatPartnerPayslipNumber(payslip.number)}`,
+    html: renderPartnerPayslipIssuedEmail({
+      payslipNumber: formatPartnerPayslipNumber(payslip.number),
+      amount: `${pdfData.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} PKR`,
+      periodLabel: `${formatDate(payslip.periodStart)} – ${formatDate(payslip.periodEnd)}`,
+      verifyUrl: `${appUrl()}/verify/partner-payslip/${payslip.id}`,
+      projectName: pdfData.projectName,
+      breakdown: pdfData.breakdown
+        ? {
+            revenue:
+              pdfData.breakdown.revenueAmount != null
+                ? `${pdfData.breakdown.revenueAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} PKR`
+                : null,
+            workCost:
+              pdfData.breakdown.workCostAmount != null
+                ? `${pdfData.breakdown.workCostAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} PKR`
+                : null,
+            projectExpenses: pdfData.breakdown.projectExpensesAmount
+              ? `${pdfData.breakdown.projectExpensesAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} PKR`
+              : null,
+            profit:
+              pdfData.breakdown.profitAmount != null
+                ? `${pdfData.breakdown.profitAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} PKR`
+                : null,
+            sharePercent: pdfData.breakdown.sharePercentageUsed,
+          }
+        : null,
+    }),
+    attachments: [
+      {
+        filename: `Payslip-${formatPartnerPayslipNumber(payslip.number)}.pdf`,
         content: buffer,
         contentType: "application/pdf",
       },
