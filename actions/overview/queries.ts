@@ -61,9 +61,12 @@ export async function getMonthlySeries(): Promise<MonthlyPoint[]> {
     return point;
   }
 
+  // Earning.amount is already net of partnerShare/projectExpenses (booked
+  // that way at source — see markInvoicePaid); teamPay is the one
+  // exception, still booked gross-with-a-separate-debit, so it's the only
+  // one still subtracted here.
   for (const e of earnings) {
-    bucket(e.date).earning +=
-      Number(e.amount) - Number(e.teamPay) - Number(e.partnerShare) - Number(e.projectExpenses);
+    bucket(e.date).earning += Number(e.amount) - Number(e.teamPay);
   }
   for (const e of expenses) {
     const point = bucket(e.date);
@@ -376,7 +379,7 @@ export async function getClientRevenueBreakdown(
       select: {
         amount: true,
         invoice: {
-          select: { clientId: true, client: { select: { name: true } } },
+          select: { clientId: true, client: { select: { name: true } }, pkrAmount: true },
         },
       },
     }),
@@ -394,15 +397,21 @@ export async function getClientRevenueBreakdown(
       otherRevenue += Number(row.amount);
       continue;
     }
-    const { clientId, client } = row.invoice;
+    // "Revenue by client" means what the client actually paid — gross,
+    // before any partner-share/expense deductions — so it's sourced from
+    // Invoice.pkrAmount rather than the (now net) Earning.amount. Falls
+    // back to Earning.amount for any pre-existing paid invoice from before
+    // pkrAmount was persisted.
+    const { clientId, client, pkrAmount } = row.invoice;
+    const revenue = pkrAmount != null ? Number(pkrAmount) : Number(row.amount);
     const existing = revenueByClient.get(clientId);
     if (existing) {
-      existing.revenue += Number(row.amount);
+      existing.revenue += revenue;
     } else {
       revenueByClient.set(clientId, {
         clientId,
         clientName: client.name,
-        revenue: Number(row.amount),
+        revenue,
         projectCount: projectCountByClient.get(clientId) ?? 0,
       });
     }

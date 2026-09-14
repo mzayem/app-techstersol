@@ -75,8 +75,10 @@ export default async function EarningPage({
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">Gross</TableHead>
               <TableHead className="text-right">Team pay</TableHead>
+              <TableHead className="text-right">Partner share</TableHead>
+              <TableHead className="text-right">Expenses</TableHead>
               <TableHead className="text-right">Net earning</TableHead>
               <TableHead className="text-right">Reference</TableHead>
               <TableHead className="w-0" />
@@ -86,7 +88,7 @@ export default async function EarningPage({
             {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={9}
                   className="py-8 text-center text-muted-foreground"
                 >
                   No earnings recorded for this range.
@@ -94,8 +96,19 @@ export default async function EarningPage({
               </TableRow>
             )}
             {paginated.items.map((earning) => {
+              // Earning.amount is net of partnerShare/projectExpenses at
+              // source (see markInvoicePaid) — "Gross" here recovers what
+              // the client actually paid, from the invoice's own recorded
+              // PKR amount, falling back to amount itself for entries with
+              // no linked invoice (manual entries) or from before this
+              // column existed.
               const amount = Number(earning.amount);
               const teamPay = Number(earning.teamPay);
+              const partnerShare = Number(earning.partnerShare);
+              const projectExpenses = Number(earning.projectExpenses);
+              const gross = earning.invoice?.pkrAmount != null
+                ? Number(earning.invoice.pkrAmount)
+                : amount + partnerShare + projectExpenses;
               const entry = {
                 id: earning.id,
                 date: earning.date,
@@ -118,10 +131,16 @@ export default async function EarningPage({
                   <TableCell>{formatDate(earning.date)}</TableCell>
                   <TableCell className="font-medium">{earning.name}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatPkr(amount)}
+                    {formatPkr(gross)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatPkr(teamPay)}
+                    {teamPay > 0 ? formatPkr(teamPay) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {partnerShare > 0 ? formatPkr(partnerShare) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {projectExpenses > 0 ? formatPkr(projectExpenses) : "—"}
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatPkr(amount - teamPay)}

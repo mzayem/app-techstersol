@@ -67,41 +67,62 @@ export async function createPartnerPayslip(formData: FormData) {
     const label = `${partner.name} — Payslip ${formatPartnerPayslipNumber(number)}`;
 
     try {
-      const created = await prisma.partnerPayslip.create({
-        data: {
-          number,
-          partnerId,
-          contractId: contractId || null,
-          periodStart: new Date(periodStart),
-          periodEnd: new Date(periodEnd),
-          issueDate: issueDateObj,
-          amount,
-          note: note || null,
-          createdByUserId,
-          ...(existingPayment
-            ? { partnerPayment: { connect: { id: existingPayment.id } } }
-            : {
-                partnerPayment: {
-                  create: {
-                    date: issueDateObj,
-                    name: label,
-                    partnerId,
-                    contractId: contractId || null,
-                    amount,
-                    source: "MANUAL",
-                    createdByUserId,
-                    ledgerEntries: {
-                      create: {
-                        type: "PARTNER_PAYMENT",
-                        name: label,
-                        date: issueDateObj,
-                        debit: amount,
+      const created = await prisma.$transaction(async (tx) => {
+        const payslip = await tx.partnerPayslip.create({
+          data: {
+            number,
+            partnerId,
+            contractId: contractId || null,
+            periodStart: new Date(periodStart),
+            periodEnd: new Date(periodEnd),
+            issueDate: issueDateObj,
+            amount,
+            note: note || null,
+            createdByUserId,
+            ...(existingPayment
+              ? { partnerPayment: { connect: { id: existingPayment.id } } }
+              : {
+                  partnerPayment: {
+                    create: {
+                      date: issueDateObj,
+                      name: label,
+                      partnerId,
+                      contractId: contractId || null,
+                      amount,
+                      source: "MANUAL",
+                      createdByUserId,
+                      ledgerEntries: {
+                        create: {
+                          type: "PARTNER_PAYMENT",
+                          name: label,
+                          date: issueDateObj,
+                          debit: amount,
+                        },
                       },
                     },
                   },
-                },
-              }),
-        },
+                }),
+          },
+        });
+
+        // The AUTO_COMPLETION share was booked (accrued) at contract
+        // completion with no ledger entry of its own yet — issuing the
+        // payslip is the actual payout event, so the debit hits the ledger
+        // now, for whatever amount this payslip actually states (which may
+        // differ slightly from the original accrual if it was hand-edited).
+        if (existingPayment) {
+          await tx.ledgerEntry.create({
+            data: {
+              type: "PARTNER_PAYMENT",
+              name: label,
+              date: issueDateObj,
+              debit: amount,
+              partnerPaymentId: existingPayment.id,
+            },
+          });
+        }
+
+        return payslip;
       });
       await notifyPartnerPayslipIssued(created.id);
       revalidatePath("/partners/payslips");
@@ -133,12 +154,17 @@ export async function deletePartnerPayslip(id: string) {
       prisma.partnerPayment.delete({ where: { id: payment.id } }),
       prisma.partnerPayslip.delete({ where: { id } }),
     ]);
+  } else if (payment) {
+    // AUTO_COMPLETION: the PartnerPayment itself is real accrued money
+    // already booked at contract completion, so it survives — only the
+    // paperwork and the ledger debit its issuance created go away (the
+    // payment reverts to unlinked/pending, re-issuable later), unlinking
+    // via onDelete: SetNull.
+    await prisma.$transaction([
+      prisma.ledgerEntry.deleteMany({ where: { partnerPaymentId: payment.id } }),
+      prisma.partnerPayslip.delete({ where: { id } }),
+    ]);
   } else {
-    // AUTO_COMPLETION (or no linked payment): only the paperwork goes
-    // away. That PartnerPayment is real accrued money already booked at
-    // contract completion — deleting the payslip just unlinks it
-    // (onDelete: SetNull), leaving the money booked so it can be
-    // re-issued a payslip later instead of vanishing from the ledger.
     await prisma.partnerPayslip.delete({ where: { id } });
   }
 

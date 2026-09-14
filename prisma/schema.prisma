@@ -607,6 +607,13 @@ model Invoice {
   status          InvoiceStatus     @default(UNPAID)
   paidOn          DateTime?         @db.Date
   transactionId   String?
+  /// The actual PKR amount received when this invoice was marked paid —
+  /// for a PKR invoice this equals its own balance due; for any other
+  /// currency it's the admin-entered PKR equivalent. Kept on the invoice
+  /// itself (not just derived from Earning.amount) so the gross figure the
+  /// client actually paid stays visible even though Earning.amount is net
+  /// of the partner share and project expenses booked against it.
+  pkrAmount       Decimal?          @db.Decimal(14, 2)
   createdByUserId String
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt

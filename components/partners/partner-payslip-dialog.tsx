@@ -201,7 +201,6 @@ export function PartnerPayslipDialog({
                 step="0.01"
                 placeholder="0.00"
                 required
-                disabled={!!selectedAccrual}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />

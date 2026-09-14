@@ -137,6 +137,11 @@ export default async function InvoicesPage({
                         {formatContractAmount(total, currency)} − discount
                       </span>
                     )}
+                    {invoice.pkrAmount != null && (
+                      <span className="block text-xs text-muted-foreground">
+                        Received {formatContractAmount(Number(invoice.pkrAmount), "PKR")}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <StatusPill status={status} />

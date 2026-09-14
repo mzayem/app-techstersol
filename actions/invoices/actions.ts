@@ -339,12 +339,24 @@ export async function markInvoicePaid(id: string, formData: FormData) {
 
   const partnerShareTotal = partnerBookings.reduce((sum, b) => sum + b.partnerShareAmount, 0);
 
+  // Earning.amount (the P&L/tax-relevant figure shown on the Earning page)
+  // is net of the partner share and project expenses — the gross figure
+  // the client actually paid stays on Invoice.pkrAmount instead, so it's
+  // never lost. This is deliberately separate from the ledger's own EARNING
+  // credit below, which stays GROSS: the full pkrAmount really did land in
+  // the company's bank account the moment this invoice was paid, and the
+  // partner's cut is a real cash-OUT event that hasn't happened yet (it's
+  // deferred to whenever their payslip is actually issued) — crediting only
+  // the net figure here would make the ledger's running balance understate
+  // real cash on hand until that payout happens.
+  const netEarningAmount = pkrAmount - partnerShareTotal - projectExpensesTotal;
+
   const earningName = `${invoice.client.name} — Invoice ${formatInvoiceNumber(invoice.number)}`;
 
   await prisma.$transaction(async (tx) => {
     await tx.invoice.update({
       where: { id },
-      data: { status: "PAID", paidOn, transactionId },
+      data: { status: "PAID", paidOn, transactionId, pkrAmount },
     });
     if (completedIds.length > 0) {
       await tx.contract.updateMany({
@@ -362,7 +374,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
       data: {
         date: paidOn,
         name: earningName,
-        amount: pkrAmount,
+        amount: netEarningAmount,
         teamPay,
         partnerShare: partnerShareTotal,
         projectExpenses: projectExpensesTotal,
@@ -389,8 +401,12 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     });
 
     // Each partner's share gets its own directly-attributable PartnerPayment
-    // (+ its own ledger entry) rather than a lump sum on Earning, so "who is
-    // owed how much for which contract" is never lost.
+    // so "who is owed how much for which contract" is never lost — but
+    // unlike teamPay (expensed immediately above), its ledger debit is
+    // deferred until the share is actually paid out via a partner payslip
+    // (see createPartnerPayslip). Booking it here too, alongside an
+    // already-net Earning credit, would double-subtract it from the
+    // balance — it isn't real cash out yet, just an accrued liability.
     for (const booking of partnerBookings) {
       const paymentName = `${booking.partnerName} — ${booking.projectName}`;
       await tx.partnerPayment.create({
@@ -407,14 +423,6 @@ export async function markInvoicePaid(id: string, formData: FormData) {
           profitAmount: booking.profit,
           sharePercentageUsed: booking.sharePercent,
           createdByUserId,
-          ledgerEntries: {
-            create: {
-              type: "PARTNER_PAYMENT",
-              name: `Partner share — ${paymentName}`,
-              date: paidOn,
-              debit: booking.partnerShareAmount,
-            },
-          },
         },
       });
     }
@@ -464,7 +472,7 @@ export async function markInvoiceUnpaid(id: string) {
   await prisma.$transaction([
     prisma.invoice.update({
       where: { id },
-      data: { status: "UNPAID", paidOn: null, transactionId: null },
+      data: { status: "UNPAID", paidOn: null, transactionId: null, pkrAmount: null },
     }),
     prisma.contract.updateMany({
       where: {

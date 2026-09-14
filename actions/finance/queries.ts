@@ -51,6 +51,12 @@ export async function listEarnings(filters: ListFilters) {
         ? { contains: filters.search, mode: "insensitive" }
         : undefined,
     },
+    include: {
+      // The gross PKR figure the client actually paid — Earning.amount
+      // itself is net of partnerShare/projectExpenses (see markInvoicePaid),
+      // so this is what the Earning page shows as "Gross" for transparency.
+      invoice: { select: { pkrAmount: true } },
+    },
     orderBy: orderBy(filters.sort, "amount"),
   });
 }
