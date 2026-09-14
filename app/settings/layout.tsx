@@ -26,6 +26,7 @@ export default async function SettingsLayout({
 
   const userName = appUser.name;
   const userEmail = appUser.email;
+  const userImage = appUser.image;
 
   const sidebar =
     appUser.kind === "TEAM" ? (
@@ -33,16 +34,18 @@ export default async function SettingsLayout({
         showWorkDiary={appUser.teamMember?.type === "HOURLY"}
         userName={userName}
         userEmail={userEmail}
+        userImage={userImage}
       />
     ) : appUser.kind === "CLIENT" ? (
-      <ClientPortalSidebar userName={userName} userEmail={userEmail} />
+      <ClientPortalSidebar userName={userName} userEmail={userEmail} userImage={userImage} />
     ) : appUser.kind === "PARTNER" ? (
-      <PartnerPortalSidebar userName={userName} userEmail={userEmail} />
+      <PartnerPortalSidebar userName={userName} userEmail={userEmail} userImage={userImage} />
     ) : (
       <AppSidebar
         visiblePages={getVisiblePages(appUser)}
         userName={userName}
         userEmail={userEmail}
+        userImage={userImage}
       />
     );
 

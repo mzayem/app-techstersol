@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { ChevronsUpDown, LogOutIcon, UserCircleIcon } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -41,10 +42,12 @@ function initials(name: string) {
 export function NavUser({
   name,
   email,
+  image,
   profileHref,
 }: {
   name: string;
   email: string;
+  image?: string | null;
   /** Where this login's own profile/account page lives — differs per
    * portal (e.g. `/portal/profile/settings` vs `/profile/settings`). */
   profileHref: string;
@@ -68,6 +71,7 @@ export function NavUser({
         <DropdownMenu>
           <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
             <Avatar className="size-8 rounded-lg">
+              {image && <AvatarImage src={image} alt={name} />}
               <AvatarFallback className="rounded-lg">{initials(name)}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
@@ -77,9 +81,11 @@ export function NavUser({
             <ChevronsUpDown className="ml-auto size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
-              {email}
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
+                {email}
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<a href={profileHref} />}>
               <UserCircleIcon />

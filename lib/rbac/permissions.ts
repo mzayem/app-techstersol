@@ -51,7 +51,8 @@ export async function getCurrentAppUser() {
   });
 
   if (appUser && appUser.status !== "ACTIVE") return null;
-  return appUser;
+  if (!appUser) return null;
+  return { ...appUser, image: data.user.image ?? null };
 }
 
 export type CurrentAppUser = NonNullable<Awaited<ReturnType<typeof getCurrentAppUser>>>;

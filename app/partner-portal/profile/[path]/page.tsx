@@ -29,6 +29,7 @@ export default async function PartnerPortalProfilePage({
       <ProfileHeader
         name={appUser.name}
         email={appUser.email}
+        image={appUser.image}
         badge="Partner"
       />
       <AccountView path={path} />

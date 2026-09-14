@@ -30,6 +30,7 @@ export default async function ProfilePage({
         <ProfileHeader
           name={appUser.name}
           email={appUser.email}
+          image={appUser.image}
           badge={appUser.role?.name ?? "Dashboard handler"}
         />
       )}

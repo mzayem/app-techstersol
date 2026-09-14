@@ -32,8 +32,13 @@ const CLIENT_NAV = [
 export function ClientPortalSidebar({
   userName,
   userEmail,
+  userImage,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { userName: string; userEmail: string }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  userName: string;
+  userEmail: string;
+  userImage?: string | null;
+}) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -97,7 +102,12 @@ export function ClientPortalSidebar({
             <ModeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser name={userName} email={userEmail} profileHref="/client-portal/profile/settings" />
+        <NavUser
+          name={userName}
+          email={userEmail}
+          image={userImage}
+          profileHref="/client-portal/profile/settings"
+        />
       </SidebarFooter>
     </Sidebar>
   );

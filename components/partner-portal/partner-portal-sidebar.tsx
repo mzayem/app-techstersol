@@ -40,8 +40,13 @@ const PARTNER_NAV = [
 export function PartnerPortalSidebar({
   userName,
   userEmail,
+  userImage,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { userName: string; userEmail: string }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  userName: string;
+  userEmail: string;
+  userImage?: string | null;
+}) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -105,7 +110,12 @@ export function PartnerPortalSidebar({
             <ModeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser name={userName} email={userEmail} profileHref="/partner-portal/profile/settings" />
+        <NavUser
+          name={userName}
+          email={userEmail}
+          image={userImage}
+          profileHref="/partner-portal/profile/settings"
+        />
       </SidebarFooter>
     </Sidebar>
   );

@@ -29,6 +29,7 @@ export default async function PortalProfilePage({
       <ProfileHeader
         name={appUser.name}
         email={appUser.email}
+        image={appUser.image}
         badge="Team member"
       />
       <AccountView path={path} />

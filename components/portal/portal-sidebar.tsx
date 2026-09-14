@@ -41,11 +41,13 @@ export function PortalSidebar({
   showWorkDiary,
   userName,
   userEmail,
+  userImage,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   showWorkDiary: boolean;
   userName: string;
   userEmail: string;
+  userImage?: string | null;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -111,7 +113,12 @@ export function PortalSidebar({
             <ModeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser name={userName} email={userEmail} profileHref="/portal/profile/settings" />
+        <NavUser
+          name={userName}
+          email={userEmail}
+          image={userImage}
+          profileHref="/portal/profile/settings"
+        />
       </SidebarFooter>
     </Sidebar>
   );

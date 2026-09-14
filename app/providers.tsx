@@ -20,6 +20,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       redirectTo={inPortal ? "/portal" : "/"}
       signUp={false}
       social={{ providers: ["google"] }}
+      avatar
       account={{ basePath: inPortal ? "/portal/profile" : "/profile" }}
       Link={Link}
     >

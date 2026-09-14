@@ -27,11 +27,13 @@ export function AppSidebar({
   visiblePages,
   userName,
   userEmail,
+  userImage,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   visiblePages: PageKey[];
   userName: string;
   userEmail: string;
+  userImage?: string | null;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -137,7 +139,12 @@ export function AppSidebar({
             <ModeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser name={userName} email={userEmail} profileHref="/profile/settings" />
+        <NavUser
+          name={userName}
+          email={userEmail}
+          image={userImage}
+          profileHref="/profile/settings"
+        />
       </SidebarFooter>
     </Sidebar>
   );

@@ -1,3 +1,5 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   const chars = parts.length > 1 ? [parts[0][0], parts[parts.length - 1][0]] : [parts[0]?.[0] ?? "?"];
@@ -7,10 +9,12 @@ function initials(name: string) {
 export function ProfileHeader({
   name,
   email,
+  image,
   badge,
 }: {
   name: string;
   email: string;
+  image?: string | null;
   badge: string;
 }) {
   return (
@@ -20,9 +24,12 @@ export function ProfileHeader({
         className="pointer-events-none absolute -top-16 -right-16 size-48 rounded-full bg-primary/10 blur-3xl"
       />
       <div className="relative flex items-center gap-4">
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
-          {initials(name)}
-        </div>
+        <Avatar className="size-14 shrink-0">
+          {image && <AvatarImage src={image} alt={name} />}
+          <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
+            {initials(name)}
+          </AvatarFallback>
+        </Avatar>
         <div className="min-w-0">
           <p className="truncate text-base font-medium">{name}</p>
           <p className="truncate text-sm text-muted-foreground">{email}</p>

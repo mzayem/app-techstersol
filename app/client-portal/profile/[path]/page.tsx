@@ -26,7 +26,12 @@ export default async function ClientPortalProfilePage({
           Manage your profile, security, and sign-in options.
         </p>
       </div>
-      <ProfileHeader name={appUser.name} email={appUser.email} badge="Client" />
+      <ProfileHeader
+        name={appUser.name}
+        email={appUser.email}
+        image={appUser.image}
+        badge="Client"
+      />
       <AccountView path={path} />
     </div>
   );
