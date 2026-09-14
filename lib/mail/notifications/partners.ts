@@ -40,6 +40,27 @@ export async function notifyPartnerPayslipIssued(payslipId: string) {
         amount: formatPkr(pdfData.amount),
         periodLabel: `${formatDate(payslip.periodStart)} – ${formatDate(payslip.periodEnd)}`,
         verifyUrl: `${appUrl()}/verify/partner-payslip/${payslip.id}`,
+        projectName: pdfData.projectName,
+        breakdown: pdfData.breakdown
+          ? {
+              revenue:
+                pdfData.breakdown.revenueAmount != null
+                  ? formatPkr(pdfData.breakdown.revenueAmount)
+                  : null,
+              workCost:
+                pdfData.breakdown.workCostAmount != null
+                  ? formatPkr(pdfData.breakdown.workCostAmount)
+                  : null,
+              projectExpenses: pdfData.breakdown.projectExpensesAmount
+                ? formatPkr(pdfData.breakdown.projectExpensesAmount)
+                : null,
+              profit:
+                pdfData.breakdown.profitAmount != null
+                  ? formatPkr(pdfData.breakdown.profitAmount)
+                  : null,
+              sharePercent: pdfData.breakdown.sharePercentageUsed,
+            }
+          : null,
       }),
       attachments: [
         {

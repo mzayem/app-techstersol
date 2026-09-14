@@ -111,6 +111,12 @@ export const navGroups = [
         icon: ReceiptText,
         key: "partner-payslips" as PageKey,
       },
+      {
+        title: "Partner Ledger",
+        url: "/partners/ledger",
+        icon: ScrollText,
+        key: "partner-ledger" as PageKey,
+      },
     ],
   },
   {

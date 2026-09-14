@@ -12,7 +12,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { formatPartnerPayslipNumber } from "@/lib/partners/constants";
 import { listPartnerPayslips } from "@/actions/partners/payslip-queries";
-import { listPartnerContractOptions, listPartnerOptions } from "@/actions/partners/queries";
+import { listPartnerOptions, listPartnerPendingAccruals } from "@/actions/partners/queries";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +24,10 @@ export default async function PartnerPayslipsPage({
 }) {
   const { permission } = await requirePagePermission("partner-payslips");
   const params = await searchParams;
-  const [payslips, partners, contracts] = await Promise.all([
+  const [payslips, partners, accruals] = await Promise.all([
     listPartnerPayslips({}),
     listPartnerOptions(),
-    listPartnerContractOptions(),
+    listPartnerPendingAccruals(),
   ]);
 
   const paginated = paginate(payslips, parsePageParam(params.page), parsePageSizeParam(params.pageSize));
@@ -37,7 +37,7 @@ export default async function PartnerPayslipsPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Partner payslips</h1>
         {permission.canCreate && (
-          <PartnerPayslipDialog partners={partners} contracts={contracts} />
+          <PartnerPayslipDialog partners={partners} accruals={accruals} />
         )}
       </div>
 

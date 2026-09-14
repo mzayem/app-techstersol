@@ -17,6 +17,7 @@ import { invoicedAmountsByLine, remainingKey } from "@/actions/invoices/queries"
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { notifyInvoiceCreated, notifyInvoicePaid } from "@/lib/mail/notifications/invoices";
 import { computePartnerSplit } from "@/lib/partners/calc";
+import { getRatesToPkr } from "@/lib/fx/rates";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -236,6 +237,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
             status: true,
             paymentType: true,
             amount: true,
+            currency: true,
             teamMemberId: true,
             teamPayAmount: true,
             milestones: { select: { amount: true } },
@@ -308,10 +310,19 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   // A partner's share is booked once, the same moment a partnered contract
   // completes — never pro-rated across partial/milestone payments, matching
   // teamPay's existing behavior. See lib/partners/calc.ts for the formula.
-  const partnerBookings = completedContracts
-    .filter((c) => c.partnerId && c.partner)
+  // workCost/projectExpenses are always PKR (same convention as team pay),
+  // so a non-PKR contract's face-value revenue must be converted to PKR
+  // before combining them — otherwise profit is computed from mismatched
+  // units (e.g. $100 revenue minus a PKR 8,327 work cost).
+  const partneredContracts = completedContracts.filter((c) => c.partnerId && c.partner);
+  const ratesToPkr =
+    partneredContracts.some((c) => c.currency !== "PKR") ? await getRatesToPkr() : null;
+
+  const partnerBookings = partneredContracts
     .map((c) => {
-      const revenue = revenueByContract.get(c.id) ?? 0;
+      const rawRevenue = revenueByContract.get(c.id) ?? 0;
+      const revenue =
+        c.currency === "PKR" ? rawRevenue : rawRevenue * (ratesToPkr?.[c.currency as PaymentCurrency] ?? 1);
       const workCost = Number(c.teamPayAmount ?? 0);
       const projectExpenses = c.projectExpenses.reduce((s, e) => s + Number(e.amount), 0);
       const sharePercent = Number(c.partnerSharePercent ?? c.partner!.sharePercentage);

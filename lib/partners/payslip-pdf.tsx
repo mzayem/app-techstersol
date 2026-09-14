@@ -58,6 +58,13 @@ export type PartnerPayslipPdfData = {
     phone: string | null;
     email: string | null;
   };
+  breakdown: {
+    revenueAmount: number | null;
+    workCostAmount: number | null;
+    projectExpensesAmount: number | null;
+    profitAmount: number | null;
+    sharePercentageUsed: number | null;
+  } | null;
 };
 
 const styles = StyleSheet.create({
@@ -220,14 +227,57 @@ function PartnerPayslipDocument({
             <Text style={[styles.descCol, styles.bold]}>DESCRIPTION</Text>
             <Text style={[styles.amountCol, styles.bold]}>Amount</Text>
           </View>
-          <View style={styles.tableRow}>
-            <Text style={styles.descCol}>
-              Partner profit share ({formatDate(payslip.periodStart)} –{" "}
-              {formatDate(payslip.periodEnd)})
-              {payslip.note ? `\n${payslip.note}` : ""}
-            </Text>
-            <Text style={styles.amountCol}>{formatPkr(payslip.amount)}</Text>
-          </View>
+          {payslip.breakdown ? (
+            <>
+              {payslip.breakdown.revenueAmount != null && (
+                <View style={styles.tableRow}>
+                  <Text style={styles.descCol}>
+                    Project revenue{payslip.projectName ? ` — ${payslip.projectName}` : ""}
+                  </Text>
+                  <Text style={styles.amountCol}>{formatPkr(payslip.breakdown.revenueAmount)}</Text>
+                </View>
+              )}
+              {payslip.breakdown.workCostAmount != null && (
+                <View style={styles.tableRow}>
+                  <Text style={styles.descCol}>Less: work cost</Text>
+                  <Text style={styles.amountCol}>-{formatPkr(payslip.breakdown.workCostAmount)}</Text>
+                </View>
+              )}
+              {!!payslip.breakdown.projectExpensesAmount && (
+                <View style={styles.tableRow}>
+                  <Text style={styles.descCol}>Less: project expenses</Text>
+                  <Text style={styles.amountCol}>
+                    -{formatPkr(payslip.breakdown.projectExpensesAmount)}
+                  </Text>
+                </View>
+              )}
+              {payslip.breakdown.profitAmount != null && (
+                <View style={styles.tableRow}>
+                  <Text style={styles.descCol}>Net profit</Text>
+                  <Text style={styles.amountCol}>{formatPkr(payslip.breakdown.profitAmount)}</Text>
+                </View>
+              )}
+              <View style={styles.tableRow}>
+                <Text style={styles.descCol}>
+                  Partner share
+                  {payslip.breakdown.sharePercentageUsed != null
+                    ? ` (${payslip.breakdown.sharePercentageUsed}% of profit)`
+                    : ""}
+                  {payslip.note ? `\n${payslip.note}` : ""}
+                </Text>
+                <Text style={styles.amountCol}>{formatPkr(payslip.amount)}</Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.tableRow}>
+              <Text style={styles.descCol}>
+                Partner profit share ({formatDate(payslip.periodStart)} –{" "}
+                {formatDate(payslip.periodEnd)})
+                {payslip.note ? `\n${payslip.note}` : ""}
+              </Text>
+              <Text style={styles.amountCol}>{formatPkr(payslip.amount)}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.totalsBlock}>

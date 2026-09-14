@@ -64,3 +64,51 @@ export async function listPartnerContractOptions() {
     orderBy: { date: "desc" },
   });
 }
+
+export type PartnerAccrual = {
+  contractId: string;
+  partnerId: string;
+  projectName: string;
+  amount: number;
+  revenueAmount: number | null;
+  workCostAmount: number | null;
+  projectExpensesAmount: number | null;
+  profitAmount: number | null;
+  sharePercentageUsed: number | null;
+};
+
+/** Every partnered project that's completed and booked a profit share
+ * (AUTO_COMPLETION PartnerPayment) but has no payslip issued against it
+ * yet — the "pending payouts" a partner payslip can be raised for. Feeds
+ * the payslip dialog's project picker, auto-filling the amount (and a
+ * cost breakdown) from the already-booked, attributable PartnerPayment
+ * rather than requiring it to be typed in by hand. */
+export async function listPartnerPendingAccruals(): Promise<PartnerAccrual[]> {
+  const payments = await prisma.partnerPayment.findMany({
+    where: { source: "AUTO_COMPLETION", partnerPayslipId: null, contractId: { not: null } },
+    select: {
+      contractId: true,
+      partnerId: true,
+      amount: true,
+      revenueAmount: true,
+      workCostAmount: true,
+      projectExpensesAmount: true,
+      profitAmount: true,
+      sharePercentageUsed: true,
+      contract: { select: { projectName: true } },
+    },
+    orderBy: { date: "desc" },
+  });
+
+  return payments.map((p) => ({
+    contractId: p.contractId!,
+    partnerId: p.partnerId,
+    projectName: p.contract?.projectName ?? "Untitled project",
+    amount: Number(p.amount),
+    revenueAmount: p.revenueAmount != null ? Number(p.revenueAmount) : null,
+    workCostAmount: p.workCostAmount != null ? Number(p.workCostAmount) : null,
+    projectExpensesAmount: p.projectExpensesAmount != null ? Number(p.projectExpensesAmount) : null,
+    profitAmount: p.profitAmount != null ? Number(p.profitAmount) : null,
+    sharePercentageUsed: p.sharePercentageUsed != null ? Number(p.sharePercentageUsed) : null,
+  }));
+}

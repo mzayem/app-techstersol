@@ -43,16 +43,31 @@ export async function listPartnerPayslips(filters: ListFilters = {}) {
 export async function getPartnerPayslipForPdf(id: string) {
   return prisma.partnerPayslip.findUnique({
     where: { id },
-    include: { partner: true, contract: { select: { projectName: true } } },
+    include: {
+      partner: true,
+      contract: { select: { projectName: true } },
+      partnerPayment: {
+        select: {
+          revenueAmount: true,
+          workCostAmount: true,
+          projectExpensesAmount: true,
+          profitAmount: true,
+          sharePercentageUsed: true,
+        },
+      },
+    },
   });
 }
 
 /** Maps a `getPartnerPayslipForPdf` result into the shape `renderPartnerPayslipPdf`
  * expects — shared by the PDF route handler and the payslip-email notifier
- * so both build the exact same document. */
+ * so both build the exact same document. The cost breakdown rides along
+ * from the linked PartnerPayment's snapshot fields — null across the board
+ * for a MANUAL payment with no completed-contract split behind it. */
 export function toPartnerPayslipPdfData(
   payslip: NonNullable<Awaited<ReturnType<typeof getPartnerPayslipForPdf>>>,
 ) {
+  const p = payslip.partnerPayment;
   return {
     id: payslip.id,
     number: payslip.number,
@@ -67,6 +82,17 @@ export function toPartnerPayslipPdfData(
       phone: payslip.partner.phone,
       email: payslip.partner.email,
     },
+    breakdown: p
+      ? {
+          revenueAmount: p.revenueAmount != null ? Number(p.revenueAmount) : null,
+          workCostAmount: p.workCostAmount != null ? Number(p.workCostAmount) : null,
+          projectExpensesAmount:
+            p.projectExpensesAmount != null ? Number(p.projectExpensesAmount) : null,
+          profitAmount: p.profitAmount != null ? Number(p.profitAmount) : null,
+          sharePercentageUsed:
+            p.sharePercentageUsed != null ? Number(p.sharePercentageUsed) : null,
+        }
+      : null,
   };
 }
 

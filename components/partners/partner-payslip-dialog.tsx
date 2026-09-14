@@ -18,20 +18,34 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
+import type { PartnerAccrual } from "@/actions/partners/queries";
 
 export type PartnerOption = { id: string; name: string };
-export type PartnerContractOption = { id: string; projectName: string; partnerId: string | null };
 
 function todayInput() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatPkr(amount: number) {
+  return new Intl.NumberFormat("en-PK", {
+    style: "currency",
+    currency: "PKR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+/** Pending, unpaid payouts (accrued at contract completion, no payslip
+ * issued yet) are the "project" options here — picking one auto-fills the
+ * amount from the already-booked share instead of requiring it typed by
+ * hand, and shows the cost breakdown behind it. "No specific project"
+ * stays available for a manual/advance payment with no completed contract
+ * behind it, where the amount is still typed in freely. */
 export function PartnerPayslipDialog({
   partners,
-  contracts,
+  accruals,
 }: {
   partners: PartnerOption[];
-  contracts: PartnerContractOption[];
+  accruals: PartnerAccrual[];
 }) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
@@ -43,7 +57,20 @@ export function PartnerPayslipDialog({
   const [periodEnd, setPeriodEnd] = React.useState(todayInput());
   const [amount, setAmount] = React.useState("");
 
-  const projectOptions = contracts.filter((c) => c.partnerId === partnerId);
+  const partnerAccruals = accruals.filter((a) => a.partnerId === partnerId);
+  const selectedAccrual = partnerAccruals.find((a) => a.contractId === contractId);
+
+  function onPartnerChange(id: string | null) {
+    setPartnerId(id ?? "");
+    setContractId("");
+    setAmount("");
+  }
+
+  function onContractChange(id: string | null) {
+    setContractId(id ?? "");
+    const accrual = partnerAccruals.find((a) => a.contractId === id);
+    setAmount(accrual ? String(accrual.amount) : "");
+  }
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -82,10 +109,7 @@ export function PartnerPayslipDialog({
           <Field label="Partner">
             <Combobox
               value={partnerId}
-              onValueChange={(v) => {
-                setPartnerId(v);
-                setContractId("");
-              }}
+              onValueChange={onPartnerChange}
               options={partners.map((p) => ({ value: p.id, label: p.name }))}
               placeholder="Select partner"
               searchPlaceholder="Search partners…"
@@ -95,17 +119,55 @@ export function PartnerPayslipDialog({
           </Field>
 
           {partnerId && (
-            <Field label="Assigned project (optional)">
+            <Field label="Pending payout / project">
               <Combobox
                 value={contractId}
-                onValueChange={setContractId}
-                options={projectOptions.map((c) => ({ value: c.id, label: c.projectName }))}
+                onValueChange={onContractChange}
+                options={[
+                  { value: "", label: "No specific project (manual)" },
+                  ...partnerAccruals.map((a) => ({
+                    value: a.contractId,
+                    label: `${a.projectName} — ${formatPkr(a.amount)} owed`,
+                  })),
+                ]}
                 placeholder="No specific project"
                 searchPlaceholder="Search projects…"
-                emptyText="This partner has no assigned projects."
+                emptyText="This partner has no pending payouts."
               />
               <input type="hidden" name="contractId" value={contractId} />
             </Field>
+          )}
+
+          {selectedAccrual && (
+            <div className="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2.5 text-xs">
+              <span className="mb-0.5 font-medium text-foreground">
+                Cost breakdown — {selectedAccrual.projectName}
+              </span>
+              {selectedAccrual.revenueAmount != null && (
+                <BreakdownRow label="Project revenue" value={formatPkr(selectedAccrual.revenueAmount)} />
+              )}
+              {selectedAccrual.workCostAmount != null && (
+                <BreakdownRow label="Work cost" value={`-${formatPkr(selectedAccrual.workCostAmount)}`} />
+              )}
+              {!!selectedAccrual.projectExpensesAmount && (
+                <BreakdownRow
+                  label="Project expenses"
+                  value={`-${formatPkr(selectedAccrual.projectExpensesAmount)}`}
+                />
+              )}
+              {selectedAccrual.profitAmount != null && (
+                <BreakdownRow label="Net profit" value={formatPkr(selectedAccrual.profitAmount)} />
+              )}
+              <BreakdownRow
+                label={`Partner share${
+                  selectedAccrual.sharePercentageUsed != null
+                    ? ` (${selectedAccrual.sharePercentageUsed}%)`
+                    : ""
+                }`}
+                value={formatPkr(selectedAccrual.amount)}
+                emphasize
+              />
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
@@ -139,6 +201,7 @@ export function PartnerPayslipDialog({
                 step="0.01"
                 placeholder="0.00"
                 required
+                disabled={!!selectedAccrual}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
@@ -158,6 +221,23 @@ export function PartnerPayslipDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function BreakdownRow({
+  label,
+  value,
+  emphasize = false,
+}: {
+  label: string;
+  value: string;
+  emphasize?: boolean;
+}) {
+  return (
+    <div className={`flex items-center justify-between ${emphasize ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+      <span>{label}</span>
+      <span className="tabular-nums">{value}</span>
+    </div>
   );
 }
 
