@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   // hard-errors under `next dev`'s default Turbopack bundler, thinking an
   // unmigrated webpack config was left behind by mistake.
   turbopack: {},
+  outputFileTracingIncludes: {
+    "/*": ["node_modules/pdfkit/js/**/*", "node_modules/pdfkit/package.json"],
+  },
 };
 
 const withSerwist = withSerwistInit({
