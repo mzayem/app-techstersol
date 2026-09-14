@@ -23,6 +23,7 @@ import { InvoiceActionsMenu } from "@/components/invoices/invoice-actions-menu";
 import { MarkPaidDialog } from "@/components/invoices/mark-paid-dialog";
 import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { toast } from "@/components/ui/toast";
 
 export function InvoiceRowActions({
   id,
@@ -49,8 +50,15 @@ export function InvoiceRowActions({
 
   function confirmMarkUnpaid() {
     startTransition(async () => {
-      await markInvoiceUnpaid(id);
-      setMarkUnpaidOpen(false);
+      try {
+        await markInvoiceUnpaid(id);
+        setMarkUnpaidOpen(false);
+      } catch (e) {
+        toast.add({
+          title: e instanceof Error ? e.message : "Couldn't mark this invoice as unpaid",
+          type: "error",
+        });
+      }
     });
   }
 

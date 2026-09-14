@@ -43,10 +43,17 @@ async function createAuthAccount(
   email: string,
   password: string,
 ) {
+  // displayName is set explicitly (mirroring name) because leaving it unset
+  // appears to trigger a bug in @neondatabase/auth-ui's UserAvatar/UserButton,
+  // which fall back through `user.displayName || user.name || ...` — with no
+  // plain displayName value, that first read seems to return something that
+  // isn't a real string, producing phantom /api/auth/display-name/* requests
+  // and a hydration mismatch in the sidebar's NavUser. Harmless either way.
   const { data, error } = await auth.admin.createUser({
     email,
     password,
     name,
+    data: { displayName: name },
   });
   if (error || !data?.user) {
     throw new Error(error?.message ?? "Could not create the account");
@@ -218,7 +225,7 @@ export async function updateAppUser(id: string, formData: FormData) {
   if (name !== appUser.name || email !== appUser.email) {
     const { error } = await auth.admin.updateUser({
       userId: appUser.authUserId,
-      data: { name, email },
+      data: { name, email, displayName: name },
     });
     if (error) throw new Error(error.message ?? "Could not update the account");
   }

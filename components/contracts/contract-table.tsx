@@ -35,6 +35,7 @@ import {
   type PartnerOption,
   type TeamMemberOption,
 } from "@/components/contracts/contract-dialog";
+import { toast } from "@/components/ui/toast";
 
 export type ContractListItem = ContractEntry & {
   clientName: string;
@@ -119,8 +120,15 @@ export function ContractTable({
 
   function applyBulkStatus() {
     startTransition(async () => {
-      await bulkUpdateContractStatus(visibleSelectedIds, bulkStatus);
-      clearSelection();
+      try {
+        await bulkUpdateContractStatus(visibleSelectedIds, bulkStatus);
+        clearSelection();
+      } catch (e) {
+        toast.add({
+          title: e instanceof Error ? e.message : "Couldn't update the selected contracts",
+          type: "error",
+        });
+      }
     });
   }
 
