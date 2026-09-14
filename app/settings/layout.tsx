@@ -3,18 +3,19 @@ import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/nav/app-sidebar";
 import { ClientPortalSidebar } from "@/components/client-portal/client-portal-sidebar";
 import { PortalSidebar } from "@/components/portal/portal-sidebar";
+import { PartnerPortalSidebar } from "@/components/partner-portal/partner-portal-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { getCurrentAppUser, getVisiblePages } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
 /** Settings is intentionally open to every signed-in kind — dashboard
- * handler, team, and client alike — with no page-permission check, unlike
- * every other route in the app. It lives outside (root)/portal/client-portal
- * (since each of those three layouts redirects the other kinds away) but
- * still renders the same sidebar each kind already sees on their own
- * pages, picked here by kind instead of by which route tree the page
- * happens to sit under. */
+ * handler, team, client, and partner alike — with no page-permission
+ * check, unlike every other route in the app. It lives outside
+ * (root)/portal/client-portal/partner-portal (since each of those layouts
+ * redirects the other kinds away) but still renders the same sidebar each
+ * kind already sees on their own pages, picked here by kind instead of by
+ * which route tree the page happens to sit under. */
 export default async function SettingsLayout({
   children,
 }: {
@@ -23,13 +24,26 @@ export default async function SettingsLayout({
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/auth/sign-in");
 
+  const userName = appUser.name;
+  const userEmail = appUser.email;
+
   const sidebar =
     appUser.kind === "TEAM" ? (
-      <PortalSidebar showWorkDiary={appUser.teamMember?.type === "HOURLY"} />
+      <PortalSidebar
+        showWorkDiary={appUser.teamMember?.type === "HOURLY"}
+        userName={userName}
+        userEmail={userEmail}
+      />
     ) : appUser.kind === "CLIENT" ? (
-      <ClientPortalSidebar />
+      <ClientPortalSidebar userName={userName} userEmail={userEmail} />
+    ) : appUser.kind === "PARTNER" ? (
+      <PartnerPortalSidebar userName={userName} userEmail={userEmail} />
     ) : (
-      <AppSidebar visiblePages={getVisiblePages(appUser)} />
+      <AppSidebar
+        visiblePages={getVisiblePages(appUser)}
+        userName={userName}
+        userEmail={userEmail}
+      />
     );
 
   return (

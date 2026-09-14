@@ -13,11 +13,11 @@ export default async function PartnerPortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requirePartnerUser();
+  const appUser = await requirePartnerUser();
 
   return (
     <SidebarProvider>
-      <PartnerPortalSidebar />
+      <PartnerPortalSidebar userName={appUser.name} userEmail={appUser.email} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger />

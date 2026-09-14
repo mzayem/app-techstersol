@@ -37,7 +37,11 @@ const PARTNER_NAV = [
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
-export function PartnerPortalSidebar(props: React.ComponentProps<typeof Sidebar>) {
+export function PartnerPortalSidebar({
+  userName,
+  userEmail,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { userName: string; userEmail: string }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -101,7 +105,7 @@ export function PartnerPortalSidebar(props: React.ComponentProps<typeof Sidebar>
             <ModeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser />
+        <NavUser name={userName} email={userEmail} profileHref="/partner-portal/profile/settings" />
       </SidebarFooter>
     </Sidebar>
   );

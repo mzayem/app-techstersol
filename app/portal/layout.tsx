@@ -17,7 +17,11 @@ export default async function PortalLayout({
 
   return (
     <SidebarProvider>
-      <PortalSidebar showWorkDiary={appUser.teamMember!.type === "HOURLY"} />
+      <PortalSidebar
+        showWorkDiary={appUser.teamMember!.type === "HOURLY"}
+        userName={appUser.name}
+        userEmail={appUser.email}
+      />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger />

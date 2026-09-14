@@ -39,8 +39,14 @@ const PORTAL_NAV = [
 
 export function PortalSidebar({
   showWorkDiary,
+  userName,
+  userEmail,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { showWorkDiary: boolean }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  showWorkDiary: boolean;
+  userName: string;
+  userEmail: string;
+}) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const navItems = PORTAL_NAV.filter((item) => !item.hourlyOnly || showWorkDiary);
@@ -105,7 +111,7 @@ export function PortalSidebar({
             <ModeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser />
+        <NavUser name={userName} email={userEmail} profileHref="/portal/profile/settings" />
       </SidebarFooter>
     </Sidebar>
   );

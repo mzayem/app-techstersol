@@ -13,11 +13,11 @@ export default async function ClientPortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireClientUser();
+  const appUser = await requireClientUser();
 
   return (
     <SidebarProvider>
-      <ClientPortalSidebar />
+      <ClientPortalSidebar userName={appUser.name} userEmail={appUser.email} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger />

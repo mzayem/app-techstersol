@@ -25,8 +25,14 @@ import { Separator } from "../ui/separator";
 
 export function AppSidebar({
   visiblePages,
+  userName,
+  userEmail,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { visiblePages: PageKey[] }) {
+}: React.ComponentProps<typeof Sidebar> & {
+  visiblePages: PageKey[];
+  userName: string;
+  userEmail: string;
+}) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const visible = new Set(visiblePages);
@@ -131,7 +137,7 @@ export function AppSidebar({
             <ModeToggle />
           </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser />
+        <NavUser name={userName} email={userEmail} profileHref="/profile/settings" />
       </SidebarFooter>
     </Sidebar>
   );
