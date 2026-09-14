@@ -143,6 +143,7 @@ export async function createPartnerContractRequest(
 ) {
   const appUser = await requirePartnerUser();
   const partnerId = appUser.partner!.id;
+  const sharePercentage = appUser.partner!.sharePercentage;
 
   const requestedClientId = str(formData, "clientId");
   const client = await prisma.client.findFirst({
@@ -167,6 +168,12 @@ export async function createPartnerContractRequest(
       currency: client.currency,
       status: "PROPOSED",
       partnerId,
+      // Locked in from this partner's own profile at proposal time, rather
+      // than left null to fall back on later — so it's visible to the admin
+      // reviewing the proposal right away, not just implicit at booking time.
+      // Still just a default: the admin can override it like any other
+      // contract field before activating the project.
+      partnerSharePercent: sharePercentage,
       teamMemberId,
       teamPayAmount: suggestedWorkCost,
       createdByUserId: appUser.authUserId,

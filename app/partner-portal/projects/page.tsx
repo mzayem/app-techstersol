@@ -50,6 +50,7 @@ export default async function PartnerProjectsPage({
         <PartnerContractRequestDialog
           clients={clientOptions}
           teamMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
+          sharePercentage={Number(partner.sharePercentage)}
         />
       </div>
 

@@ -46,7 +46,7 @@ export async function getCurrentAppUser() {
           },
         },
       },
-      partner: { select: { id: true, name: true, chatEnabled: true } },
+      partner: { select: { id: true, name: true, chatEnabled: true, sharePercentage: true } },
     },
   });
 

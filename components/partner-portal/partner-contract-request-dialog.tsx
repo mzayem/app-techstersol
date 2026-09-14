@@ -58,9 +58,14 @@ function emptyMilestoneRow(): MilestoneRow {
 export function PartnerContractRequestDialog({
   clients,
   teamMembers,
+  sharePercentage,
 }: {
   clients: PartnerClientOption[];
   teamMembers: { id: string; name: string }[];
+  /** This partner's default profit-share %, from their own profile —
+   * applied to the project automatically; shown here read-only since it's
+   * managed on the profile, not per-proposal. */
+  sharePercentage: number;
 }) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
@@ -244,6 +249,11 @@ export function PartnerContractRequestDialog({
                   </Select>
                 </div>
               )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/50 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Your profit share on this project</span>
+              <span className="font-medium">{sharePercentage}%</span>
             </div>
 
             <Field label="Project name">
