@@ -4,6 +4,7 @@ import { AuthView } from "@neondatabase/auth-ui";
 import { authViewPaths } from "@neondatabase/auth-ui/server";
 
 import { AuthErrorToast } from "@/components/auth/auth-error-toast";
+import { OtpForgotPasswordForm } from "@/components/auth/otp-forgot-password-form";
 
 export const dynamicParams = false;
 
@@ -67,7 +68,11 @@ export default async function AuthPage({
           </div>
         </div>
 
-        <AuthView path={path} className="w-full" />
+        {path === authViewPaths.FORGOT_PASSWORD ? (
+          <OtpForgotPasswordForm />
+        ) : (
+          <AuthView path={path} className="w-full" />
+        )}
       </div>
     </main>
   );
