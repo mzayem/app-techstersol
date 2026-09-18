@@ -3,7 +3,6 @@ import withSerwistInit from "@serwist/next";
 
 const nextConfig: NextConfig = {
   images: {
-    unoptimized: true,
     qualities: [75, 90, 95, 100],
   },
   // @serwist/next always adds a `webpack()` hook to the config (even though
