@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toast";
@@ -72,8 +73,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             Techstersol
           </span>
         </div>
-        <script
-          suppressHydrationWarning
+        <Script
+          id="pwa-splash-inline"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){
               var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
