@@ -19,6 +19,7 @@ export type PageKey =
   | "work-diary"
   | "partners"
   | "partner-payslips"
+  | "partner-investments"
   | "partner-ledger"
   | "reports-audit"
   | "reports-performance"
@@ -106,6 +107,12 @@ export const PAGE_REGISTRY: PageRegistryEntry[] = [
     key: "partner-payslips",
     label: "Partner Payslips",
     url: "/partners/payslips",
+    group: "Partners",
+  },
+  {
+    key: "partner-investments",
+    label: "Partner Investments",
+    url: "/partners/investments",
     group: "Partners",
   },
   {

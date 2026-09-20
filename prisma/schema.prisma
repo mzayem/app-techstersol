@@ -79,6 +79,17 @@ enum PartnerPaymentSource {
   MANUAL
 }
 
+/// How a PartnerInvestment contribution was funded — PENDING_PAYMENT
+/// redirects an already-accrued (AUTO_COMPLETION, unlinked) PartnerPayment
+/// into investment instead of paying it out; CASH/ONLINE are fresh money
+/// the partner hands over directly, with ONLINE optionally carrying a
+/// transaction id.
+enum InvestmentMethod {
+  PENDING_PAYMENT
+  CASH
+  ONLINE
+}
+
 /// SUSPENDED and BLOCKED both block sign-in identically — they're kept as
 /// two admin-facing labels because Suspended is meant as a manual, easily
 /// reversed pause, while Blocked is either a manual hard stop or the
@@ -377,21 +388,23 @@ model TeamMember {
 }
 
 model Partner {
-  id                   String           @id @default(cuid())
+  id                   String                   @id @default(cuid())
   name                 String
   phone                String?
   email                String?
   currency             PaymentCurrency
-  sharePercentage      Decimal          @db.Decimal(5, 2)
-  payslipEmailsEnabled Boolean          @default(true)
-  chatEnabled          Boolean          @default(false)
+  sharePercentage      Decimal                  @db.Decimal(5, 2)
+  payslipEmailsEnabled Boolean                  @default(true)
+  chatEnabled          Boolean                  @default(false)
   createdByUserId      String
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
   contracts            Contract[]
   clients              Client[]
   partnerPayments      PartnerPayment[]
   partnerPayslips      PartnerPayslip[]
+  partnerInvestments   PartnerInvestment[]
+  investmentSpends     PartnerInvestmentSpend[]
   appUser              AppUser?
 
   @@index([name])
@@ -499,6 +512,13 @@ model PartnerPayment {
   sharePercentageUsed   Decimal?             @db.Decimal(5, 2)
   partnerPayslipId      String?              @unique
   partnerPayslip        PartnerPayslip?      @relation(fields: [partnerPayslipId], references: [id], onDelete: SetNull)
+  /// Set instead of partnerPayslipId when this accrued payment was
+  /// redirected into investment (PartnerInvestment.method =
+  /// PENDING_PAYMENT) rather than paid out — mutually exclusive with it in
+  /// practice, enforced at the application layer (both linking actions
+  /// require the payment to be fully unlinked first).
+  partnerInvestmentId   String?              @unique
+  partnerInvestment     PartnerInvestment?   @relation(fields: [partnerInvestmentId], references: [id], onDelete: SetNull)
   createdByUserId       String
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
@@ -530,6 +550,55 @@ model PartnerPayslip {
 
   @@index([partnerId])
   @@index([contractId])
+}
+
+/// A partner's contribution into their own investment "wallet" — a
+/// free-floating balance (not tied to any one project at contribution
+/// time) that PartnerInvestmentSpend rows later draw down. Deliberately
+/// kept off the money ledger/balance sheet (no LedgerEntry rows): this is
+/// the partner's own money passing through, not company revenue or
+/// expense. The slip issued for one of these is the investor's proof of
+/// contribution, mirroring PartnerPayslip's numbering/PDF pattern.
+model PartnerInvestment {
+  id              String           @id @default(cuid())
+  number          Int              @unique
+  partnerId       String
+  partner         Partner          @relation(fields: [partnerId], references: [id])
+  date            DateTime         @db.Date
+  amount          Decimal          @db.Decimal(14, 2)
+  method          InvestmentMethod
+  /// Optional even for ONLINE — some transfers have no reference number
+  /// worth recording.
+  transactionId   String?
+  note            String?
+  createdByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  partnerPayment  PartnerPayment?
+
+  @@index([partnerId])
+  @@index([date])
+}
+
+/// Where a partner's invested balance actually went — not limited to
+/// projects (per the user: "upwork connects, in stocks or anywhere"), so
+/// `category` is free text rather than a Contract FK. Never touches
+/// ProjectExpense or the profit-split formula; purely a spend log against
+/// the balance built up by that partner's PartnerInvestment rows.
+model PartnerInvestmentSpend {
+  id              String   @id @default(cuid())
+  partnerId       String
+  partner         Partner  @relation(fields: [partnerId], references: [id])
+  date            DateTime @db.Date
+  amount          Decimal  @db.Decimal(14, 2)
+  category        String
+  note            String?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([partnerId])
+  @@index([date])
 }
 
 model LedgerEntry {

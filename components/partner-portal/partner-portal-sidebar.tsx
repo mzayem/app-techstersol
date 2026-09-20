@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   FolderKanban,
   LayoutDashboard,
+  PiggyBank,
   ReceiptText,
   Settings,
   UserCircle,
@@ -33,6 +34,11 @@ const PARTNER_NAV = [
   { title: "Projects", url: "/partner-portal/projects", icon: FolderKanban },
   { title: "Invoices", url: "/partner-portal/invoices", icon: ReceiptText },
   { title: "Payslips", url: "/partner-portal/payslips", icon: WalletCards },
+  {
+    title: "Investments",
+    url: "/partner-portal/investments",
+    icon: PiggyBank,
+  },
   {
     title: "Profile",
     url: "/partner-portal/profile/settings",

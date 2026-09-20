@@ -11,6 +11,7 @@ import {
   Handshake,
   LineChart,
   Mail,
+  PiggyBank,
   Printer,
   Receipt,
   ReceiptText,
@@ -146,6 +147,12 @@ export const navGroups = [
         url: "/partners/payslips",
         icon: ReceiptText,
         key: "partner-payslips" as PageKey,
+      },
+      {
+        title: "Partner Investments",
+        url: "/partners/investments",
+        icon: PiggyBank,
+        key: "partner-investments" as PageKey,
       },
       {
         title: "Partner Ledger",

@@ -30,6 +30,12 @@ import {
   deletePartnerPayslip,
 } from "@/actions/partners/payslip-actions";
 import {
+  createPartnerInvestment,
+  deletePartnerInvestment,
+  createPartnerInvestmentSpend,
+  deletePartnerInvestmentSpend,
+} from "@/actions/partners/investment-actions";
+import {
   createClient,
   updateClient,
   deleteClient,
@@ -77,9 +83,9 @@ export type InvoiceCreatePayload = {
   items: InvoiceItemInput[];
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- payload shape varies per action; each entry's own type is what call sites actually use.
 export const ACTION_REGISTRY: Record<
   string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- payload shape varies per action; each entry's own type is what call sites actually use.
   (payload: any) => Promise<unknown>
 > = {
   createEarning: (p: FieldsPayload) => createEarning(toFormData(p)),
@@ -113,6 +119,14 @@ export const ACTION_REGISTRY: Record<
   createPartnerPayslip: (p: FieldsPayload) =>
     createPartnerPayslip(toFormData(p)),
   deletePartnerPayslip: (p: IdPayload) => deletePartnerPayslip(p.id),
+
+  createPartnerInvestment: (p: FieldsPayload) =>
+    createPartnerInvestment(toFormData(p)),
+  deletePartnerInvestment: (p: IdPayload) => deletePartnerInvestment(p.id),
+  createPartnerInvestmentSpend: (p: FieldsPayload) =>
+    createPartnerInvestmentSpend(toFormData(p)),
+  deletePartnerInvestmentSpend: (p: IdPayload) =>
+    deletePartnerInvestmentSpend(p.id),
 
   createClient: (p: FieldsPayload) => createClient(toFormData(p)),
   updateClient: (p: UpdatePayload) =>

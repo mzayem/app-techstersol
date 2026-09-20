@@ -88,6 +88,10 @@ export async function listPartnerPendingAccruals(): Promise<PartnerAccrual[]> {
     where: {
       source: "AUTO_COMPLETION",
       partnerPayslipId: null,
+      // A payment already redirected into investment (see
+      // actions/partners/investment-actions.ts) is spoken for — it no
+      // longer counts as an outstanding payout either.
+      partnerInvestmentId: null,
       contractId: { not: null },
     },
     select: {
