@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/nav/app-sidebar";
 import { ClientPortalSidebar } from "@/components/client-portal/client-portal-sidebar";
+import { SyncStatus } from "@/components/offline/sync-status";
 import { PortalSidebar } from "@/components/portal/portal-sidebar";
 import { PartnerPortalSidebar } from "@/components/partner-portal/partner-portal-sidebar";
 import {
@@ -67,6 +68,7 @@ export default async function SettingsLayout({
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger />
+          <SyncStatus />
         </header>
         {children}
       </SidebarInset>

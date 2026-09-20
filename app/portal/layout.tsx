@@ -1,3 +1,4 @@
+import { SyncStatus } from "@/components/offline/sync-status";
 import { PortalSidebar } from "@/components/portal/portal-sidebar";
 import {
   SidebarInset,
@@ -26,6 +27,7 @@ export default async function PortalLayout({
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger />
+          <SyncStatus />
         </header>
         {children}
       </SidebarInset>

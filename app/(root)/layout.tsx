@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/nav/app-sidebar";
+import { SyncStatus } from "@/components/offline/sync-status";
 import {
   SidebarInset,
   SidebarProvider,
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger />
+          <SyncStatus />
         </header>
         {children}
       </SidebarInset>
