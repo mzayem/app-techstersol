@@ -99,7 +99,7 @@ export async function sendInvoiceEmail(to: string, invoiceId: string) {
 
   const invoice = await getInvoiceForPdf(invoiceId);
   if (!invoice) throw new Error("Invoice not found");
-  const pdfData = toInvoicePdfData(invoice);
+  const pdfData = await toInvoicePdfData(invoice);
   const buffer = await renderInvoicePdf(pdfData, appUrl());
 
   const total = pdfData.items.reduce((sum, item) => sum + item.amount, 0);

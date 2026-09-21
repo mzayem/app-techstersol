@@ -46,7 +46,8 @@ export async function GET(
   }
 
   const origin = new URL(request.url).origin;
-  const buffer = await renderInvoicePdf(toInvoicePdfData(invoice), origin);
+  const pdfData = await toInvoicePdfData(invoice);
+  const buffer = await renderInvoicePdf(pdfData, origin);
 
   const filename = `Invoice-${formatInvoiceFileNumber(invoice.number)}-${invoice.status.toLowerCase()}.pdf`;
 

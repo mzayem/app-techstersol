@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import type { InvoiceStatus } from "@/lib/invoices/constants";
+import { contractRevenueBasis } from "@/lib/contracts/constants";
 import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
 export type SortOption = "number-desc" | "number-asc" | "due-asc" | "due-desc";
@@ -162,12 +163,55 @@ export async function getInvoiceForPdf(id: string) {
   });
 }
 
+/** The combined face value of every contract this invoice bills against,
+ * and how much of that whole (not just this invoice) has actually been
+ * paid — lets the PDF surface a project-level "remaining balance" for
+ * milestone/multi-invoice projects instead of only this invoice's own
+ * amount. Returns null when this invoice already covers the full project
+ * value, since a separate remaining-balance line would be redundant. */
+async function getProjectBalance(
+  items: { contractId: string | null; amount: unknown }[],
+) {
+  const contractIds = [
+    ...new Set(
+      items.map((i) => i.contractId).filter((id): id is string => !!id),
+    ),
+  ];
+  if (contractIds.length === 0) return null;
+
+  const contracts = await prisma.contract.findMany({
+    where: { id: { in: contractIds } },
+    select: {
+      paymentType: true,
+      amount: true,
+      milestones: { select: { amount: true } },
+    },
+  });
+  const totalValue = contracts.reduce(
+    (sum, c) => sum + contractRevenueBasis(c),
+    0,
+  );
+
+  const invoiceTotal = items.reduce((sum, i) => sum + Number(i.amount), 0);
+  if (totalValue <= invoiceTotal + 0.01) return null;
+
+  const paidItems = await prisma.invoiceItem.findMany({
+    where: { contractId: { in: contractIds }, invoice: { status: "PAID" } },
+    select: { amount: true },
+  });
+  const totalPaid = paidItems.reduce((sum, i) => sum + Number(i.amount), 0);
+
+  return { totalValue, remaining: Math.max(totalValue - totalPaid, 0) };
+}
+
 /** Maps a `getInvoiceForPdf` result into the shape `renderInvoicePdf`
  * expects — shared by the PDF route handler and the invoice-email
  * notifiers so both build the exact same document. */
-export function toInvoicePdfData(
+export async function toInvoicePdfData(
   invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>,
 ) {
+  const projectBalance = await getProjectBalance(invoice.items);
+
   return {
     id: invoice.id,
     number: invoice.number,
@@ -199,6 +243,7 @@ export function toInvoicePdfData(
       description: item.description,
       amount: Number(item.amount),
     })),
+    projectBalance,
   };
 }
 

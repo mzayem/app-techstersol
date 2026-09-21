@@ -82,6 +82,10 @@ export type InvoicePdfData = {
     swift: string;
   };
   items: { description: string; amount: number }[];
+  /** The linked contract(s)' full value and how much of that whole project
+   * has been paid so far — null when this invoice covers the full project
+   * value on its own, so no separate remaining-balance line is needed. */
+  projectBalance: { totalValue: number; remaining: number } | null;
 };
 
 const styles = StyleSheet.create({
@@ -151,6 +155,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   balanceDue: { fontSize: 11, fontWeight: 700 },
+  projectBalanceRow: { marginTop: 4, paddingTop: 4 },
+  projectBalanceText: { fontSize: 8.5, color: "#434343" },
   stampContainer: {
     position: "absolute",
     top: 180,
@@ -371,11 +377,28 @@ function InvoiceDocument({
               },
             ]}
           >
-            <Text style={styles.balanceDue}>Balance Due</Text>
+            <Text style={styles.balanceDue}>
+              {isPaid ? "Amount Paid" : "Amount Due"}
+            </Text>
             <Text style={styles.balanceDue}>
               {formatMoney(balanceDue, invoice.currency)}
             </Text>
           </View>
+          {invoice.projectBalance && (
+            <View style={[styles.totalsRow, styles.projectBalanceRow]}>
+              <Text style={styles.projectBalanceText}>
+                Remaining Project Balance
+              </Text>
+              <Text style={styles.projectBalanceText}>
+                {invoice.projectBalance.remaining <= 0.01
+                  ? "Paid in full"
+                  : formatMoney(
+                      invoice.projectBalance.remaining,
+                      invoice.currency,
+                    )}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={{ marginTop: 24 }}>

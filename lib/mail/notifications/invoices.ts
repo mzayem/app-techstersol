@@ -23,7 +23,7 @@ function formatDate(date: Date) {
 async function buildInvoicePdfAttachment(invoiceId: string) {
   const invoice = await getInvoiceForPdf(invoiceId);
   if (!invoice) return null;
-  const pdfData = toInvoicePdfData(invoice);
+  const pdfData = await toInvoicePdfData(invoice);
   const buffer = await renderInvoicePdf(pdfData, appUrl());
   return {
     invoice,

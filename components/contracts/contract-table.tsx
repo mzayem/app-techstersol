@@ -246,21 +246,21 @@ export function ContractTable({
                       contract.totalAmount,
                       contract.currency,
                     )}
-                    {(contract.status === "PARTIALLY_PAID" ||
-                      contract.status === "UPFRONT_PAYMENT") && (
-                      <span className="block text-xs font-normal text-muted-foreground">
-                        Received{" "}
-                        {formatContractAmount(
-                          contract.paidAmount,
-                          contract.currency,
-                        )}{" "}
-                        · Pending{" "}
-                        {formatContractAmount(
-                          contract.totalAmount - contract.paidAmount,
-                          contract.currency,
-                        )}
-                      </span>
-                    )}
+                    {contract.paidAmount > 0.01 &&
+                      contract.paidAmount < contract.totalAmount - 0.01 && (
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          Received{" "}
+                          {formatContractAmount(
+                            contract.paidAmount,
+                            contract.currency,
+                          )}{" "}
+                          · Pending{" "}
+                          {formatContractAmount(
+                            contract.totalAmount - contract.paidAmount,
+                            contract.currency,
+                          )}
+                        </span>
+                      )}
                   </TableCell>
                   <TableCell>
                     <StatusPill status={contract.status} />
