@@ -1,8 +1,9 @@
 import { AccountView } from "@neondatabase/auth-ui";
 import { accountViewPaths } from "@neondatabase/auth-ui/server";
 
+import { NotificationPreferences } from "@/components/auth/notification-preferences";
 import { ProfileHeader } from "@/components/auth/profile-header";
-import { getCurrentAppUser } from "@/lib/rbac/permissions";
+import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
 
 export const dynamicParams = false;
 
@@ -34,6 +35,22 @@ export default async function ProfilePage({
           badge={appUser.role?.name ?? "Dashboard handler"}
         />
       )}
+      {appUser &&
+        path === accountViewPaths.SETTINGS &&
+        appUser.kind === "DASHBOARD_HANDLER" &&
+        checkPermission(appUser, "contracts", "view") && (
+          <NotificationPreferences
+            initial={{
+              projectNotificationsEnabled: appUser.projectNotificationsEnabled,
+              chatNotificationsEnabled: appUser.chatNotificationsEnabled,
+            }}
+            isAdminNotifyAddress={
+              !!process.env.ADMIN_NOTIFY_EMAIL &&
+              process.env.ADMIN_NOTIFY_EMAIL.trim().toLowerCase() ===
+                appUser.email.toLowerCase()
+            }
+          />
+        )}
       <AccountView path={path} />
     </div>
   );

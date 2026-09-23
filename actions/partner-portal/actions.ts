@@ -200,6 +200,7 @@ export async function createPartnerContractRequest(
   await notifyProposalSubmitted({
     clientName: client.name,
     projectName: fields.projectName,
+    partnerName: appUser.partner!.name,
   });
   revalidatePath("/partner-portal/projects");
 }

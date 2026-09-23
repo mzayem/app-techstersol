@@ -1,12 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail/transport";
 import type { ContractStatus } from "@/lib/contracts/constants";
+import type { UserKind } from "@/generated/prisma/client";
 import {
   renderChatNotificationEmail,
+  renderContractAssignedEmail,
   renderContractCreatedEmail,
   renderContractStatusEmail,
   renderProposalNotificationEmail,
 } from "@/lib/mail/templates/contract";
+import {
+  getPartnerNotificationEmail,
+  getStaffNotificationRecipients,
+  getTeamMemberNotificationEmail,
+} from "@/lib/mail/notifications/recipients";
 
 function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL!;
@@ -30,57 +37,130 @@ function safeNotify(label: string, fn: () => Promise<void>): Promise<void> {
   return fn().catch((err) => console.error(`[mail] ${label} failed:`, err));
 }
 
+/** One send for the whole staff list — first address in `to`, the rest in
+ * `bcc` so staff don't see (or reply-all to) each other. */
+async function sendToStaff(
+  recipients: string[],
+  mail: { subject: string; html: string },
+) {
+  if (recipients.length === 0) return;
+  const [to, ...bcc] = recipients;
+  await sendMail({ to, bcc: bcc.length ? bcc : undefined, ...mail });
+}
+
+/** A new PROPOSED project from the client portal, or from the partner
+ * portal (pass `partnerName`) — goes to ADMIN_NOTIFY_EMAIL plus every staff
+ * login that opted into project notifications. */
 export function notifyProposalSubmitted({
   clientName,
   projectName,
+  partnerName,
 }: {
   clientName: string;
   projectName: string;
+  partnerName?: string;
 }) {
   return safeNotify("proposal notification", async () => {
-    const to = process.env.ADMIN_NOTIFY_EMAIL;
-    if (!to) return;
-    await sendMail({
-      to,
+    await sendToStaff(await getStaffNotificationRecipients("project"), {
       subject: `New project proposal: ${projectName}`,
       html: renderProposalNotificationEmail({
         clientName,
         projectName,
+        partnerName,
         appUrl: appUrl(),
       }),
     });
   });
 }
 
-export function notifyContractCreated(contractId: string) {
-  return safeNotify("contract-created notification", async () => {
+/** A dashboard user created a contract — emails the client (subject to the
+ * contract/client email toggles, at their Client profile's email), plus the
+ * partner and team member it was added for, if any. */
+export async function notifyContractCreated(contractId: string) {
+  await Promise.all([
+    safeNotify("contract-created notification", async () => {
+      const contract = await prisma.contract.findUnique({
+        where: { id: contractId },
+        select: {
+          projectName: true,
+          status: true,
+          deadline: true,
+          statusEmailsEnabled: true,
+          client: { select: { email: true, emailNotificationsEnabled: true } },
+        },
+      });
+      if (!contract) return;
+      if (
+        !contract.statusEmailsEnabled ||
+        !contract.client.emailNotificationsEnabled
+      )
+        return;
+      if (!contract.client.email) return;
+
+      await sendMail({
+        to: contract.client.email,
+        subject: `New project: ${contract.projectName}`,
+        html: renderContractCreatedEmail({
+          projectName: contract.projectName,
+          status: contract.status as ContractStatus,
+          deadline: formatDate(contract.deadline),
+        }),
+      });
+    }),
+    notifyContractAssigned(contractId, { partner: true, teamMember: true }),
+  ]);
+}
+
+/** Tells a contract's partner and/or team member they've been put on it.
+ * Called on create (both) and on edit only for whichever of the two was
+ * newly set or changed, so re-saving a contract never re-sends. Each goes
+ * to their own profile's email (see recipients.ts). */
+export function notifyContractAssigned(
+  contractId: string,
+  { partner, teamMember }: { partner: boolean; teamMember: boolean },
+) {
+  return safeNotify("contract-assigned notification", async () => {
+    if (!partner && !teamMember) return;
     const contract = await prisma.contract.findUnique({
       where: { id: contractId },
       select: {
         projectName: true,
         status: true,
         deadline: true,
-        statusEmailsEnabled: true,
-        client: { select: { email: true, emailNotificationsEnabled: true } },
+        partnerId: true,
+        teamMemberId: true,
+        client: { select: { name: true } },
       },
     });
     if (!contract) return;
-    if (
-      !contract.statusEmailsEnabled ||
-      !contract.client.emailNotificationsEnabled
-    )
-      return;
-    if (!contract.client.email) return;
 
-    await sendMail({
-      to: contract.client.email,
-      subject: `New project: ${contract.projectName}`,
-      html: renderContractCreatedEmail({
-        projectName: contract.projectName,
-        status: contract.status as ContractStatus,
-        deadline: formatDate(contract.deadline),
-      }),
-    });
+    const [partnerEmail, teamEmail] = await Promise.all([
+      partner && contract.partnerId
+        ? getPartnerNotificationEmail(contract.partnerId)
+        : null,
+      teamMember && contract.teamMemberId
+        ? getTeamMemberNotificationEmail(contract.teamMemberId)
+        : null,
+    ]);
+
+    const send = (to: string, audience: "partner" | "team") =>
+      sendMail({
+        to,
+        subject: `New project: ${contract.projectName}`,
+        html: renderContractAssignedEmail({
+          audience,
+          projectName: contract.projectName,
+          clientName: contract.client.name,
+          status: contract.status as ContractStatus,
+          deadline: formatDate(contract.deadline),
+          appUrl: appUrl(),
+        }),
+      });
+
+    await Promise.all([
+      partnerEmail ? send(partnerEmail, "partner") : null,
+      teamEmail ? send(teamEmail, "team") : null,
+    ]);
   });
 }
 
@@ -114,32 +194,69 @@ export function notifyContractStatusChanged(contractId: string) {
   });
 }
 
+/** A new chat message on a contract. A client's message goes to
+ * ADMIN_NOTIFY_EMAIL, every staff login that opted into chat notifications,
+ * and — on a partnered project — that project's partner. A message from
+ * anyone else emails the client, but only while the contract's own "email
+ * on new chat messages" toggle is on. */
 export function notifyChatMessage({
-  projectName,
+  contractId,
+  authorKind,
   authorLabel,
   message,
-  forAdmin,
-  clientEmail,
 }: {
-  projectName: string;
+  contractId: string;
+  authorKind: UserKind;
   authorLabel: string;
   message: string;
-  forAdmin: boolean;
-  clientEmail: string | null;
 }) {
   return safeNotify("chat notification", async () => {
-    const to = forAdmin ? process.env.ADMIN_NOTIFY_EMAIL : clientEmail;
-    if (!to) return;
-    await sendMail({
-      to,
-      subject: `New message on ${projectName}`,
-      html: renderChatNotificationEmail({
-        projectName,
+    const contract = await prisma.contract.findUnique({
+      where: { id: contractId },
+      select: {
+        projectName: true,
+        chatNotificationsEnabled: true,
+        partnerId: true,
+        client: { select: { email: true } },
+      },
+    });
+    if (!contract) return;
+
+    const subject = `New message on ${contract.projectName}`;
+    const render = (viewPath: string) =>
+      renderChatNotificationEmail({
+        projectName: contract.projectName,
         authorLabel,
         message,
-        appUrl: appUrl(),
-        forAdmin,
-      }),
+        viewUrl: `${appUrl()}${viewPath}`,
+      });
+
+    if (authorKind !== "CLIENT") {
+      if (!contract.chatNotificationsEnabled || !contract.client.email) return;
+      await sendMail({
+        to: contract.client.email,
+        subject,
+        html: render("/client-portal/contracts"),
+      });
+      return;
+    }
+
+    const partnerEmail = contract.partnerId
+      ? await getPartnerNotificationEmail(contract.partnerId)
+      : null;
+    const staff = await getStaffNotificationRecipients("chat", {
+      exclude: [partnerEmail],
     });
+
+    await Promise.all([
+      sendToStaff(staff, { subject, html: render("/projects/contracts") }),
+      partnerEmail
+        ? sendMail({
+            to: partnerEmail,
+            subject,
+            html: render("/partner-portal/projects"),
+          })
+        : Promise.resolve(),
+    ]);
   });
 }

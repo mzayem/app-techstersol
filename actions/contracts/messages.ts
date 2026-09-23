@@ -132,23 +132,12 @@ export async function createContractMessage(
     },
   });
 
-  const contract = await prisma.contract.findUnique({
-    where: { id: contractId },
-    select: {
-      projectName: true,
-      chatNotificationsEnabled: true,
-      client: { select: { email: true } },
-    },
+  await notifyChatMessage({
+    contractId,
+    authorKind: appUser.kind,
+    authorLabel: appUser.name,
+    message: trimmed,
   });
-  if (contract?.chatNotificationsEnabled) {
-    await notifyChatMessage({
-      projectName: contract.projectName,
-      authorLabel: appUser.name,
-      message: trimmed,
-      forAdmin: appUser.kind === "CLIENT",
-      clientEmail: contract.client.email,
-    });
-  }
 
   revalidatePath("/projects/contracts");
   revalidatePath("/portal/projects");

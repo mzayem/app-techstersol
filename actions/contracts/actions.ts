@@ -20,6 +20,7 @@ import {
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { validateMilestones } from "@/lib/contracts/validation";
 import {
+  notifyContractAssigned,
   notifyContractCreated,
   notifyContractStatusChanged,
 } from "@/lib/mail/notifications/contracts";
@@ -246,7 +247,7 @@ export async function updateContract(
 
   const before = await prisma.contract.findUnique({
     where: { id },
-    select: { status: true },
+    select: { status: true, teamMemberId: true, partnerId: true },
   });
 
   await prisma.contract.update({
@@ -262,6 +263,13 @@ export async function updateContract(
 
   if (before && before.status !== fields.status) {
     await notifyContractStatusChanged(id);
+  }
+  if (before) {
+    await notifyContractAssigned(id, {
+      partner: !!fields.partnerId && fields.partnerId !== before.partnerId,
+      teamMember:
+        !!fields.teamMemberId && fields.teamMemberId !== before.teamMemberId,
+    });
   }
   revalidatePath("/projects/contracts");
 }

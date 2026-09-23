@@ -739,11 +739,12 @@ export function ContractDialog({
             <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium">
-                  Email on new chat messages
+                  Email client on new chat messages
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Off by default. When on, a message from you emails the client,
-                  and a message from the client emails you.
+                  Off by default. When on, a message from you emails the client.
+                  Client messages always email the admin and the partner, plus
+                  any staff who turned on chat notifications in their profile.
                 </span>
               </div>
               <Switch

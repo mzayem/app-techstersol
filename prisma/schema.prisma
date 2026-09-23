@@ -135,31 +135,37 @@ model RolePermission {
 /// linked to it, e.g. someone with both a personal and a company Client
 /// record under one login).
 model AppUser {
-  id                  String               @id @default(cuid())
-  authUserId          String               @unique
-  email               String               @unique
-  name                String
-  kind                UserKind
-  roleId              String?
-  role                Role?                @relation(fields: [roleId], references: [id])
-  teamMemberId        String?              @unique
-  teamMember          TeamMember?          @relation(fields: [teamMemberId], references: [id])
-  clientProfiles      ClientProfile[]
-  partnerId           String?              @unique
-  partner             Partner?             @relation(fields: [partnerId], references: [id])
-  credentialViewLinks CredentialViewLink[]
-  passwordResetCodes  PasswordResetCode[]
-  status              AppUserStatus        @default(ACTIVE)
+  id                          String               @id @default(cuid())
+  authUserId                  String               @unique
+  email                       String               @unique
+  name                        String
+  kind                        UserKind
+  roleId                      String?
+  role                        Role?                @relation(fields: [roleId], references: [id])
+  teamMemberId                String?              @unique
+  teamMember                  TeamMember?          @relation(fields: [teamMemberId], references: [id])
+  clientProfiles              ClientProfile[]
+  partnerId                   String?              @unique
+  partner                     Partner?             @relation(fields: [partnerId], references: [id])
+  credentialViewLinks         CredentialViewLink[]
+  passwordResetCodes          PasswordResetCode[]
+  status                      AppUserStatus        @default(ACTIVE)
   /// Consecutive wrong-password attempts since the last reset (a correct
   /// sign-in, or a timed lockout expiring into the next tier).
-  failedLoginAttempts Int                  @default(0)
+  failedLoginAttempts         Int                  @default(0)
   /// How many timed lockout tiers ([5, 15, 60] minutes) have already been
   /// used since the last successful sign-in — the 4th violation blocks
   /// the account permanently instead of issuing a 4th timer.
-  lockoutStage        Int                  @default(0)
-  lockedUntil         DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  lockoutStage                Int                  @default(0)
+  lockedUntil                 DateTime?
+  /// Opt-in staff alerts for DASHBOARD_HANDLER logins whose role can view
+  /// contracts: new project proposals from the client/partner portals, and
+  /// new client chat messages. ADMIN_NOTIFY_EMAIL always gets both
+  /// regardless — see lib/mail/notifications/recipients.ts.
+  projectNotificationsEnabled Boolean              @default(false)
+  chatNotificationsEnabled    Boolean              @default(false)
+  createdAt                   DateTime             @default(now())
+  updatedAt                   DateTime             @updatedAt
 }
 
 model Earning {
