@@ -11,10 +11,15 @@ import {
 } from "lucide-react";
 
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -50,79 +55,108 @@ export function AttentionCard({ groups }: { groups: AttentionGroup[] }) {
     );
   }
 
+  // Split the total by severity so the collapsed header still says how bad
+  // things are: urgent groups count as red, the rest as warnings.
+  let urgentCount = 0;
+  let warningCount = 0;
+  for (const group of groups) {
+    if (group.rows.some((r) => r.urgent)) urgentCount += group.count;
+    else warningCount += group.count;
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Needs attention</CardTitle>
-        <CardDescription>
-          What&apos;s overdue or coming up — across all time, not just the
-          selected period
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {groups.map((group) => {
-            const Icon = GROUP_ICONS[group.key];
-            const urgent = group.rows.some((r) => r.urgent);
-            return (
-              <div
-                key={group.key}
-                className="flex flex-col gap-2 rounded-lg p-3 ring-1 ring-foreground/10"
+    <Card className="py-0">
+      <Accordion>
+        <AccordionItem value="attention">
+          <AccordionTrigger className="cursor-pointer items-center gap-2 rounded-xl border-0 px-(--card-spacing) py-(--card-spacing) select-none hover:no-underline focus-visible:ring-2 focus-visible:ring-inset">
+            <CardTitle className="flex-1">Needs attention</CardTitle>
+            {urgentCount > 0 && (
+              <span
+                className="inline-flex min-w-6 items-center justify-center rounded-full bg-red-500/10 px-1.5 py-0.5 text-xs font-medium text-red-600 tabular-nums dark:text-red-400"
+                title={`${urgentCount} urgent`}
               >
-                <div className="flex items-center gap-2">
-                  <Icon
-                    className={cn(
-                      "size-4 shrink-0",
-                      urgent
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-amber-600 dark:text-amber-400",
-                    )}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                    {group.title}
-                  </span>
-                  <span
-                    className={cn(
-                      "inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums",
-                      urgent
-                        ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-                    )}
+                {urgentCount}
+              </span>
+            )}
+            {warningCount > 0 && (
+              <span
+                className="inline-flex min-w-6 items-center justify-center rounded-full bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 tabular-nums dark:text-amber-400"
+                title={`${warningCount} to review`}
+              >
+                {warningCount}
+              </span>
+            )}
+          </AccordionTrigger>
+          <AccordionContent className="flex flex-col gap-3 px-(--card-spacing) pb-(--card-spacing) [&_a]:no-underline [&_a]:hover:text-primary">
+            <CardDescription>
+              What&apos;s overdue or coming up — across all time, not just the
+              selected period
+            </CardDescription>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {groups.map((group) => {
+                const Icon = GROUP_ICONS[group.key];
+                const urgent = group.rows.some((r) => r.urgent);
+                return (
+                  <div
+                    key={group.key}
+                    className="flex flex-col gap-2 rounded-lg p-3 ring-1 ring-foreground/10"
                   >
-                    {group.count}
-                  </span>
-                </div>
-                <ul className="flex flex-col gap-1.5">
-                  {group.rows.map((row) => (
-                    <li key={row.id} className="min-w-0 text-sm">
-                      <span className="block truncate">{row.label}</span>
+                    <div className="flex items-center gap-2">
+                      <Icon
+                        className={cn(
+                          "size-4 shrink-0",
+                          urgent
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-amber-600 dark:text-amber-400",
+                        )}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                        {group.title}
+                      </span>
                       <span
                         className={cn(
-                          "block truncate text-xs",
-                          row.urgent
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-muted-foreground",
+                          "inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums",
+                          urgent
+                            ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
                         )}
                       >
-                        {row.detail}
+                        {group.count}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={group.href}
-                  className="mt-auto inline-flex items-center gap-1 pt-1 text-xs font-medium text-primary hover:underline"
-                >
-                  {group.count > group.rows.length
-                    ? `View all ${group.count}`
-                    : "Open"}
-                  <ArrowRightIcon className="size-3" />
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
+                    </div>
+                    <ul className="flex flex-col gap-1.5">
+                      {group.rows.map((row) => (
+                        <li key={row.id} className="min-w-0 text-sm">
+                          <span className="block truncate">{row.label}</span>
+                          <span
+                            className={cn(
+                              "block truncate text-xs",
+                              row.urgent
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {row.detail}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href={group.href}
+                      className="mt-auto inline-flex items-center gap-1 pt-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      {group.count > group.rows.length
+                        ? `View all ${group.count}`
+                        : "Open"}
+                      <ArrowRightIcon className="size-3" />
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
   );
 }
