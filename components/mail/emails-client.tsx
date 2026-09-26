@@ -7,6 +7,7 @@ import {
   BoldIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  DownloadIcon,
   FileTextIcon,
   ForwardIcon,
   ImageIcon,
@@ -24,7 +25,7 @@ import {
   XIcon,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -54,7 +55,12 @@ import {
   setMessageFlagged,
   setMessageSeen,
 } from "@/actions/mail/imap-actions";
-import type { MailDetail, MailFolder, MailListItem } from "@/lib/mail/imap";
+import type {
+  MailAttachmentInfo,
+  MailDetail,
+  MailFolder,
+  MailListItem,
+} from "@/lib/mail/imap";
 
 type FilterKey = "all" | "unread" | "read" | "starred";
 type SortKey = "newest" | "oldest" | "largest" | "smallest";
@@ -112,6 +118,17 @@ function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Makes every link in a message body open in a new tab — a `<base>` tag
+ * covers anchors without their own target, and any existing `<base>` is
+ * dropped so the email can't point links back into the iframe. */
+function withLinksInNewTab(html: string) {
+  const base = '<base target="_blank">';
+  const cleaned = html.replace(/<base\b[^>]*>/gi, "");
+  return /<head[^>]*>/i.test(cleaned)
+    ? cleaned.replace(/<head[^>]*>/i, (m) => `${m}${base}`)
+    : `${base}${cleaned}`;
 }
 
 function escapeHtmlClient(value: string) {
@@ -1141,12 +1158,22 @@ function MailDetailPane({
             {detail.html ? (
               <iframe
                 title="Message body"
-                srcDoc={detail.html}
+                srcDoc={withLinksInNewTab(detail.html)}
                 className="h-[45vh] w-full rounded-md border border-border bg-white"
-                sandbox=""
+                // Scripts stay blocked; popups are allowed only so links
+                // (forced to target=_blank below) can open in a new tab,
+                // and escape the sandbox so the opened site works normally.
+                sandbox="allow-popups allow-popups-to-escape-sandbox"
               />
             ) : (
               <div className="text-sm whitespace-pre-wrap">{detail.text}</div>
+            )}
+            {detail.attachments.length > 0 && (
+              <MailAttachments
+                folder={folder}
+                uid={detail.uid}
+                attachments={detail.attachments}
+              />
             )}
             {folder !== "INBOX.Trash" && (
               <div className="flex items-center gap-2 pt-2">
@@ -1170,6 +1197,68 @@ function MailDetailPane({
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function MailAttachments({
+  folder,
+  uid,
+  attachments,
+}: {
+  folder: MailFolder;
+  uid: number;
+  attachments: MailAttachmentInfo[];
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="flex items-center gap-1.5 text-sm font-medium">
+        <PaperclipIcon className="size-4" />
+        {attachments.length} attachment{attachments.length === 1 ? "" : "s"}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {attachments.map((a) => {
+          const href = `/api/mail/attachment?${new URLSearchParams({
+            folder,
+            uid: String(uid),
+            index: String(a.index),
+          })}`;
+          const Icon = a.contentType.startsWith("image/")
+            ? ImageIcon
+            : FileTextIcon;
+          return (
+            <div
+              key={a.index}
+              className="flex max-w-full items-center gap-2 rounded-md border border-border py-1.5 pr-1.5 pl-3"
+            >
+              <Icon className="size-4 shrink-0 text-muted-foreground" />
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-w-0 hover:underline"
+                title={`Open ${a.filename}`}
+              >
+                <span className="block truncate text-sm">{a.filename}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {formatFileSize(a.size)}
+                </span>
+              </a>
+              <a
+                href={`${href}&download=1`}
+                download={a.filename}
+                aria-label={`Download ${a.filename}`}
+                className={buttonVariants({
+                  variant: "ghost",
+                  size: "icon-sm",
+                })}
+              >
+                <DownloadIcon className="size-4" />
+              </a>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

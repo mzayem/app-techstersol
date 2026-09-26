@@ -20,12 +20,22 @@ export type MailListItem = {
   size: number;
 };
 
+export type MailAttachmentInfo = {
+  /** Position in mailparser's `attachments` array — the key used to fetch
+   * this attachment's bytes again via `getAttachment`. */
+  index: number;
+  filename: string;
+  contentType: string;
+  size: number;
+};
+
 export type MailDetail = MailListItem & {
   html: string | null;
   text: string | null;
   /** Plain address (no display name) to prefill a Reply — prefers
    * Reply-To when the sender set one, falling back to From. */
   replyToAddress: string;
+  attachments: MailAttachmentInfo[];
 };
 
 function client() {
@@ -60,6 +70,17 @@ async function withMailbox<T>(
   } finally {
     await c.logout();
   }
+}
+
+/** Downloads + parses the full raw message — shared by getMessage and
+ * getAttachment so both see the same attachment ordering. */
+async function downloadParsed(c: ImapFlow, uid: number) {
+  const raw = await c.download(String(uid), undefined, { uid: true });
+  if (!raw) return null;
+  const chunks: Buffer[] = [];
+  for await (const chunk of raw.content) chunks.push(chunk as Buffer);
+  const buffer = Buffer.concat(chunks);
+  return { buffer, parsed: await simpleParser(buffer) };
 }
 
 async function withClient<T>(fn: (c: ImapFlow) => Promise<T>): Promise<T> {
@@ -146,13 +167,9 @@ export async function getMessage(
         { envelope: true, flags: true, bodyStructure: true },
         { uid: true },
       )) || undefined;
-    const raw = await c.download(String(uid), undefined, { uid: true });
-    if (!raw) return null;
-
-    const chunks: Buffer[] = [];
-    for await (const chunk of raw.content) chunks.push(chunk as Buffer);
-    const buffer = Buffer.concat(chunks);
-    const parsed = await simpleParser(buffer);
+    const result = await downloadParsed(c, uid);
+    if (!result) return null;
+    const { buffer, parsed } = result;
 
     return {
       uid,
@@ -164,7 +181,9 @@ export async function getMessage(
       date: parsed.date instanceof Date ? parsed.date : null,
       seen: envelopeMsg ? (envelopeMsg.flags?.has("\\Seen") ?? true) : true,
       flagged: envelopeMsg?.flags?.has("\\Flagged") ?? false,
-      hasAttachment: findsAttachment(envelopeMsg?.bodyStructure),
+      hasAttachment:
+        parsed.attachments.length > 0 ||
+        findsAttachment(envelopeMsg?.bodyStructure),
       size: buffer.length,
       html: typeof parsed.html === "string" ? parsed.html : null,
       text: parsed.text ?? null,
@@ -172,6 +191,29 @@ export async function getMessage(
         parsed.replyTo?.value?.[0]?.address ??
         parsed.from?.value?.[0]?.address ??
         "",
+      attachments: parsed.attachments.map((a, index) => ({
+        index,
+        filename: a.filename || `attachment-${index + 1}`,
+        contentType: a.contentType || "application/octet-stream",
+        size: a.size ?? a.content.length,
+      })),
+    };
+  });
+}
+
+export async function getAttachment(
+  folder: MailFolder,
+  uid: number,
+  index: number,
+): Promise<{ filename: string; contentType: string; content: Buffer } | null> {
+  return withMailbox(folder, async (c) => {
+    const result = await downloadParsed(c, uid);
+    const a = result?.parsed.attachments[index];
+    if (!a) return null;
+    return {
+      filename: a.filename || `attachment-${index + 1}`,
+      contentType: a.contentType || "application/octet-stream",
+      content: a.content,
     };
   });
 }
