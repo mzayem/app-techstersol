@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { PAYSLIP_NUMBER_START } from "@/lib/team/constants";
+import {
+  PAYSLIP_NUMBER_START,
+  formatPayslipNumber,
+} from "@/lib/team/constants";
+import { formatContractAmount } from "@/lib/contracts/constants";
+import { logActivity } from "@/lib/activity/log";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { notifyPayslipIssued } from "@/lib/mail/notifications/payslips";
 
@@ -101,6 +106,13 @@ export async function createPayslip(formData: FormData) {
         },
       });
       await notifyPayslipIssued(created.id);
+      await logActivity(appUser, {
+        action: "created",
+        entityType: "payslip",
+        entityId: created.id,
+        summary: `Issued payslip ${formatPayslipNumber(number)} to ${teamMember.name} (${formatContractAmount(Number(amount), "PKR")})`,
+        page: "payslips",
+      });
       revalidatePath("/team/payslips");
       revalidatePath("/team/payments");
       revalidatePath("/account/balance-sheet");
@@ -115,7 +127,16 @@ export async function createPayslip(formData: FormData) {
 }
 
 export async function deletePayslip(id: string) {
-  await requirePagePermission("payslips", "delete");
+  const { appUser } = await requirePagePermission("payslips", "delete");
+
+  const payslip = await prisma.payslip.findUnique({
+    where: { id },
+    select: {
+      number: true,
+      amount: true,
+      teamMember: { select: { name: true } },
+    },
+  });
 
   // The linked TeamPayment (if any) is deleted explicitly rather than left
   // to dangle via its onDelete: SetNull — deleting a payslip should remove
@@ -124,6 +145,16 @@ export async function deletePayslip(id: string) {
     prisma.teamPayment.deleteMany({ where: { payslipId: id } }),
     prisma.payslip.delete({ where: { id } }),
   ]);
+
+  if (payslip) {
+    await logActivity(appUser, {
+      action: "deleted",
+      entityType: "payslip",
+      entityId: id,
+      summary: `Deleted payslip ${formatPayslipNumber(payslip.number)} of ${payslip.teamMember.name} (${formatContractAmount(Number(payslip.amount), "PKR")})`,
+      page: "payslips",
+    });
+  }
 
   revalidatePath("/team/payslips");
   revalidatePath("/team/payments");

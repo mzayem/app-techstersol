@@ -9,6 +9,7 @@ import {
 } from "@/lib/clients/constants";
 import {
   CONTRACT_STATUSES,
+  CONTRACT_STATUS_LABELS,
   PAYMENT_TYPES,
   WORK_COST_MODES,
   contractRevenueBasis,
@@ -18,6 +19,7 @@ import {
   type MilestoneInput,
 } from "@/lib/contracts/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 import { validateMilestones } from "@/lib/contracts/validation";
 import {
   notifyContractAssigned,
@@ -231,6 +233,13 @@ export async function createContract(
   });
 
   await notifyContractCreated(created.id);
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "contract",
+    entityId: created.id,
+    summary: `Created contract "${created.projectName}"`,
+    page: "contracts",
+  });
   revalidatePath("/projects/contracts");
 }
 
@@ -239,7 +248,7 @@ export async function updateContract(
   formData: FormData,
   milestones: MilestoneInput[],
 ) {
-  await requirePagePermission("contracts", "edit");
+  const { appUser } = await requirePagePermission("contracts", "edit");
   const { milestones: validMilestones, ...fields } = await readContractFields(
     formData,
     milestones,
@@ -247,7 +256,12 @@ export async function updateContract(
 
   const before = await prisma.contract.findUnique({
     where: { id },
-    select: { status: true, teamMemberId: true, partnerId: true },
+    select: {
+      status: true,
+      teamMemberId: true,
+      partnerId: true,
+      projectName: true,
+    },
   });
 
   await prisma.contract.update({
@@ -264,6 +278,17 @@ export async function updateContract(
   if (before && before.status !== fields.status) {
     await notifyContractStatusChanged(id);
   }
+  const statusNote =
+    before && before.status !== fields.status
+      ? ` — status ${CONTRACT_STATUS_LABELS[before.status as ContractStatus]} → ${CONTRACT_STATUS_LABELS[fields.status as ContractStatus]}`
+      : "";
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "contract",
+    entityId: id,
+    summary: `Edited contract "${fields.projectName}"${statusNote}`,
+    page: "contracts",
+  });
   if (before) {
     await notifyContractAssigned(id, {
       partner: !!fields.partnerId && fields.partnerId !== before.partnerId,
@@ -275,9 +300,17 @@ export async function updateContract(
 }
 
 export async function deleteContract(id: string) {
-  await requirePagePermission("contracts", "delete");
+  const { appUser } = await requirePagePermission("contracts", "delete");
 
-  await prisma.contract.delete({ where: { id } });
+  const deleted = await prisma.contract.delete({ where: { id } });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "contract",
+    entityId: id,
+    summary: `Deleted contract "${deleted.projectName}"`,
+    page: "contracts",
+  });
 
   revalidatePath("/projects/contracts");
 }
@@ -286,7 +319,7 @@ export async function bulkUpdateContractStatus(
   ids: string[],
   status: ContractStatus,
 ) {
-  await requirePagePermission("contracts", "edit");
+  const { appUser } = await requirePagePermission("contracts", "edit");
 
   if (ids.length === 0) return;
   if (!CONTRACT_STATUSES.includes(status)) {
@@ -295,7 +328,7 @@ export async function bulkUpdateContractStatus(
 
   const before = await prisma.contract.findMany({
     where: { id: { in: ids } },
-    select: { id: true, status: true },
+    select: { id: true, status: true, projectName: true },
   });
 
   await prisma.contract.updateMany({
@@ -306,6 +339,19 @@ export async function bulkUpdateContractStatus(
   const changedIds = before.filter((c) => c.status !== status).map((c) => c.id);
   await Promise.all(
     changedIds.map((changedId) => notifyContractStatusChanged(changedId)),
+  );
+  await Promise.all(
+    before
+      .filter((c) => c.status !== status)
+      .map((c) =>
+        logActivity(appUser, {
+          action: "status-changed",
+          entityType: "contract",
+          entityId: c.id,
+          summary: `Changed contract "${c.projectName}" status ${CONTRACT_STATUS_LABELS[c.status as ContractStatus]} → ${CONTRACT_STATUS_LABELS[status]}`,
+          page: "contracts",
+        }),
+      ),
   );
 
   revalidatePath("/projects/contracts");

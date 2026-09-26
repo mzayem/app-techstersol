@@ -13,6 +13,7 @@ import {
   getCurrentAppUser,
 } from "@/lib/rbac/permissions";
 import { validateMilestones } from "@/lib/contracts/validation";
+import { logActivity } from "@/lib/activity/log";
 import { notifyProposalSubmitted } from "@/lib/mail/notifications/contracts";
 
 function str(formData: FormData, key: string) {
@@ -98,7 +99,7 @@ export async function createClientContractRequest(
     milestones,
   );
 
-  await prisma.contract.create({
+  const created = await prisma.contract.create({
     data: {
       ...fields,
       clientId: profile.id,
@@ -114,6 +115,13 @@ export async function createClientContractRequest(
   await notifyProposalSubmitted({
     clientName: profile.name,
     projectName: fields.projectName,
+  });
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "contract",
+    entityId: created.id,
+    summary: `Client "${profile.name}" proposed project "${fields.projectName}" from the client portal`,
+    page: "contracts",
   });
   revalidatePath("/client-portal/contracts");
 }

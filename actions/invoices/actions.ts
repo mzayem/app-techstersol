@@ -27,6 +27,7 @@ import {
 } from "@/lib/mail/notifications/invoices";
 import { computePartnerSplit } from "@/lib/partners/calc";
 import { getRatesToPkr } from "@/lib/fx/rates";
+import { logActivity } from "@/lib/activity/log";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -58,6 +59,7 @@ export async function createInvoice(
   const issueDate = str(formData, "issueDate");
   const dueDate = str(formData, "dueDate");
   const discountRaw = str(formData, "discount");
+  const remindersEnabled = str(formData, "remindersEnabled") === "true";
 
   if (!clientId || !bankAccountId || !issueDate || !dueDate) {
     throw new Error("Client, bank account, and dates are required");
@@ -178,14 +180,23 @@ export async function createInvoice(
           discount,
           issueDate: new Date(issueDate),
           dueDate: new Date(dueDate),
+          remindersEnabled,
           createdByUserId,
           items: { create: preparedItems },
           contracts: {
             create: contractIds.map((contractId) => ({ contractId })),
           },
         },
+        include: { client: { select: { name: true } } },
       });
       await notifyInvoiceCreated(created.id);
+      await logActivity(appUser, {
+        action: "created",
+        entityType: "invoice",
+        entityId: created.id,
+        summary: `Created invoice ${formatInvoiceNumber(number)} for ${created.client.name} (${formatContractAmount(total - discount, currency)})`,
+        page: "invoices",
+      });
       revalidatePath("/projects/invoices");
       return;
     } catch (e) {
@@ -464,6 +475,13 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   });
 
   await notifyInvoicePaid(id);
+  await logActivity(appUser, {
+    action: "marked-paid",
+    entityType: "invoice",
+    entityId: id,
+    summary: `Marked invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name}) as paid — txn ${transactionId}`,
+    page: "invoices",
+  });
 
   revalidatePath("/projects/invoices");
   revalidatePath("/projects/contracts");
@@ -492,11 +510,16 @@ async function collectReversiblePartnerPaymentIds(contractIds: string[]) {
 }
 
 export async function markInvoiceUnpaid(id: string) {
-  await requirePagePermission("invoices", "edit");
+  const { appUser } = await requirePagePermission("invoices", "edit");
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    select: { status: true, contracts: { select: { contractId: true } } },
+    select: {
+      number: true,
+      status: true,
+      client: { select: { name: true } },
+      contracts: { select: { contractId: true } },
+    },
   });
   if (!invoice) throw new Error("Invoice not found");
   if (invoice.status === "UNPAID") return;
@@ -528,6 +551,14 @@ export async function markInvoiceUnpaid(id: string) {
     }),
   ]);
 
+  await logActivity(appUser, {
+    action: "marked-unpaid",
+    entityType: "invoice",
+    entityId: id,
+    summary: `Marked invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name}) as unpaid`,
+    page: "invoices",
+  });
+
   revalidatePath("/projects/invoices");
   revalidatePath("/projects/contracts");
   revalidatePath("/account/earning");
@@ -536,11 +567,16 @@ export async function markInvoiceUnpaid(id: string) {
 }
 
 export async function deleteInvoice(id: string) {
-  await requirePagePermission("invoices", "delete");
+  const { appUser } = await requirePagePermission("invoices", "delete");
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    select: { status: true, contracts: { select: { contractId: true } } },
+    select: {
+      number: true,
+      status: true,
+      client: { select: { name: true } },
+      contracts: { select: { contractId: true } },
+    },
   });
   if (!invoice) throw new Error("Invoice not found");
 
@@ -568,6 +604,37 @@ export async function deleteInvoice(id: string) {
   } else {
     await prisma.invoice.delete({ where: { id } });
   }
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "invoice",
+    entityId: id,
+    summary: `Deleted ${invoice.status === "PAID" ? "paid" : "unpaid"} invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name})`,
+    page: "invoices",
+  });
+
+  revalidatePath("/projects/invoices");
+}
+
+/** Switches overdue reminders on/off for one invoice. Turning them back on
+ * doesn't reset the count — an invoice that already had its reminders
+ * keeps its history, so the client never gets more than the max in total. */
+export async function setInvoiceReminders(id: string, enabled: boolean) {
+  const { appUser } = await requirePagePermission("invoices", "edit");
+
+  const invoice = await prisma.invoice.update({
+    where: { id },
+    data: { remindersEnabled: enabled },
+    select: { number: true, client: { select: { name: true } } },
+  });
+
+  await logActivity(appUser, {
+    action: "reminders-toggled",
+    entityType: "invoice",
+    entityId: id,
+    summary: `Turned ${enabled ? "on" : "off"} overdue reminders for invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name})`,
+    page: "invoices",
+  });
 
   revalidatePath("/projects/invoices");
 }

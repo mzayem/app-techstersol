@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
@@ -25,7 +26,10 @@ import {
 } from "@/components/ui/select";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
-import { DEFAULT_DUE_DAYS } from "@/lib/invoices/constants";
+import {
+  DEFAULT_DUE_DAYS,
+  INVOICE_REMINDER_MAX,
+} from "@/lib/invoices/constants";
 import { type InvoiceItemInput } from "@/actions/invoices/actions";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
@@ -88,6 +92,7 @@ export function InvoiceDialog({
   >({});
   const [bankAccountId, setBankAccountId] = React.useState("");
   const [discountInput, setDiscountInput] = React.useState("");
+  const [remindersEnabled, setRemindersEnabled] = React.useState(false);
 
   const [issueDateValue, setIssueDateValue] = React.useState(todayInput);
   const [dueDateValue, setDueDateValue] = React.useState(() =>
@@ -180,6 +185,7 @@ export function InvoiceDialog({
     setPartialAmounts({});
     setBankAccountId("");
     setDiscountInput("");
+    setRemindersEnabled(false);
     setIssueDateValue(todayInput());
     setDueDateValue(addDaysInput(todayInput(), DEFAULT_DUE_DAYS));
     setDueDateTouched(false);
@@ -452,6 +458,27 @@ export function InvoiceDialog({
                   }}
                 />
               </Field>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5 ring-1 ring-foreground/10">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">Overdue reminders</span>
+                <span className="text-xs text-muted-foreground">
+                  If this invoice goes unpaid past its due date, email the
+                  client a reminder once a week — up to {INVOICE_REMINDER_MAX}{" "}
+                  times.
+                </span>
+              </div>
+              <Switch
+                checked={remindersEnabled}
+                onCheckedChange={setRemindersEnabled}
+                aria-label="Send overdue reminders"
+              />
+              <input
+                type="hidden"
+                name="remindersEnabled"
+                value={remindersEnabled ? "true" : "false"}
+              />
             </div>
           </div>
 

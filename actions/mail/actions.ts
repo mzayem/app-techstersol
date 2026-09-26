@@ -19,6 +19,7 @@ import {
 } from "@/actions/partners/payslip-queries";
 import { prisma } from "@/lib/prisma";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 import { renderContractDetailsEmail } from "@/lib/mail/templates/contract";
 import {
   renderInvoiceCreatedEmail,
@@ -56,7 +57,7 @@ function requireValidEmail(to: string) {
  * notifiers in lib/mail/notifications/*, it ignores the notification
  * toggles entirely. */
 export async function sendContractEmail(to: string, contractId: string) {
-  await requirePagePermission("contracts", "view");
+  const { appUser } = await requirePagePermission("contracts", "view");
   const recipient = requireValidEmail(to);
 
   const contract = await prisma.contract.findUnique({
@@ -91,10 +92,18 @@ export async function sendContractEmail(to: string, contractId: string) {
         amount > 0 ? formatContractAmount(amount, contract.currency) : null,
     }),
   });
+
+  await logActivity(appUser, {
+    action: "sent-email",
+    entityType: "contract",
+    entityId: contractId,
+    summary: `Emailed contract "${contract.projectName}" details to ${recipient}`,
+    page: "contracts",
+  });
 }
 
 export async function sendInvoiceEmail(to: string, invoiceId: string) {
-  await requirePagePermission("invoices", "view");
+  const { appUser } = await requirePagePermission("invoices", "view");
   const recipient = requireValidEmail(to);
 
   const invoice = await getInvoiceForPdf(invoiceId);
@@ -136,10 +145,18 @@ export async function sendInvoiceEmail(to: string, invoiceId: string) {
       },
     ],
   });
+
+  await logActivity(appUser, {
+    action: "sent-email",
+    entityType: "invoice",
+    entityId: invoiceId,
+    summary: `Emailed invoice ${formatInvoiceNumber(invoice.number)} to ${recipient}`,
+    page: "invoices",
+  });
 }
 
 export async function sendPayslipEmail(to: string, payslipId: string) {
-  await requirePagePermission("payslips", "view");
+  const { appUser } = await requirePagePermission("payslips", "view");
   const recipient = requireValidEmail(to);
 
   const payslip = await getPayslipForPdf(payslipId);
@@ -164,13 +181,21 @@ export async function sendPayslipEmail(to: string, payslipId: string) {
       },
     ],
   });
+
+  await logActivity(appUser, {
+    action: "sent-email",
+    entityType: "payslip",
+    entityId: payslipId,
+    summary: `Emailed payslip ${formatPayslipNumber(payslip.number)} to ${recipient}`,
+    page: "payslips",
+  });
 }
 
 export async function sendPartnerPayslipEmail(
   to: string,
   partnerPayslipId: string,
 ) {
-  await requirePagePermission("partner-payslips", "view");
+  const { appUser } = await requirePagePermission("partner-payslips", "view");
   const recipient = requireValidEmail(to);
 
   const payslip = await getPartnerPayslipForPdf(partnerPayslipId);
@@ -215,5 +240,13 @@ export async function sendPartnerPayslipEmail(
         contentType: "application/pdf",
       },
     ],
+  });
+
+  await logActivity(appUser, {
+    action: "sent-email",
+    entityType: "partner-payslip",
+    entityId: partnerPayslipId,
+    summary: `Emailed partner payslip ${formatPartnerPayslipNumber(payslip.number)} to ${recipient}`,
+    page: "partner-payslips",
   });
 }

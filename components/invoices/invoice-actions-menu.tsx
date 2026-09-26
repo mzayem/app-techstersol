@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  BellOffIcon,
+  BellRingIcon,
   CheckCircleIcon,
   DownloadIcon,
   MoreHorizontalIcon,
@@ -23,14 +25,18 @@ import type { InvoiceStatus } from "@/lib/invoices/constants";
 export function InvoiceActionsMenu({
   status,
   pdfHref,
+  remindersEnabled,
   onMarkPaid,
   onMarkUnpaid,
+  onToggleReminders,
   onDelete,
 }: {
   status: InvoiceStatus;
   pdfHref: string;
+  remindersEnabled: boolean;
   onMarkPaid: () => void;
   onMarkUnpaid: () => void;
+  onToggleReminders: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -65,6 +71,14 @@ export function InvoiceActionsMenu({
             <DropdownMenuItem onClick={onMarkUnpaid}>
               <RotateCcwIcon />
               Mark as unpaid
+            </DropdownMenuItem>
+          )}
+          {status === "UNPAID" && (
+            <DropdownMenuItem onClick={onToggleReminders}>
+              {remindersEnabled ? <BellOffIcon /> : <BellRingIcon />}
+              {remindersEnabled
+                ? "Turn off overdue reminders"
+                : "Turn on overdue reminders"}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

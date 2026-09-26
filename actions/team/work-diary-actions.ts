@@ -8,6 +8,7 @@ import { getRatesToPkr } from "@/lib/fx/rates";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatWeekRange, mondayOf, sundayOf } from "@/lib/team/work-diary";
 import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 
 /** Reachable from both the admin dashboard (role-gated, any team member)
  * and the team portal (a TEAM login may only ever touch their own
@@ -29,13 +30,13 @@ async function requireWorkDiaryWriteAccess(
     if (appUser.teamMember.type !== "HOURLY") {
       throw new Error("Work diary is only available to hourly team members");
     }
-    return appUser.authUserId;
+    return appUser;
   }
 
   if (!checkPermission(appUser, "work-diary", action)) {
     throw new Error("You don't have permission to do this");
   }
-  return appUser.authUserId;
+  return appUser;
 }
 
 function str(formData: FormData, key: string) {
@@ -93,15 +94,14 @@ async function readWorkDiaryFields(formData: FormData) {
 
 export async function createWorkDiaryEntry(formData: FormData) {
   const teamMemberId = str(formData, "teamMemberId");
-  const createdByUserId = await requireWorkDiaryWriteAccess(
-    "create",
-    teamMemberId,
-  );
+  const appUser = await requireWorkDiaryWriteAccess("create", teamMemberId);
   const fields = await readWorkDiaryFields(formData);
 
+  let entry;
   try {
-    await prisma.workDiaryEntry.create({
-      data: { ...fields, createdByUserId },
+    entry = await prisma.workDiaryEntry.create({
+      data: { ...fields, createdByUserId: appUser.authUserId },
+      include: { teamMember: { select: { name: true } } },
     });
   } catch (e) {
     if (
@@ -118,6 +118,14 @@ export async function createWorkDiaryEntry(formData: FormData) {
     throw e;
   }
 
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "work-diary",
+    entityId: entry.id,
+    summary: `Logged ${entry.hours}h for ${entry.teamMember.name} — week of ${formatWeekRange(entry.weekStart, entry.weekEnd)}`,
+    page: "work-diary",
+  });
+
   revalidatePath("/team/work-diary");
   revalidatePath("/portal/work-diary");
 }
@@ -127,11 +135,19 @@ export async function updateWorkDiaryEntry(id: string, formData: FormData) {
     where: { id },
     select: { teamMemberId: true },
   });
-  await requireWorkDiaryWriteAccess("edit", existing.teamMemberId);
+  const appUser = await requireWorkDiaryWriteAccess(
+    "edit",
+    existing.teamMemberId,
+  );
   const fields = await readWorkDiaryFields(formData);
 
+  let entry;
   try {
-    await prisma.workDiaryEntry.update({ where: { id }, data: fields });
+    entry = await prisma.workDiaryEntry.update({
+      where: { id },
+      data: fields,
+      include: { teamMember: { select: { name: true } } },
+    });
   } catch (e) {
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
@@ -147,6 +163,14 @@ export async function updateWorkDiaryEntry(id: string, formData: FormData) {
     throw e;
   }
 
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "work-diary",
+    entityId: id,
+    summary: `Edited diary entry: ${entry.hours}h for ${entry.teamMember.name} — week of ${formatWeekRange(entry.weekStart, entry.weekEnd)}`,
+    page: "work-diary",
+  });
+
   revalidatePath("/team/work-diary");
   revalidatePath("/portal/work-diary");
 }
@@ -156,9 +180,23 @@ export async function deleteWorkDiaryEntry(id: string) {
     where: { id },
     select: { teamMemberId: true },
   });
-  await requireWorkDiaryWriteAccess("delete", existing.teamMemberId);
+  const appUser = await requireWorkDiaryWriteAccess(
+    "delete",
+    existing.teamMemberId,
+  );
 
-  await prisma.workDiaryEntry.delete({ where: { id } });
+  const entry = await prisma.workDiaryEntry.delete({
+    where: { id },
+    include: { teamMember: { select: { name: true } } },
+  });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "work-diary",
+    entityId: id,
+    summary: `Deleted ${entry.hours}h for ${entry.teamMember.name} — week of ${formatWeekRange(entry.weekStart, entry.weekEnd)}`,
+    page: "work-diary",
+  });
 
   revalidatePath("/team/work-diary");
   revalidatePath("/portal/work-diary");

@@ -28,7 +28,8 @@ export type PageKey =
   | "reports-letterhead"
   | "roles"
   | "users"
-  | "emails";
+  | "emails"
+  | "activity-log";
 
 export type PageRegistryEntry = {
   key: PageKey;
@@ -154,6 +155,12 @@ export const PAGE_REGISTRY: PageRegistryEntry[] = [
   { key: "roles", label: "Roles", url: "/admin/roles", group: "Admin" },
   { key: "users", label: "Users", url: "/admin/users", group: "Admin" },
   { key: "emails", label: "Emails", url: "/admin/emails", group: "Admin" },
+  {
+    key: "activity-log",
+    label: "Activity Log",
+    url: "/admin/activity",
+    group: "Admin",
+  },
 ];
 
 export const PAGE_KEYS = PAGE_REGISTRY.map((p) => p.key);

@@ -9,6 +9,8 @@ import {
   formatPartnerPayslipNumber,
 } from "@/lib/partners/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { formatContractAmount } from "@/lib/contracts/constants";
+import { logActivity } from "@/lib/activity/log";
 import { notifyPartnerPayslipIssued } from "@/lib/mail/notifications/partners";
 
 function str(formData: FormData, key: string) {
@@ -132,6 +134,13 @@ export async function createPartnerPayslip(formData: FormData) {
         return payslip;
       });
       await notifyPartnerPayslipIssued(created.id);
+      await logActivity(appUser, {
+        action: "created",
+        entityType: "partner-payslip",
+        entityId: created.id,
+        summary: `Issued partner payslip ${formatPartnerPayslipNumber(number)} to ${partner.name} (${formatContractAmount(Number(amount), "PKR")})`,
+        page: "partner-payslips",
+      });
       revalidatePath("/partners/payslips");
       revalidatePath("/account/balance-sheet");
       revalidatePath("/");
@@ -145,7 +154,12 @@ export async function createPartnerPayslip(formData: FormData) {
 }
 
 export async function deletePartnerPayslip(id: string) {
-  await requirePagePermission("partner-payslips", "delete");
+  const { appUser } = await requirePagePermission("partner-payslips", "delete");
+
+  const payslip = await prisma.partnerPayslip.findUnique({
+    where: { id },
+    select: { number: true, amount: true, partner: { select: { name: true } } },
+  });
 
   const payment = await prisma.partnerPayment.findUnique({
     where: { partnerPayslipId: id },
@@ -175,6 +189,16 @@ export async function deletePartnerPayslip(id: string) {
     ]);
   } else {
     await prisma.partnerPayslip.delete({ where: { id } });
+  }
+
+  if (payslip) {
+    await logActivity(appUser, {
+      action: "deleted",
+      entityType: "partner-payslip",
+      entityId: id,
+      summary: `Deleted partner payslip ${formatPartnerPayslipNumber(payslip.number)} of ${payslip.partner.name} (${formatContractAmount(Number(payslip.amount), "PKR")})`,
+      page: "partner-payslips",
+    });
   }
 
   revalidatePath("/partners/payslips");

@@ -11,6 +11,7 @@ import {
 } from "@/lib/mail/imap";
 import { saveDraft, sendMail, type MailAttachment } from "@/lib/mail/transport";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 
 /** Everything here talks directly to the live Hostinger mailbox over
  * IMAP/SMTP on every call — there is deliberately no local database
@@ -146,7 +147,7 @@ async function deleteSourceDraft(formData: FormData) {
 }
 
 export async function composeEmail(formData: FormData) {
-  await requirePagePermission("emails", "create");
+  const { appUser } = await requirePagePermission("emails", "create");
 
   const to = str(formData, "to");
   if (!to || !EMAIL_RE.test(to)) {
@@ -167,6 +168,13 @@ export async function composeEmail(formData: FormData) {
   });
 
   await deleteSourceDraft(formData);
+
+  await logActivity(appUser, {
+    action: "sent-email",
+    entityType: "email",
+    summary: `Sent email "${subject}" to ${to}${attachments.length > 0 ? ` with ${attachments.length} attachment${attachments.length === 1 ? "" : "s"}` : ""}`,
+    page: "emails",
+  });
 }
 
 /** Files the composer's current contents into Drafts without sending —

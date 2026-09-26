@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import {
   EXPENSE_CATEGORIES,
@@ -11,11 +10,11 @@ import {
   type ReferenceCurrency,
 } from "@/lib/finance/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
+import { formatContractAmount } from "@/lib/contracts/constants";
 
-async function requireUserId() {
-  const { data } = await auth.getSession();
-  if (!data?.user) throw new Error("Not signed in");
-  return data.user.id;
+function pkr(amount: string | number) {
+  return formatContractAmount(Number(amount), "PKR");
 }
 
 function str(formData: FormData, key: string) {
@@ -80,7 +79,7 @@ export async function createEarning(formData: FormData) {
 
   const dateObj = new Date(date);
 
-  await prisma.earning.create({
+  const earning = await prisma.earning.create({
     data: {
       date: dateObj,
       name,
@@ -95,6 +94,14 @@ export async function createEarning(formData: FormData) {
     },
   });
 
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "earning",
+    entityId: earning.id,
+    summary: `Added earning "${name}" (${pkr(amount)})`,
+    page: "earning",
+  });
+
   revalidatePath("/account/earning");
   revalidatePath("/account/distributions");
   revalidatePath("/account/expenses");
@@ -103,7 +110,7 @@ export async function createEarning(formData: FormData) {
 }
 
 export async function updateEarning(id: string, formData: FormData) {
-  await requireUserId();
+  const { appUser } = await requirePagePermission("earning", "edit");
 
   const date = str(formData, "date");
   const name = str(formData, "name");
@@ -139,6 +146,14 @@ export async function updateEarning(id: string, formData: FormData) {
     },
   });
 
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "earning",
+    entityId: id,
+    summary: `Edited earning "${name}" (${pkr(amount)})`,
+    page: "earning",
+  });
+
   revalidatePath("/account/earning");
   revalidatePath("/account/distributions");
   revalidatePath("/account/expenses");
@@ -147,9 +162,17 @@ export async function updateEarning(id: string, formData: FormData) {
 }
 
 export async function deleteEarning(id: string) {
-  await requireUserId();
+  const { appUser } = await requirePagePermission("earning", "delete");
 
-  await prisma.earning.delete({ where: { id } });
+  const earning = await prisma.earning.delete({ where: { id } });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "earning",
+    entityId: id,
+    summary: `Deleted earning "${earning.name}" (${pkr(earning.amount.toString())})`,
+    page: "earning",
+  });
 
   revalidatePath("/account/earning");
   revalidatePath("/account/distributions");
@@ -176,7 +199,7 @@ export async function createExpense(formData: FormData) {
 
   const dateObj = new Date(date);
 
-  await prisma.expense.create({
+  const expense = await prisma.expense.create({
     data: {
       date: dateObj,
       category: categoryRaw as ExpenseCategory,
@@ -189,6 +212,14 @@ export async function createExpense(formData: FormData) {
     },
   });
 
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "expense",
+    entityId: expense.id,
+    summary: `Added expense "${name}" (${pkr(amount)})`,
+    page: "expenses",
+  });
+
   revalidatePath("/account/expenses");
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
@@ -197,7 +228,7 @@ export async function createExpense(formData: FormData) {
 }
 
 export async function updateExpense(id: string, formData: FormData) {
-  await requireUserId();
+  const { appUser } = await requirePagePermission("expenses", "edit");
 
   const date = str(formData, "date");
   const categoryRaw = str(formData, "category");
@@ -227,6 +258,14 @@ export async function updateExpense(id: string, formData: FormData) {
     },
   });
 
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "expense",
+    entityId: id,
+    summary: `Edited expense "${name}" (${pkr(amount)})`,
+    page: "expenses",
+  });
+
   revalidatePath("/account/expenses");
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
@@ -235,9 +274,17 @@ export async function updateExpense(id: string, formData: FormData) {
 }
 
 export async function deleteExpense(id: string) {
-  await requireUserId();
+  const { appUser } = await requirePagePermission("expenses", "delete");
 
-  await prisma.expense.delete({ where: { id } });
+  const expense = await prisma.expense.delete({ where: { id } });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "expense",
+    entityId: id,
+    summary: `Deleted expense "${expense.name}" (${pkr(expense.amount.toString())})`,
+    page: "expenses",
+  });
 
   revalidatePath("/account/expenses");
   revalidatePath("/account/distributions");
@@ -260,7 +307,7 @@ export async function createDonation(formData: FormData) {
 
   const dateObj = new Date(date);
 
-  await prisma.donation.create({
+  const donation = await prisma.donation.create({
     data: {
       date: dateObj,
       name,
@@ -272,6 +319,14 @@ export async function createDonation(formData: FormData) {
     },
   });
 
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "donation",
+    entityId: donation.id,
+    summary: `Added donation "${name}" (${pkr(amount)})`,
+    page: "donations",
+  });
+
   revalidatePath("/account/donations");
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
@@ -280,7 +335,7 @@ export async function createDonation(formData: FormData) {
 }
 
 export async function updateDonation(id: string, formData: FormData) {
-  await requireUserId();
+  const { appUser } = await requirePagePermission("donations", "edit");
 
   const date = str(formData, "date");
   const name = str(formData, "name");
@@ -305,6 +360,14 @@ export async function updateDonation(id: string, formData: FormData) {
     },
   });
 
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "donation",
+    entityId: id,
+    summary: `Edited donation "${name}" (${pkr(amount)})`,
+    page: "donations",
+  });
+
   revalidatePath("/account/donations");
   revalidatePath("/account/distributions");
   revalidatePath("/account/earning");
@@ -313,9 +376,17 @@ export async function updateDonation(id: string, formData: FormData) {
 }
 
 export async function deleteDonation(id: string) {
-  await requireUserId();
+  const { appUser } = await requirePagePermission("donations", "delete");
 
-  await prisma.donation.delete({ where: { id } });
+  const donation = await prisma.donation.delete({ where: { id } });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "donation",
+    entityId: id,
+    summary: `Deleted donation "${donation.name}" (${pkr(donation.amount.toString())})`,
+    page: "donations",
+  });
 
   revalidatePath("/account/donations");
   revalidatePath("/account/distributions");

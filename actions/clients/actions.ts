@@ -10,6 +10,7 @@ import {
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -67,29 +68,53 @@ export async function createClient(formData: FormData) {
   const createdByUserId = appUser.authUserId;
   const fields = readClientFields(formData);
 
-  await prisma.client.create({
+  const r = await prisma.client.create({
     data: { ...fields, createdByUserId },
+  });
+
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "client",
+    entityId: r.id,
+    summary: `Added client "${r.name}"`,
+    page: "clients",
   });
 
   revalidatePath("/clients");
 }
 
 export async function updateClient(id: string, formData: FormData) {
-  await requirePagePermission("clients", "edit");
+  const { appUser } = await requirePagePermission("clients", "edit");
   const fields = readClientFields(formData);
 
-  await prisma.client.update({
+  const r = await prisma.client.update({
     where: { id },
     data: fields,
+  });
+
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "client",
+    entityId: id,
+    summary: `Edited client "${r.name}"`,
+    page: "clients",
   });
 
   revalidatePath("/clients");
 }
 
 export async function deleteClient(id: string) {
-  await requirePagePermission("clients", "delete");
+  const { appUser } = await requirePagePermission("clients", "delete");
 
-  await prisma.client.delete({ where: { id } });
+  const r = await prisma.client.delete({ where: { id } });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "client",
+    entityId: id,
+    summary: `Deleted client "${r.name}"`,
+    page: "clients",
+  });
 
   revalidatePath("/clients");
 }

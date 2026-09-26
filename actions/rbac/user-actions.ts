@@ -8,6 +8,14 @@ import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
 import type { AppUserStatus } from "@/generated/prisma/client";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
+
+const KIND_LABELS: Record<string, string> = {
+  DASHBOARD_HANDLER: "dashboard",
+  TEAM: "team",
+  CLIENT: "client",
+  PARTNER: "partner",
+};
 import { createCredentialLink } from "@/lib/mail/credential-link";
 import { sendMail } from "@/lib/mail/transport";
 import { renderCredentialsEmail } from "@/lib/mail/templates/credentials";
@@ -92,7 +100,7 @@ function generatePassword() {
 }
 
 export async function createDashboardUser(formData: FormData) {
-  await requirePagePermission("users", "create");
+  const { appUser: actor } = await requirePagePermission("users", "create");
 
   const name = str(formData, "name");
   const email = str(formData, "email");
@@ -117,12 +125,19 @@ export async function createDashboardUser(formData: FormData) {
     },
   });
   await sendCredentialsMail(appUser.id, name, email, password);
+  await logActivity(actor, {
+    action: "created",
+    entityType: "user",
+    entityId: appUser.id,
+    summary: `Created ${KIND_LABELS[appUser.kind]} login for "${name}" (${email})`,
+    page: "users",
+  });
 
   revalidatePath("/admin/users");
 }
 
 export async function createTeamUser(formData: FormData) {
-  await requirePagePermission("users", "create");
+  const { appUser: actor } = await requirePagePermission("users", "create");
 
   const name = str(formData, "name");
   const email = str(formData, "email");
@@ -149,12 +164,19 @@ export async function createTeamUser(formData: FormData) {
     },
   });
   await sendCredentialsMail(appUser.id, name, email, password);
+  await logActivity(actor, {
+    action: "created",
+    entityType: "user",
+    entityId: appUser.id,
+    summary: `Created ${KIND_LABELS[appUser.kind]} login for "${name}" (${email})`,
+    page: "users",
+  });
 
   revalidatePath("/admin/users");
 }
 
 export async function createPartnerUser(formData: FormData) {
-  await requirePagePermission("users", "create");
+  const { appUser: actor } = await requirePagePermission("users", "create");
 
   const name = str(formData, "name");
   const email = str(formData, "email");
@@ -179,12 +201,19 @@ export async function createPartnerUser(formData: FormData) {
     },
   });
   await sendCredentialsMail(appUser.id, name, email, password);
+  await logActivity(actor, {
+    action: "created",
+    entityType: "user",
+    entityId: appUser.id,
+    summary: `Created ${KIND_LABELS[appUser.kind]} login for "${name}" (${email})`,
+    page: "users",
+  });
 
   revalidatePath("/admin/users");
 }
 
 export async function createClientUser(formData: FormData) {
-  await requirePagePermission("users", "create");
+  const { appUser: actor } = await requirePagePermission("users", "create");
 
   const name = str(formData, "name");
   const email = str(formData, "email");
@@ -225,6 +254,13 @@ export async function createClientUser(formData: FormData) {
     return created;
   });
   await sendCredentialsMail(appUser.id, name, email, password);
+  await logActivity(actor, {
+    action: "created",
+    entityType: "user",
+    entityId: appUser.id,
+    summary: `Created ${KIND_LABELS[appUser.kind]} login for "${name}" (${email})`,
+    page: "users",
+  });
 
   revalidatePath("/admin/users");
 }
@@ -235,7 +271,7 @@ export async function createClientUser(formData: FormData) {
  * different relational shape entirely, so that's a delete-and-recreate,
  * not an edit. */
 export async function updateAppUser(id: string, formData: FormData) {
-  await requirePagePermission("users", "edit");
+  const { appUser: actor } = await requirePagePermission("users", "edit");
 
   const appUser = await prisma.appUser.findUnique({ where: { id } });
   if (!appUser) throw new Error("User not found");
@@ -345,6 +381,22 @@ export async function updateAppUser(id: string, formData: FormData) {
     });
   }
 
+  const changes = [
+    appUser.status !== status ? `status ${appUser.status} → ${status}` : null,
+    appUser.kind === "DASHBOARD_HANDLER" &&
+    str(formData, "roleId") !== appUser.roleId
+      ? "role changed"
+      : null,
+    password ? "password reset" : null,
+  ].filter(Boolean);
+  await logActivity(actor, {
+    action: "updated",
+    entityType: "user",
+    entityId: id,
+    summary: `Edited ${KIND_LABELS[appUser.kind]} login "${name}" (${email})${changes.length > 0 ? ` — ${changes.join(", ")}` : ""}`,
+    page: "users",
+  });
+
   revalidatePath("/admin/users");
 }
 
@@ -354,7 +406,7 @@ export async function updateAppUser(id: string, formData: FormData) {
  * password, sets it via Neon Auth, and emails a new one-time view link.
  * Effectively "reset & notify," not a no-op resend. */
 export async function sendCredentialsEmail(id: string) {
-  await requirePagePermission("users", "edit");
+  const { appUser: actor } = await requirePagePermission("users", "edit");
 
   const appUser = await prisma.appUser.findUnique({ where: { id } });
   if (!appUser) throw new Error("User not found");
@@ -367,15 +419,30 @@ export async function sendCredentialsEmail(id: string) {
   if (error) throw new Error(error.message ?? "Could not reset the password");
 
   await sendCredentialsMail(appUser.id, appUser.name, appUser.email, password);
+  await logActivity(actor, {
+    action: "sent-email",
+    entityType: "user",
+    entityId: id,
+    summary: `Reset password and emailed new credentials to "${appUser.name}" (${appUser.email})`,
+    page: "users",
+  });
 }
 
 /** Revokes dashboard/portal access by removing our own record — this
  * does not delete the underlying Neon Auth account, so if they ever sign
  * in again they'll simply have no AppUser and be treated as unauthorized. */
 export async function deleteAppUser(id: string) {
-  await requirePagePermission("users", "delete");
+  const { appUser: actor } = await requirePagePermission("users", "delete");
 
-  await prisma.appUser.delete({ where: { id } });
+  const removed = await prisma.appUser.delete({ where: { id } });
+
+  await logActivity(actor, {
+    action: "deleted",
+    entityType: "user",
+    entityId: id,
+    summary: `Removed ${KIND_LABELS[removed.kind]} login "${removed.name}" (${removed.email})`,
+    page: "users",
+  });
 
   revalidatePath("/admin/users");
 }

@@ -13,27 +13,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  INVOICE_STATUSES,
-  INVOICE_STATUS_LABELS,
-} from "@/lib/invoices/constants";
-import type { SortOption } from "@/actions/invoices/queries";
+import { ACTIVITY_ENTITY_LABELS } from "@/lib/activity/constants";
 
-const SORT_LABELS: Record<SortOption, string> = {
-  "number-desc": "Invoice # (newest)",
-  "number-asc": "Invoice # (oldest)",
-  "due-asc": "Due date (soonest)",
-  "due-desc": "Due date (latest)",
-};
+const TYPE_ITEMS = [
+  { value: "all", label: "All record types" },
+  ...Object.entries(ACTIVITY_ENTITY_LABELS)
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label)),
+];
 
-export function InvoiceFilterBar() {
+export function ActivityFilterBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = React.useTransition();
 
-  const status = searchParams.get("status") ?? "all";
-  const sort = (searchParams.get("sort") as SortOption) ?? "number-desc";
+  const type = searchParams.get("type") ?? "all";
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
 
   function updateParams(updates: Record<string, string | null>) {
@@ -42,6 +37,8 @@ export function InvoiceFilterBar() {
       if (value === null || value === "") params.delete(key);
       else params.set(key, value);
     }
+    // A new filter means a new result set — start again from page 1.
+    params.delete("page");
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`);
     });
@@ -65,53 +62,37 @@ export function InvoiceFilterBar() {
       )}
     >
       <Select
-        value={status}
+        items={TYPE_ITEMS}
+        value={type}
         onValueChange={(value) =>
-          updateParams({ status: value === "all" ? null : value })
+          updateParams({ type: value === "all" ? null : value })
         }
       >
-        <SelectTrigger className="w-full sm:w-36">
+        <SelectTrigger className="w-full sm:w-48">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
-          {INVOICE_STATUSES.map((s) => (
-            <SelectItem key={s} value={s}>
-              {INVOICE_STATUS_LABELS[s]}
+          {TYPE_ITEMS.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      <div className="relative w-full sm:w-56">
+      <div className="relative w-full sm:w-64">
         {isPending ? (
           <Loader2Icon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
         ) : (
           <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
         )}
         <Input
-          placeholder="Search by client or #"
+          placeholder="Search by user or details"
           className="pl-8"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-
-      <Select
-        value={sort}
-        onValueChange={(value) => updateParams({ sort: value })}
-      >
-        <SelectTrigger className="w-full sm:w-48">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {Object.entries(SORT_LABELS).map(([value, label]) => (
-            <SelectItem key={value} value={value}>
-              {label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
     </div>
   );
 }

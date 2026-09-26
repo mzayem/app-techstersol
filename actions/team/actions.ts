@@ -10,6 +10,7 @@ import {
 } from "@/lib/clients/constants";
 import { TEAM_MEMBER_TYPES, type TeamMemberType } from "@/lib/team/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -70,30 +71,47 @@ export async function createTeamMember(formData: FormData) {
   const createdByUserId = appUser.authUserId;
   const fields = readTeamMemberFields(formData);
 
-  await prisma.teamMember.create({
+  const r = await prisma.teamMember.create({
     data: { ...fields, createdByUserId },
+  });
+
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "team-member",
+    entityId: r.id,
+    summary: `Added team member "${r.name}"`,
+    page: "team",
   });
 
   revalidatePath("/team");
 }
 
 export async function updateTeamMember(id: string, formData: FormData) {
-  await requirePagePermission("team", "edit");
+  const { appUser } = await requirePagePermission("team", "edit");
   const fields = readTeamMemberFields(formData);
 
-  await prisma.teamMember.update({
+  const r = await prisma.teamMember.update({
     where: { id },
     data: fields,
+  });
+
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "team-member",
+    entityId: id,
+    summary: `Edited team member "${r.name}"`,
+    page: "team",
   });
 
   revalidatePath("/team");
 }
 
 export async function deleteTeamMember(id: string) {
-  await requirePagePermission("team", "delete");
+  const { appUser } = await requirePagePermission("team", "delete");
 
+  let r;
   try {
-    await prisma.teamMember.delete({ where: { id } });
+    r = await prisma.teamMember.delete({ where: { id } });
   } catch (e) {
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
@@ -103,6 +121,14 @@ export async function deleteTeamMember(id: string) {
     }
     throw e;
   }
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "team-member",
+    entityId: id,
+    summary: `Deleted team member "${r.name}"`,
+    page: "team",
+  });
 
   revalidatePath("/team");
   revalidatePath("/projects/contracts");

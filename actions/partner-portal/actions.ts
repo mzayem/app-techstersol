@@ -14,12 +14,16 @@ import {
   type ContractPaymentType,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
-import { INVOICE_NUMBER_START } from "@/lib/invoices/constants";
+import {
+  INVOICE_NUMBER_START,
+  formatInvoiceNumber,
+} from "@/lib/invoices/constants";
 import {
   invoicedAmountsByLine,
   remainingKey,
 } from "@/actions/invoices/queries";
 import { validateMilestones } from "@/lib/contracts/validation";
+import { logActivity } from "@/lib/activity/log";
 import { requirePartnerUser } from "@/lib/rbac/permissions";
 import { notifyProposalSubmitted } from "@/lib/mail/notifications/contracts";
 import { notifyInvoiceCreated } from "@/lib/mail/notifications/invoices";
@@ -72,6 +76,14 @@ export async function createPartnerClient(formData: FormData) {
       createdByUserId: appUser.authUserId,
     },
     select: { id: true, name: true, currency: true },
+  });
+
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "client",
+    entityId: client.id,
+    summary: `Partner "${appUser.partner!.name}" added client "${client.name}" from the partner portal`,
+    page: "clients",
   });
 
   revalidatePath("/partner-portal/projects");
@@ -177,7 +189,7 @@ export async function createPartnerContractRequest(
     ...fields
   } = readPartnerContractFields(formData, milestones);
 
-  await prisma.contract.create({
+  const created = await prisma.contract.create({
     data: {
       ...fields,
       clientId: client.id,
@@ -201,6 +213,13 @@ export async function createPartnerContractRequest(
     clientName: client.name,
     projectName: fields.projectName,
     partnerName: appUser.partner!.name,
+  });
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "contract",
+    entityId: created.id,
+    summary: `Partner "${appUser.partner!.name}" proposed project "${fields.projectName}" for ${client.name} from the partner portal`,
+    page: "contracts",
   });
   revalidatePath("/partner-portal/projects");
 }
@@ -347,6 +366,13 @@ export async function createPartnerInvoice(
         },
       });
       await notifyInvoiceCreated(created.id);
+      await logActivity(appUser, {
+        action: "created",
+        entityType: "invoice",
+        entityId: created.id,
+        summary: `Partner "${appUser.partner!.name}" created invoice ${formatInvoiceNumber(number)} from the partner portal`,
+        page: "invoices",
+      });
       revalidatePath("/partner-portal/invoices");
       return;
     } catch (e) {

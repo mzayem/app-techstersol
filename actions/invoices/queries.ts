@@ -1,8 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import type { PaymentCurrency } from "@/lib/clients/constants";
-import type { InvoiceStatus } from "@/lib/invoices/constants";
+import {
+  parseInvoiceNumberQuery,
+  type InvoiceStatus,
+} from "@/lib/invoices/constants";
 import { contractRevenueBasis } from "@/lib/contracts/constants";
 import { dateWhere, type DateRange } from "@/lib/finance/date-range";
+
+function invoiceNumberMatch(search: string) {
+  const number = parseInvoiceNumberQuery(search);
+  return number === null ? [] : [{ number }];
+}
 
 export type SortOption = "number-desc" | "number-asc" | "due-asc" | "due-desc";
 
@@ -36,8 +44,15 @@ export async function listInvoices(filters: ListFilters) {
     where: {
       status: filters.status,
       issueDate: filters.dateRange ? dateWhere(filters.dateRange) : undefined,
-      client: filters.search
-        ? { name: { contains: filters.search, mode: "insensitive" } }
+      OR: filters.search
+        ? [
+            {
+              client: {
+                name: { contains: filters.search, mode: "insensitive" },
+              },
+            },
+            ...invoiceNumberMatch(filters.search),
+          ]
         : undefined,
     },
     include: {

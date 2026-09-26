@@ -14,6 +14,7 @@ import {
   type BankFieldKey,
 } from "@/lib/bank-accounts/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -72,29 +73,53 @@ export async function createBankAccount(formData: FormData) {
   const createdByUserId = appUser.authUserId;
   const fields = readBankAccountFields(formData);
 
-  await prisma.bankAccount.create({
+  const r = await prisma.bankAccount.create({
     data: { ...fields, createdByUserId },
+  });
+
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "bank-account",
+    entityId: r.id,
+    summary: `Added bank account "${`${r.bankName} — ${r.accountHolderName}`}"`,
+    page: "bank-details",
   });
 
   revalidatePath("/account/bank-details");
 }
 
 export async function updateBankAccount(id: string, formData: FormData) {
-  await requirePagePermission("bank-details", "edit");
+  const { appUser } = await requirePagePermission("bank-details", "edit");
   const fields = readBankAccountFields(formData);
 
-  await prisma.bankAccount.update({
+  const r = await prisma.bankAccount.update({
     where: { id },
     data: fields,
+  });
+
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "bank-account",
+    entityId: id,
+    summary: `Edited bank account "${`${r.bankName} — ${r.accountHolderName}`}"`,
+    page: "bank-details",
   });
 
   revalidatePath("/account/bank-details");
 }
 
 export async function deleteBankAccount(id: string) {
-  await requirePagePermission("bank-details", "delete");
+  const { appUser } = await requirePagePermission("bank-details", "delete");
 
-  await prisma.bankAccount.delete({ where: { id } });
+  const r = await prisma.bankAccount.delete({ where: { id } });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "bank-account",
+    entityId: id,
+    summary: `Deleted bank account "${`${r.bankName} — ${r.accountHolderName}`}"`,
+    page: "bank-details",
+  });
 
   revalidatePath("/account/bank-details");
 }

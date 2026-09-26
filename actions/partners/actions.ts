@@ -9,6 +9,7 @@ import {
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -62,30 +63,47 @@ export async function createPartner(formData: FormData) {
   const createdByUserId = appUser.authUserId;
   const fields = readPartnerFields(formData);
 
-  await prisma.partner.create({
+  const r = await prisma.partner.create({
     data: { ...fields, createdByUserId },
+  });
+
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "partner",
+    entityId: r.id,
+    summary: `Added partner "${r.name}"`,
+    page: "partners",
   });
 
   revalidatePath("/partners");
 }
 
 export async function updatePartner(id: string, formData: FormData) {
-  await requirePagePermission("partners", "edit");
+  const { appUser } = await requirePagePermission("partners", "edit");
   const fields = readPartnerFields(formData);
 
-  await prisma.partner.update({
+  const r = await prisma.partner.update({
     where: { id },
     data: fields,
+  });
+
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "partner",
+    entityId: id,
+    summary: `Edited partner "${r.name}"`,
+    page: "partners",
   });
 
   revalidatePath("/partners");
 }
 
 export async function deletePartner(id: string) {
-  await requirePagePermission("partners", "delete");
+  const { appUser } = await requirePagePermission("partners", "delete");
 
+  let r;
   try {
-    await prisma.partner.delete({ where: { id } });
+    r = await prisma.partner.delete({ where: { id } });
   } catch (e) {
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
@@ -97,6 +115,14 @@ export async function deletePartner(id: string) {
     }
     throw e;
   }
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "partner",
+    entityId: id,
+    summary: `Deleted partner "${r.name}"`,
+    page: "partners",
+  });
 
   revalidatePath("/partners");
   revalidatePath("/projects/contracts");

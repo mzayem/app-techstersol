@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { logActivity } from "@/lib/activity/log";
 import { PAGE_KEYS, type PageKey } from "@/lib/rbac/pages";
 
 function str(formData: FormData, key: string) {
@@ -33,25 +34,33 @@ function readPermissions(formData: FormData): PermissionInput[] {
 }
 
 export async function createRole(formData: FormData) {
-  await requirePagePermission("roles", "create");
+  const { appUser } = await requirePagePermission("roles", "create");
 
   const name = str(formData, "name");
   if (!name) throw new Error("Name is required");
 
   const permissions = readPermissions(formData);
 
-  await prisma.role.create({
+  const role = await prisma.role.create({
     data: {
       name,
       permissions: { create: permissions },
     },
   });
 
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "role",
+    entityId: role.id,
+    summary: `Created role "${name}" with access to ${permissions.filter((p) => p.canView).length} pages`,
+    page: "roles",
+  });
+
   revalidatePath("/admin/roles");
 }
 
 export async function updateRole(id: string, formData: FormData) {
-  await requirePagePermission("roles", "edit");
+  const { appUser } = await requirePagePermission("roles", "edit");
 
   const name = str(formData, "name");
   if (!name) throw new Error("Name is required");
@@ -69,11 +78,19 @@ export async function updateRole(id: string, formData: FormData) {
     },
   });
 
+  await logActivity(appUser, {
+    action: "updated",
+    entityType: "role",
+    entityId: id,
+    summary: `Edited role "${name}" — now has access to ${permissions.filter((p) => p.canView).length} pages`,
+    page: "roles",
+  });
+
   revalidatePath("/admin/roles");
 }
 
 export async function deleteRole(id: string) {
-  await requirePagePermission("roles", "delete");
+  const { appUser } = await requirePagePermission("roles", "delete");
 
   const usersCount = await prisma.appUser.count({ where: { roleId: id } });
   if (usersCount > 0) {
@@ -82,7 +99,15 @@ export async function deleteRole(id: string) {
     );
   }
 
-  await prisma.role.delete({ where: { id } });
+  const role = await prisma.role.delete({ where: { id } });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "role",
+    entityId: id,
+    summary: `Deleted role "${role.name}"`,
+    page: "roles",
+  });
 
   revalidatePath("/admin/roles");
 }

@@ -1,3 +1,5 @@
+import { BellRingIcon } from "lucide-react";
+
 import { InvoiceDialog } from "@/components/invoices/invoice-dialog";
 import { InvoiceFilterBar } from "@/components/invoices/invoice-filter-bar";
 import { InvoiceRowActions } from "@/components/invoices/invoice-row-actions";
@@ -16,6 +18,7 @@ import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import {
   formatInvoiceNumber,
+  INVOICE_REMINDER_MAX,
   INVOICE_STATUS_LABELS,
   type InvoiceStatus,
 } from "@/lib/invoices/constants";
@@ -150,6 +153,12 @@ export default async function InvoicesPage({
                   </TableCell>
                   <TableCell>
                     <StatusPill status={status} />
+                    {status === "UNPAID" && invoice.remindersEnabled && (
+                      <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <BellRingIcon className="size-3" />
+                        Reminders {invoice.reminderCount}/{INVOICE_REMINDER_MAX}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end">
@@ -160,6 +169,7 @@ export default async function InvoicesPage({
                         currency={currency}
                         clientEmail={invoice.client.email}
                         suggestedPkrAmount={suggestedPkrAmount}
+                        remindersEnabled={invoice.remindersEnabled}
                       />
                     </div>
                   </TableCell>

@@ -1,8 +1,13 @@
+import { redirect } from "next/navigation";
+
 import { KpiCards } from "@/components/overview/kpi-cards";
 import { PeriodSelector } from "@/components/overview/period-selector";
 import { RevenuePieChart } from "@/components/overview/revenue-pie-chart";
 import { FinanceAreaChart } from "@/components/overview/finance-area-chart";
 import { IncompleteContractsTable } from "@/components/overview/incomplete-contracts-table";
+import { AttentionCard } from "@/components/overview/attention-card";
+import { getAttentionGroups } from "@/actions/overview/attention";
+import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
 import { resolveOverviewPeriod } from "@/lib/overview/period";
 import {
   computeEarningKpis,
@@ -23,6 +28,8 @@ export default async function OverviewPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
+  const appUser = await getCurrentAppUser();
+  if (!appUser) redirect("/auth/sign-in");
   const period = resolveOverviewPeriod(params.period, params.from, params.to);
 
   const [
@@ -32,6 +39,7 @@ export default async function OverviewPage({
     partnerPendingPkr,
     clients,
     contracts,
+    attention,
   ] = await Promise.all([
     getMonthlySeries(),
     getPendingPayments(),
@@ -39,6 +47,11 @@ export default async function OverviewPage({
     getPartnerPendingPayments(),
     getClientRevenueBreakdown(period),
     getIncompleteContracts(period),
+    getAttentionGroups({
+      invoices: checkPermission(appUser, "invoices", "view"),
+      contracts: checkPermission(appUser, "contracts", "view"),
+      partnerPayslips: checkPermission(appUser, "partner-payslips", "view"),
+    }),
   ]);
 
   const kpis = computeEarningKpis(series, period);
@@ -67,6 +80,8 @@ export default async function OverviewPage({
         <h1 className="text-lg font-medium">Overview</h1>
         <PeriodSelector />
       </div>
+
+      <AttentionCard groups={attention} />
 
       <KpiCards
         periodEarning={kpis.periodEarning}

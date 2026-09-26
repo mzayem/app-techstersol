@@ -5,7 +5,16 @@ import { Prisma } from "@/generated/prisma/client";
 import type { InvestmentMethod } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { PARTNER_INVESTMENT_NUMBER_START } from "@/lib/partners/investment-constants";
+import {
+  PARTNER_INVESTMENT_NUMBER_START,
+  formatPartnerInvestmentNumber,
+} from "@/lib/partners/investment-constants";
+import { formatContractAmount } from "@/lib/contracts/constants";
+import { logActivity } from "@/lib/activity/log";
+
+function pkr(amount: unknown) {
+  return formatContractAmount(Number(amount), "PKR");
+}
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { getPartnerInvestmentBalance } from "@/actions/partners/investment-queries";
 
@@ -75,9 +84,7 @@ export async function createPartnerInvestment(formData: FormData) {
       select: { id: true },
     });
     if (!pendingPayment) {
-      throw new Error(
-        "That pending payout is no longer available to convert",
-      );
+      throw new Error("That pending payout is no longer available to convert");
     }
   }
 
@@ -91,7 +98,7 @@ export async function createPartnerInvestment(formData: FormData) {
     const number = last ? last.number + 1 : PARTNER_INVESTMENT_NUMBER_START;
 
     try {
-      await prisma.partnerInvestment.create({
+      const created = await prisma.partnerInvestment.create({
         data: {
           number,
           partnerId,
@@ -106,6 +113,13 @@ export async function createPartnerInvestment(formData: FormData) {
             : {}),
         },
       });
+      await logActivity(appUser, {
+        action: "created",
+        entityType: "partner-investment",
+        entityId: created.id,
+        summary: `Recorded investment ${formatPartnerInvestmentNumber(number)} from ${partner.name} (${pkr(amount)})`,
+        page: "partner-investments",
+      });
       revalidateInvestmentPaths();
       return;
     } catch (e) {
@@ -117,14 +131,17 @@ export async function createPartnerInvestment(formData: FormData) {
 }
 
 export async function deletePartnerInvestment(id: string) {
-  await requirePagePermission("partner-investments", "delete");
+  const { appUser } = await requirePagePermission(
+    "partner-investments",
+    "delete",
+  );
 
   const linkedPayment = await prisma.partnerPayment.findUnique({
     where: { partnerInvestmentId: id },
     select: { id: true },
   });
 
-  await prisma.$transaction(async (tx) => {
+  const deleted = await prisma.$transaction(async (tx) => {
     // The underlying PartnerPayment (when this investment came from a
     // converted pending payout) is real accrued money — it survives and
     // reverts to unlinked/pending, re-convertible or payable later, same
@@ -135,7 +152,18 @@ export async function deletePartnerInvestment(id: string) {
         data: { partnerInvestmentId: null },
       });
     }
-    await tx.partnerInvestment.delete({ where: { id } });
+    return tx.partnerInvestment.delete({
+      where: { id },
+      include: { partner: { select: { name: true } } },
+    });
+  });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "partner-investment",
+    entityId: id,
+    summary: `Deleted investment ${formatPartnerInvestmentNumber(deleted.number)} from ${deleted.partner.name} (${pkr(deleted.amount)})`,
+    page: "partner-investments",
   });
 
   revalidateInvestmentPaths();
@@ -175,7 +203,7 @@ export async function createPartnerInvestmentSpend(formData: FormData) {
     );
   }
 
-  await prisma.partnerInvestmentSpend.create({
+  const spend = await prisma.partnerInvestmentSpend.create({
     data: {
       partnerId,
       date: new Date(date),
@@ -186,13 +214,35 @@ export async function createPartnerInvestmentSpend(formData: FormData) {
     },
   });
 
+  await logActivity(appUser, {
+    action: "created",
+    entityType: "partner-investment",
+    entityId: spend.id,
+    summary: `Spent ${pkr(amount)} of ${partner.name}'s investment on "${category}"`,
+    page: "partner-investments",
+  });
+
   revalidateInvestmentPaths();
 }
 
 export async function deletePartnerInvestmentSpend(id: string) {
-  await requirePagePermission("partner-investments", "delete");
+  const { appUser } = await requirePagePermission(
+    "partner-investments",
+    "delete",
+  );
 
-  await prisma.partnerInvestmentSpend.delete({ where: { id } });
+  const spend = await prisma.partnerInvestmentSpend.delete({
+    where: { id },
+    include: { partner: { select: { name: true } } },
+  });
+
+  await logActivity(appUser, {
+    action: "deleted",
+    entityType: "partner-investment",
+    entityId: id,
+    summary: `Deleted a ${pkr(spend.amount)} "${spend.category}" spend from ${spend.partner.name}'s investment`,
+    page: "partner-investments",
+  });
 
   revalidateInvestmentPaths();
 }

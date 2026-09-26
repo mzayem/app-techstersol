@@ -17,7 +17,10 @@ import {
   formatInvoiceNumber,
   type InvoiceStatus,
 } from "@/lib/invoices/constants";
-import { markInvoiceUnpaid } from "@/actions/invoices/actions";
+import {
+  markInvoiceUnpaid,
+  setInvoiceReminders,
+} from "@/actions/invoices/actions";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { InvoiceActionsMenu } from "@/components/invoices/invoice-actions-menu";
 import { MarkPaidDialog } from "@/components/invoices/mark-paid-dialog";
@@ -32,6 +35,7 @@ export function InvoiceRowActions({
   currency,
   clientEmail,
   suggestedPkrAmount,
+  remindersEnabled,
 }: {
   id: string;
   number: number;
@@ -42,6 +46,7 @@ export function InvoiceRowActions({
    * default in the mark-paid dialog's PKR amount field, since the actual
    * amount received can differ (bank fees, rate at time of transfer). */
   suggestedPkrAmount?: number;
+  remindersEnabled: boolean;
 }) {
   const [markPaidOpen, setMarkPaidOpen] = React.useState(false);
   const [markUnpaidOpen, setMarkUnpaidOpen] = React.useState(false);
@@ -65,13 +70,35 @@ export function InvoiceRowActions({
     });
   }
 
+  function toggleReminders() {
+    const next = !remindersEnabled;
+    startTransition(async () => {
+      try {
+        await setInvoiceReminders(id, next);
+        toast.add({
+          title: next
+            ? `Overdue reminders on for ${formatInvoiceNumber(number)}`
+            : `Overdue reminders off for ${formatInvoiceNumber(number)}`,
+          type: "success",
+        });
+      } catch (e) {
+        toast.add({
+          title: e instanceof Error ? e.message : "Couldn't update reminders",
+          type: "error",
+        });
+      }
+    });
+  }
+
   return (
     <>
       <InvoiceActionsMenu
         status={status}
         pdfHref={`/api/invoices/${id}/pdf`}
+        remindersEnabled={remindersEnabled}
         onMarkPaid={() => setMarkPaidOpen(true)}
         onMarkUnpaid={() => setMarkUnpaidOpen(true)}
+        onToggleReminders={toggleReminders}
         onDelete={() => setDeleteOpen(true)}
       />
       <SendEmailDialog

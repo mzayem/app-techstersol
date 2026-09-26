@@ -13,8 +13,10 @@ export const config = {
   // exists. sw.js needs the same treatment: service worker registration
   // requires the script response to actually be JS, not a redirect to the
   // sign-in page — this can be hit signed-out too (e.g. a stale service
-  // worker checking for updates after the session ends).
+  // worker checking for updates after the session ends). api/cron/* is
+  // called by the scheduler with no session — each route checks
+  // CRON_SECRET itself instead.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|verify|credentials|manifest.webmanifest|icon.png|apple-icon.png|icons/|images/|sw.js).*)",
+    "/((?!_next/static|_next/image|favicon.ico|verify|credentials|api/cron|manifest.webmanifest|icon.png|apple-icon.png|icons/|images/|sw.js).*)",
   ],
 };

@@ -6,6 +6,7 @@ import { getInvoiceForPdf, toInvoicePdfData } from "@/actions/invoices/queries";
 import {
   renderInvoiceCreatedEmail,
   renderInvoicePaidEmail,
+  renderInvoiceReminderEmail,
 } from "@/lib/mail/templates/invoice";
 
 function appUrl() {
@@ -63,6 +64,36 @@ export async function notifyInvoiceCreated(invoiceId: string) {
   } catch (err) {
     console.error("[mail] invoice-created notification failed:", err);
   }
+}
+
+/** Unlike the other notifiers this one throws on failure — the reminder
+ * job needs to know whether the email actually went out so it can undo
+ * its claim on this reminder slot and retry on the next run. Returns false
+ * (without sending) when the client has no email address. */
+export async function notifyInvoiceReminder(
+  invoiceId: string,
+  daysOverdue: number,
+): Promise<boolean> {
+  const built = await buildInvoicePdfAttachment(invoiceId);
+  if (!built || !built.invoice.client.email) return false;
+  const { invoice, pdfData, attachment } = built;
+
+  const total = pdfData.items.reduce((sum, item) => sum + item.amount, 0);
+  const balanceDue = total - pdfData.discount;
+
+  await sendMail({
+    to: invoice.client.email,
+    subject: `Reminder: Invoice ${formatInvoiceNumber(invoice.number)} is overdue`,
+    html: renderInvoiceReminderEmail({
+      invoiceNumber: formatInvoiceNumber(invoice.number),
+      amount: formatContractAmount(balanceDue, pdfData.currency),
+      dueDate: formatDate(invoice.dueDate),
+      daysOverdue,
+      verifyUrl: `${appUrl()}/verify/${invoice.id}`,
+    }),
+    attachments: [attachment],
+  });
+  return true;
 }
 
 export async function notifyInvoicePaid(invoiceId: string) {

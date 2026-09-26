@@ -37,3 +37,17 @@ export const COMPANY_INFO = {
 
 export const INVOICE_TERMS =
   "Please share screenshot with invoice number. Don't forget to collect paid e-invoice.";
+
+/** Overdue-invoice reminders (only for invoices with reminders switched
+ * on): the first goes out once the due date has passed, then one every
+ * INVOICE_REMINDER_INTERVAL_DAYS, stopping after INVOICE_REMINDER_MAX. */
+export const INVOICE_REMINDER_MAX = 3;
+export const INVOICE_REMINDER_INTERVAL_DAYS = 7;
+
+/** Reads an invoice number out of a search string — "#00312", "00312",
+ * "312" and "INV-312" all mean invoice 312. Null when it isn't a number. */
+export function parseInvoiceNumberQuery(query: string): number | null {
+  const digits = query.trim().replace(/^(#|inv-?)/i, "");
+  if (!/^\d{1,9}$/.test(digits)) return null;
+  return Number(digits);
+}
