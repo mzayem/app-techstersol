@@ -9,20 +9,21 @@ export type ListFilters = {
   currency?: PaymentCurrency;
   sort?: SortOption;
 };
+const NEWEST = { createdAt: "desc" as const };
 
 function orderBy(sort: SortOption | undefined) {
   switch (sort) {
     case "bank-desc":
-      return { bankName: "desc" as const };
+      return [{ bankName: "desc" as const }, NEWEST];
     case "currency-asc":
-      return { currency: "asc" as const };
+      return [{ currency: "asc" as const }, NEWEST];
     case "oldest":
-      return { createdAt: "asc" as const };
+      return [{ createdAt: "asc" as const }];
     case "newest":
-      return { createdAt: "desc" as const };
+      return [NEWEST];
     case "bank-asc":
     default:
-      return { bankName: "asc" as const };
+      return [{ bankName: "asc" as const }, NEWEST];
   }
 }
 

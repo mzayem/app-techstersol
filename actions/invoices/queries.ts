@@ -14,14 +14,17 @@ export type ListFilters = {
   dateRange?: DateRange;
 };
 
+const NEWEST = { createdAt: "desc" as const };
+const OLDEST = { createdAt: "asc" as const };
+
 function orderBy(sort: SortOption | undefined) {
   switch (sort) {
     case "number-asc":
       return { number: "asc" as const };
     case "due-asc":
-      return { dueDate: "asc" as const };
+      return [{ dueDate: "asc" as const }, OLDEST];
     case "due-desc":
-      return { dueDate: "desc" as const };
+      return [{ dueDate: "desc" as const }, NEWEST];
     case "number-desc":
     default:
       return { number: "desc" as const };

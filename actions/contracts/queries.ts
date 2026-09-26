@@ -18,22 +18,25 @@ export type ListFilters = {
   dateRange?: DateRange;
 };
 
+const NEWEST = { createdAt: "desc" as const };
+const OLDEST = { createdAt: "asc" as const };
+
 function orderBy(sort: SortOption | undefined) {
   switch (sort) {
     case "date-asc":
-      return [{ date: "asc" as const }];
+      return [{ date: "asc" as const }, OLDEST];
     case "deadline-desc":
-      return [{ deadline: "desc" as const }];
+      return [{ deadline: "desc" as const }, NEWEST];
     case "name-asc":
-      return [{ projectName: "asc" as const }];
+      return [{ projectName: "asc" as const }, NEWEST];
     case "name-desc":
-      return [{ projectName: "desc" as const }];
+      return [{ projectName: "desc" as const }, NEWEST];
     case "date-desc":
-      return [{ date: "desc" as const }];
+      return [{ date: "desc" as const }, NEWEST];
     case "deadline-asc":
     default:
       // Default view: soonest deadline first, newest as a tiebreak.
-      return [{ deadline: "asc" as const }, { date: "desc" as const }];
+      return [{ deadline: "asc" as const }, { date: "desc" as const }, NEWEST];
   }
 }
 

@@ -25,21 +25,24 @@ export type ExpenseListFilters = ListFilters & {
   category?: ExpenseCategory;
 };
 
+const NEWEST = { createdAt: "desc" as const };
+const OLDEST = { createdAt: "asc" as const };
+
 function orderBy(sort: SortOption | undefined, amountField: string) {
   switch (sort) {
     case "date-asc":
-      return { date: "asc" as const };
+      return [{ date: "asc" as const }, OLDEST];
     case "amount-desc":
-      return { [amountField]: "desc" as const };
+      return [{ [amountField]: "desc" as const }, NEWEST];
     case "amount-asc":
-      return { [amountField]: "asc" as const };
+      return [{ [amountField]: "asc" as const }, NEWEST];
     case "name-asc":
-      return { name: "asc" as const };
+      return [{ name: "asc" as const }, NEWEST];
     case "name-desc":
-      return { name: "desc" as const };
+      return [{ name: "desc" as const }, NEWEST];
     case "date-desc":
     default:
-      return { date: "desc" as const };
+      return [{ date: "desc" as const }, NEWEST];
   }
 }
 

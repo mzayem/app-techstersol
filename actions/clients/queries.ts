@@ -11,18 +11,19 @@ export type ListFilters = {
   /** Filters by `createdAt` — omit for no date filtering. */
   dateRange?: DateRange;
 };
+const NEWEST = { createdAt: "desc" as const };
 
 function orderBy(sort: SortOption | undefined) {
   switch (sort) {
     case "name-desc":
-      return { name: "desc" as const };
+      return [{ name: "desc" as const }, NEWEST];
     case "oldest":
-      return { createdAt: "asc" as const };
+      return [{ createdAt: "asc" as const }];
     case "newest":
-      return { createdAt: "desc" as const };
+      return [NEWEST];
     case "name-asc":
     default:
-      return { name: "asc" as const };
+      return [{ name: "asc" as const }, NEWEST];
   }
 }
 
