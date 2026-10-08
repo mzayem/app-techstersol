@@ -3,16 +3,19 @@ import type { ContractStatus } from "@/lib/contracts/constants";
 import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 
 export type SortOption =
-  | "date-desc"
-  | "date-asc"
   | "deadline-asc"
   | "deadline-desc"
+  | "updated-desc"
+  | "date-desc"
+  | "date-asc"
   | "name-asc"
   | "name-desc";
 
 export type ListFilters = {
   search?: string;
   status?: ContractStatus;
+  /** Omit for the default grouped view (see `sortDefaultView`); any
+   * explicit sort is applied flat across every status. */
   sort?: SortOption;
   /** Filters by the contract's start `date` — omit for no date filtering. */
   dateRange?: DateRange;
@@ -27,6 +30,8 @@ function orderBy(sort: SortOption | undefined) {
       return [{ date: "asc" as const }, OLDEST];
     case "deadline-desc":
       return [{ deadline: "desc" as const }, NEWEST];
+    case "updated-desc":
+      return [{ updatedAt: "desc" as const }, NEWEST];
     case "name-asc":
       return [{ projectName: "asc" as const }, NEWEST];
     case "name-desc":
@@ -35,24 +40,27 @@ function orderBy(sort: SortOption | undefined) {
       return [{ date: "desc" as const }, NEWEST];
     case "deadline-asc":
     default:
-      // Default view: soonest deadline first, newest as a tiebreak.
+      // Soonest deadline first, newest as a tiebreak.
       return [{ deadline: "asc" as const }, { date: "desc" as const }, NEWEST];
   }
 }
 
-/** The default view (no sort explicitly chosen, or "deadline soonest"
- * explicitly picked) additionally floats non-completed projects above
- * completed ones — active/working contracts are what you're checking on,
- * finished ones are just history. Any other explicit sort (by name, by
- * start date) is left as a plain flat sort with no grouping. */
-function groupsActiveFirst(sort: SortOption | undefined) {
-  return sort === undefined || sort === "deadline-asc";
-}
+/** Statuses that mean the project is finished — no deadline to chase. */
+const CLOSED_STATUSES: readonly string[] = ["COMPLETED", "CANCELLED"];
 
-function sortActiveFirst<T extends { status: string }>(contracts: T[]): T[] {
-  const active = contracts.filter((c) => c.status !== "COMPLETED");
-  const completed = contracts.filter((c) => c.status === "COMPLETED");
-  return [...active, ...completed];
+/** The default view (no sort explicitly chosen): open contracts first by
+ * soonest deadline (already ordered by the query), then completed and
+ * cancelled ones by most recently modified — finished projects are just
+ * history, so their deadline no longer matters. Any explicit sort from the
+ * dropdown skips this grouping and applies flat across every status. */
+function sortDefaultView<T extends { status: string; updatedAt: Date }>(
+  contracts: T[],
+): T[] {
+  const open = contracts.filter((c) => !CLOSED_STATUSES.includes(c.status));
+  const closed = contracts
+    .filter((c) => CLOSED_STATUSES.includes(c.status))
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  return [...open, ...closed];
 }
 
 export async function listContracts(filters: ListFilters) {
@@ -86,9 +94,7 @@ export async function listContracts(filters: ListFilters) {
     paidAmount: paidAmounts.get(contract.id) ?? 0,
   }));
 
-  return groupsActiveFirst(filters.sort)
-    ? sortActiveFirst(withPaidAmount)
-    : withPaidAmount;
+  return filters.sort ? withPaidAmount : sortDefaultView(withPaidAmount);
 }
 
 /** Sum of PAID invoice items billed against each contract, regardless of

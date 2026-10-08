@@ -19,13 +19,19 @@ import {
 } from "@/lib/contracts/constants";
 import type { SortOption } from "@/actions/contracts/queries";
 
-const SORT_LABELS: Record<SortOption, string> = {
-  "date-desc": "Start date (newest)",
-  "date-asc": "Start date (oldest)",
-  "deadline-asc": "Deadline (soonest)",
-  "deadline-desc": "Deadline (latest)",
-  "name-asc": "Project (A–Z)",
-  "name-desc": "Project (Z–A)",
+/** Not a real sort param — the grouped view (open contracts by deadline,
+ * then completed/cancelled by last modified) used when `sort` is absent. */
+const DEFAULT_SORT = "default";
+
+const SORT_LABELS: Record<typeof DEFAULT_SORT | SortOption, string> = {
+  [DEFAULT_SORT]: "Default (open first)",
+  "deadline-asc": "Deadline: nearest first",
+  "deadline-desc": "Deadline: furthest first",
+  "updated-desc": "Recently updated",
+  "date-desc": "Start date: newest first",
+  "date-asc": "Start date: oldest first",
+  "name-asc": "Project name: A → Z",
+  "name-desc": "Project name: Z → A",
 };
 
 export function ContractFilterBar() {
@@ -35,7 +41,7 @@ export function ContractFilterBar() {
   const [isPending, startTransition] = React.useTransition();
 
   const status = searchParams.get("status") ?? "all";
-  const sort = (searchParams.get("sort") as SortOption) ?? "deadline-asc";
+  const sort = searchParams.get("sort") ?? DEFAULT_SORT;
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
 
   function updateParams(updates: Record<string, string | null>) {
@@ -101,7 +107,9 @@ export function ContractFilterBar() {
 
       <Select
         value={sort}
-        onValueChange={(value) => updateParams({ sort: value })}
+        onValueChange={(value) =>
+          updateParams({ sort: value === DEFAULT_SORT ? null : value })
+        }
       >
         <SelectTrigger className="w-full sm:w-48">
           <SelectValue />

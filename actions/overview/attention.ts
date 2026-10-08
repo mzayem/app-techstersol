@@ -202,7 +202,7 @@ export async function getAttentionGroups(
       key: "deadlines",
       title: "Project deadlines",
       count: workingContracts.length,
-      href: "/projects/contracts?sort=deadline-asc",
+      href: "/projects/contracts",
       rows: workingContracts.map((c) => {
         const days = daysBetween(today, c.deadline);
         return {
