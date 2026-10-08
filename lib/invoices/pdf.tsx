@@ -39,7 +39,7 @@ const PAID_STAMP_DATA_URL = (() => {
 // react-pdf can't decode WebP, so the black logo lockup is converted to PNG
 // once and cached for every subsequent invoice render.
 let logoDataUrlPromise: Promise<string | null> | null = null;
-function getLogoDataUrl(): Promise<string | null> {
+export function getLogoDataUrl(): Promise<string | null> {
   if (!logoDataUrlPromise) {
     logoDataUrlPromise = (async () => {
       try {

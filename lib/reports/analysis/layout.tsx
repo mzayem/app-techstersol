@@ -112,6 +112,8 @@ export type AnalysisColumn = {
   key: string;
   label: string;
   align?: "left" | "right";
+  /** Relative width (default 1) — for a column with longer text. */
+  flex?: number;
 };
 
 export type AnalysisRow = Record<string, string>;
@@ -131,7 +133,8 @@ export function AnalysisTable({
   totalsRow?: AnalysisRow;
 }) {
   function cellStyle(column: AnalysisColumn) {
-    return column.align === "right" ? styles.cellRight : styles.cell;
+    const base = column.align === "right" ? styles.cellRight : styles.cell;
+    return column.flex ? { ...base, flex: column.flex } : base;
   }
 
   return (

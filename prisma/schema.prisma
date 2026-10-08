@@ -31,10 +31,22 @@ enum ClientStatus {
 enum ContractPaymentType {
   PROJECT
   MILESTONE
+  HOURLY
+  RECURRING
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
 }
 
 enum ContractStatus {
   PROPOSED
+  /// RECURRING only — advance invoice for the first period sent, waiting
+  /// for it to be paid before the service goes ACTIVE.
+  AWAITING_ADVANCE
   UPFRONT_PAYMENT
   ACTIVE
   PENDING_PAYMENT
@@ -310,21 +322,38 @@ model ClientProfile {
 
 model Contract {
   id                       String                @id @default(cuid())
+  /// Display number, in two series: 101, 102… for project/hourly contracts
+  /// and 301, 302… for recurring ones (see lib/contracts/numbering.ts).
+  number                   Int                   @unique
   clientId                 String
   client                   Client                @relation(fields: [clientId], references: [id])
   date                     DateTime              @db.Date
-  deadline                 DateTime              @db.Date
+  deadline                 DateTime?             @db.Date
   projectName              String
   description              String?
   currency                 PaymentCurrency
   paymentType              ContractPaymentType
   amount                   Decimal?              @db.Decimal(14, 2)
   status                   ContractStatus        @default(PROPOSED)
+  /// RECURRING: how often it's invoiced. HOURLY: how often logged hours
+  /// are evaluated (WEEKLY or MONTHLY only). Null otherwise.
+  billingCycle             BillingCycle?
+  /// RECURRING only — start of the next period to invoice. Advanced each
+  /// time the period's invoice is generated (see lib/contracts/recurring.ts).
+  nextInvoiceDate          DateTime?             @db.Date
+  /// Days between an auto/hourly invoice's issue date and its due date.
+  invoiceDueDays           Int                   @default(7)
+  /// Which bank account auto/hourly invoices are issued against.
+  bankAccountId            String?
+  bankAccount              BankAccount?          @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  /// Free-text terms printed on the service agreement letter.
+  terms                    String?               @db.Text
   teamMemberId             String?
   teamMember               TeamMember?           @relation(fields: [teamMemberId], references: [id])
   /// The resolved work-cost figure in PKR, whichever workCostMode produced
   /// it — every existing consumer (pending-payment KPIs, markInvoicePaid's
   /// teamPay sum, payslips) keeps reading this one column unchanged.
+  /// RECURRING: per billingCycle. HOURLY: per logged hour.
   teamPayAmount            Decimal?              @db.Decimal(14, 2)
   statusEmailsEnabled      Boolean               @default(true)
   chatNotificationsEnabled Boolean               @default(false)
@@ -349,11 +378,34 @@ model Contract {
   projectExpenses          ProjectExpense[]
   partnerPayments          PartnerPayment[]
   partnerPayslips          PartnerPayslip[]
+  hourLogs                 ContractHourLog[]
 
   @@index([status])
+  @@index([paymentType])
   @@index([clientId])
   @@index([teamMemberId])
   @@index([partnerId])
+}
+
+/// Hours worked on an HOURLY contract for one billing period. Unbilled
+/// until an invoice is generated from it (invoiceItemId set); deleting that
+/// invoice frees the hours to be invoiced again.
+model ContractHourLog {
+  id              String       @id @default(cuid())
+  contractId      String
+  contract        Contract     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  periodStart     DateTime     @db.Date
+  periodEnd       DateTime     @db.Date
+  hours           Decimal      @db.Decimal(8, 2)
+  note            String?
+  invoiceItemId   String?
+  invoiceItem     InvoiceItem? @relation(fields: [invoiceItemId], references: [id], onDelete: SetNull)
+  createdByUserId String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([contractId])
+  @@index([invoiceItemId])
 }
 
 model ContractMessage {
@@ -525,6 +577,8 @@ model PartnerPayment {
   /// require the payment to be fully unlinked first).
   partnerInvestmentId   String?              @unique
   partnerInvestment     PartnerInvestment?   @relation(fields: [partnerInvestmentId], references: [id], onDelete: SetNull)
+  invoiceId             String?
+  invoice               Invoice?             @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   createdByUserId       String
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
@@ -533,6 +587,7 @@ model PartnerPayment {
   @@index([date])
   @@index([partnerId])
   @@index([contractId])
+  @@index([invoiceId])
 }
 
 /// The paperwork a partner's share is issued under — mirrors Payslip
@@ -664,6 +719,7 @@ model BankAccount {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   invoices          Invoice[]
+  contracts         Contract[]
 
   @@index([currency])
 }
@@ -701,6 +757,7 @@ model Invoice {
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   earning              Earning?
+  partnerPayments      PartnerPayment[]
   items                InvoiceItem[]
   contracts            InvoiceContract[]
 
@@ -726,17 +783,22 @@ model ActivityLog {
 }
 
 model InvoiceItem {
-  id          String     @id @default(cuid())
+  id          String            @id @default(cuid())
   invoiceId   String
-  invoice     Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice     Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   contractId  String?
-  contract    Contract?  @relation(fields: [contractId], references: [id])
+  contract    Contract?         @relation(fields: [contractId], references: [id])
   milestoneId String?
-  milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+  milestone   Milestone?        @relation(fields: [milestoneId], references: [id])
   description String
-  amount      Decimal    @db.Decimal(14, 2)
-  isPartial   Boolean    @default(false)
-  sortOrder   Int        @default(0)
+  amount      Decimal           @db.Decimal(14, 2)
+  isPartial   Boolean           @default(false)
+  /// The service period this line bills — set on HOURLY and RECURRING
+  /// lines, used to attribute that period's project expenses.
+  periodStart DateTime?         @db.Date
+  periodEnd   DateTime?         @db.Date
+  hourLogs    ContractHourLog[]
+  sortOrder   Int               @default(0)
 
   @@index([invoiceId])
   @@index([contractId])

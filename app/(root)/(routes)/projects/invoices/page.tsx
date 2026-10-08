@@ -50,6 +50,12 @@ export default async function InvoicesPage({
     getRatesToPkr(),
   ]);
 
+  // Due dates are DATEs (UTC midnight) — overdue once before today.
+  const now = new Date();
+  const startOfToday = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+
   const clients = sources.clients;
   const lineOptions = sources.lineOptions.map((o) => ({
     contractId: o.contractId,
@@ -176,6 +182,9 @@ export default async function InvoicesPage({
                         balanceDue={balanceDue}
                         suggestedPkrAmount={suggestedPkrAmount}
                         remindersEnabled={invoice.remindersEnabled}
+                        overdue={
+                          status === "UNPAID" && invoice.dueDate < startOfToday
+                        }
                         hasEarning={invoice.earning !== null}
                       />
                     </div>

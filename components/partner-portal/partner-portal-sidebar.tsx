@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   FolderKanban,
   LayoutDashboard,
+  Repeat,
   PiggyBank,
   ReceiptText,
   Settings,
@@ -32,6 +33,7 @@ import { Separator } from "@/components/ui/separator";
 const PARTNER_NAV = [
   { title: "Overview", url: "/partner-portal", icon: LayoutDashboard },
   { title: "Projects", url: "/partner-portal/projects", icon: FolderKanban },
+  { title: "Services", url: "/partner-portal/services", icon: Repeat },
   { title: "Invoices", url: "/partner-portal/invoices", icon: ReceiptText },
   { title: "Payslips", url: "/partner-portal/payslips", icon: WalletCards },
   {

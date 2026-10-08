@@ -3,21 +3,34 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { createNumberedContract } from "@/lib/contracts/numbering";
 import {
   PAYMENT_CURRENCIES,
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import {
+  BILLING_CYCLES,
   CONTRACT_STATUSES,
-  CONTRACT_STATUS_LABELS,
+  HOURLY_BILLING_CYCLES,
   PAYMENT_TYPES,
+  PROJECT_STATUSES,
+  RECURRING_CREATE_STATUSES,
+  RECURRING_STATUSES,
   WORK_COST_MODES,
   contractRevenueBasis,
+  contractStatusLabel,
+  isOpenEnded,
+  type BillingCycle,
   type ContractPaymentType,
   type ContractStatus,
   type ContractWorkCostMode,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
+import {
+  generateDueRecurringInvoices,
+  isRecurringBillingStatus,
+  resolveNextInvoiceDate,
+} from "@/lib/contracts/recurring";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { logActivity } from "@/lib/activity/log";
 import { validateMilestones } from "@/lib/contracts/validation";
@@ -63,22 +76,78 @@ async function readContractFields(
   const workCostModeRaw = str(formData, "workCostMode");
   const workCostPercentRaw = str(formData, "workCostPercent");
   const partnerSharePercentRaw = str(formData, "partnerSharePercent");
+  const billingCycleRaw = str(formData, "billingCycle");
+  const bankAccountId = str(formData, "bankAccountId");
+  const invoiceDueDaysRaw = str(formData, "invoiceDueDays");
+  const terms = str(formData, "terms");
 
-  if (!clientId || !date || !deadline || !projectName) {
-    throw new Error("Client, dates, and project name are required");
+  if (!PAYMENT_TYPES.includes(paymentTypeRaw as ContractPaymentType)) {
+    throw new Error("Invalid payment type");
+  }
+  const paymentType = paymentTypeRaw as ContractPaymentType;
+  const openEnded = isOpenEnded(paymentType);
+
+  if (!clientId || !date || !projectName) {
+    throw new Error("Client, start date, and project name are required");
+  }
+  // An hourly or recurring contract can run with no end date.
+  if (!deadline && !openEnded) {
+    throw new Error("A deadline is required");
+  }
+  // The end date bounds billing, so it can't precede the start.
+  if (openEnded && deadline && deadline < date) {
+    throw new Error("End date can't be before the start date");
   }
   if (!PAYMENT_CURRENCIES.includes(currencyRaw as PaymentCurrency)) {
     throw new Error("Invalid currency");
   }
-  if (!PAYMENT_TYPES.includes(paymentTypeRaw as ContractPaymentType)) {
-    throw new Error("Invalid payment type");
-  }
-  if (!CONTRACT_STATUSES.includes(statusRaw as ContractStatus)) {
+  const allowedStatuses: readonly string[] =
+    paymentType === "RECURRING" ? RECURRING_STATUSES : PROJECT_STATUSES;
+  if (!allowedStatuses.includes(statusRaw)) {
     throw new Error("Invalid status");
   }
 
-  const paymentType = paymentTypeRaw as ContractPaymentType;
   const currency = currencyRaw as PaymentCurrency;
+
+  let billingCycle: BillingCycle | null = null;
+  let invoiceDueDays = 7;
+  if (openEnded) {
+    const allowedCycles: readonly string[] =
+      paymentType === "HOURLY" ? HOURLY_BILLING_CYCLES : BILLING_CYCLES;
+    if (!allowedCycles.includes(billingCycleRaw)) {
+      throw new Error(
+        paymentType === "HOURLY"
+          ? "Choose whether hours are invoiced weekly or monthly"
+          : "Choose a billing cycle",
+      );
+    }
+    billingCycle = billingCycleRaw as BillingCycle;
+
+    if (!bankAccountId) {
+      throw new Error("Choose the bank account invoices should be paid into");
+    }
+    const bankAccount = await prisma.bankAccount.findUnique({
+      where: { id: bankAccountId },
+      select: { currency: true },
+    });
+    if (!bankAccount) throw new Error("Selected bank account no longer exists");
+    if (bankAccount.currency !== currency) {
+      throw new Error("The bank account's currency must match the contract's");
+    }
+
+    if (invoiceDueDaysRaw) {
+      invoiceDueDays = Number(invoiceDueDaysRaw);
+      if (
+        !Number.isInteger(invoiceDueDays) ||
+        invoiceDueDays < 0 ||
+        invoiceDueDays > 120
+      ) {
+        throw new Error(
+          "Invoice due days must be a whole number from 0 to 120",
+        );
+      }
+    }
+  }
   const milestones = paymentType === "MILESTONE" ? milestonesInput : [];
   if (paymentType === "MILESTONE" && milestones.length === 0) {
     throw new Error("Add at least one milestone");
@@ -90,12 +159,18 @@ async function readContractFields(
     deadline: new Date(m.deadline),
   }));
 
-  const amount = paymentType === "PROJECT" ? Number(amountRaw) : undefined;
-  if (
-    paymentType === "PROJECT" &&
-    (!amountRaw || Number.isNaN(amount) || amount! <= 0)
-  ) {
-    throw new Error("Enter a valid project amount");
+  // Every structure but MILESTONE carries one amount: the project total,
+  // the amount per billing cycle (RECURRING), or the hourly rate (HOURLY).
+  const hasAmount = paymentType !== "MILESTONE";
+  const amount = hasAmount ? Number(amountRaw) : undefined;
+  if (hasAmount && (!amountRaw || Number.isNaN(amount) || amount! <= 0)) {
+    throw new Error(
+      paymentType === "HOURLY"
+        ? "Enter a valid hourly rate"
+        : paymentType === "RECURRING"
+          ? "Enter a valid amount per billing cycle"
+          : "Enter a valid project amount",
+    );
   }
 
   // Partner-specific fields only ever apply when a partner is attached —
@@ -145,7 +220,7 @@ async function readContractFields(
       } else {
         const revenueBasis = contractRevenueBasis({
           paymentType,
-          amount: paymentType === "PROJECT" ? amount : null,
+          amount: hasAmount ? amount : null,
           milestones: milestoneData,
         });
         let pkrRevenueBasis = revenueBasis;
@@ -194,13 +269,17 @@ async function readContractFields(
   return {
     clientId,
     date: new Date(date),
-    deadline: new Date(deadline),
+    deadline: deadline ? new Date(deadline) : null,
     projectName,
     description: description || null,
     currency,
     paymentType,
-    amount: paymentType === "PROJECT" ? amount : null,
+    amount: hasAmount ? amount : null,
     status: statusRaw as ContractStatus,
+    billingCycle,
+    bankAccountId: openEnded ? bankAccountId : null,
+    invoiceDueDays,
+    terms: terms || null,
     teamMemberId: teamMemberId || null,
     teamPayAmount,
     statusEmailsEnabled,
@@ -213,6 +292,14 @@ async function readContractFields(
   };
 }
 
+function revalidateContractPages() {
+  revalidatePath("/projects/contracts");
+  revalidatePath("/projects/recurring");
+  revalidatePath("/projects/invoices");
+}
+
+const statusLabel = contractStatusLabel;
+
 export async function createContract(
   formData: FormData,
   milestones: MilestoneInput[],
@@ -224,12 +311,31 @@ export async function createContract(
     milestones,
   );
 
-  const created = await prisma.contract.create({
-    data: {
-      ...fields,
-      createdByUserId,
-      milestones: { create: validMilestones },
-    },
+  if (
+    fields.paymentType === "RECURRING" &&
+    !(RECURRING_CREATE_STATUSES as readonly string[]).includes(fields.status)
+  ) {
+    throw new Error(
+      "A new recurring contract starts as Draft or Awaiting advance payment — it becomes Active once the advance invoice is paid",
+    );
+  }
+
+  const nextInvoiceDate =
+    fields.paymentType === "RECURRING"
+      ? await resolveNextInvoiceDate({
+          contractId: null,
+          startDate: fields.date,
+          cycle: fields.billingCycle!,
+          enteringBilling: isRecurringBillingStatus(fields.status),
+          previousNext: null,
+        })
+      : null;
+
+  const created = await createNumberedContract({
+    ...fields,
+    nextInvoiceDate,
+    createdByUserId,
+    milestones: { create: validMilestones },
   });
 
   await notifyContractCreated(created.id);
@@ -237,10 +343,13 @@ export async function createContract(
     action: "created",
     entityType: "contract",
     entityId: created.id,
-    summary: `Created contract "${created.projectName}"`,
+    summary: `Created ${created.paymentType === "RECURRING" ? "recurring " : ""}contract #${created.number} "${created.projectName}"`,
     page: "contracts",
   });
-  revalidatePath("/projects/contracts");
+  if (created.paymentType === "RECURRING") {
+    await generateDueRecurringInvoices({ contractId: created.id });
+  }
+  revalidateContractPages();
 }
 
 export async function updateContract(
@@ -258,16 +367,53 @@ export async function updateContract(
     where: { id },
     select: {
       status: true,
+      paymentType: true,
+      nextInvoiceDate: true,
       teamMemberId: true,
       partnerId: true,
       projectName: true,
     },
   });
+  if (!before) throw new Error("Contract not found");
+  // Recurring contracts live on their own page with their own invoicing —
+  // converting one to/from a fixed-price contract would orphan that.
+  if (
+    (before.paymentType === "RECURRING") !==
+    (fields.paymentType === "RECURRING")
+  ) {
+    throw new Error(
+      "A recurring contract can't be converted to another payment structure (or back) — create a new contract instead",
+    );
+  }
+  if (before.paymentType === "HOURLY" && fields.paymentType !== "HOURLY") {
+    const loggedHours = await prisma.contractHourLog.count({
+      where: { contractId: id },
+    });
+    if (loggedHours > 0) {
+      throw new Error(
+        "This contract has logged hours — delete them before changing its payment structure",
+      );
+    }
+  }
+
+  const nextInvoiceDate =
+    fields.paymentType === "RECURRING"
+      ? await resolveNextInvoiceDate({
+          contractId: id,
+          startDate: fields.date,
+          cycle: fields.billingCycle!,
+          enteringBilling:
+            isRecurringBillingStatus(fields.status) &&
+            !isRecurringBillingStatus(before.status),
+          previousNext: before.nextInvoiceDate,
+        })
+      : null;
 
   await prisma.contract.update({
     where: { id },
     data: {
       ...fields,
+      nextInvoiceDate,
       milestones: {
         deleteMany: {},
         create: validMilestones,
@@ -275,12 +421,12 @@ export async function updateContract(
     },
   });
 
-  if (before && before.status !== fields.status) {
+  if (before.status !== fields.status) {
     await notifyContractStatusChanged(id);
   }
   const statusNote =
-    before && before.status !== fields.status
-      ? ` — status ${CONTRACT_STATUS_LABELS[before.status as ContractStatus]} → ${CONTRACT_STATUS_LABELS[fields.status as ContractStatus]}`
+    before.status !== fields.status
+      ? ` — status ${statusLabel(before.status, fields.paymentType)} → ${statusLabel(fields.status, fields.paymentType)}`
       : "";
   await logActivity(appUser, {
     action: "updated",
@@ -289,14 +435,15 @@ export async function updateContract(
     summary: `Edited contract "${fields.projectName}"${statusNote}`,
     page: "contracts",
   });
-  if (before) {
-    await notifyContractAssigned(id, {
-      partner: !!fields.partnerId && fields.partnerId !== before.partnerId,
-      teamMember:
-        !!fields.teamMemberId && fields.teamMemberId !== before.teamMemberId,
-    });
+  await notifyContractAssigned(id, {
+    partner: !!fields.partnerId && fields.partnerId !== before.partnerId,
+    teamMember:
+      !!fields.teamMemberId && fields.teamMemberId !== before.teamMemberId,
+  });
+  if (fields.paymentType === "RECURRING") {
+    await generateDueRecurringInvoices({ contractId: id });
   }
-  revalidatePath("/projects/contracts");
+  revalidateContractPages();
 }
 
 export async function deleteContract(id: string) {
@@ -312,7 +459,7 @@ export async function deleteContract(id: string) {
     page: "contracts",
   });
 
-  revalidatePath("/projects/contracts");
+  revalidateContractPages();
 }
 
 export async function bulkUpdateContractStatus(
@@ -328,31 +475,77 @@ export async function bulkUpdateContractStatus(
 
   const before = await prisma.contract.findMany({
     where: { id: { in: ids } },
-    select: { id: true, status: true, projectName: true },
+    select: {
+      id: true,
+      status: true,
+      projectName: true,
+      paymentType: true,
+      date: true,
+      billingCycle: true,
+      nextInvoiceDate: true,
+    },
   });
+  if (
+    before.some(
+      (c) =>
+        c.paymentType === "RECURRING" &&
+        !(RECURRING_STATUSES as readonly string[]).includes(status),
+    )
+  ) {
+    throw new Error(
+      `"${statusLabel(status, "PROJECT")}" isn't a status a recurring contract can have`,
+    );
+  }
+  if (
+    status === "AWAITING_ADVANCE" &&
+    before.some((c) => c.paymentType !== "RECURRING")
+  ) {
+    throw new Error("Only a recurring contract can await an advance payment");
+  }
 
   await prisma.contract.updateMany({
     where: { id: { in: ids } },
     data: { status },
   });
 
-  const changedIds = before.filter((c) => c.status !== status).map((c) => c.id);
-  await Promise.all(
-    changedIds.map((changedId) => notifyContractStatusChanged(changedId)),
+  const changed = before.filter((c) => c.status !== status);
+
+  // A recurring contract switched into billing picks its schedule back up
+  // from the current period, then invoices it if it's due.
+  const resumed = changed.filter(
+    (c) =>
+      c.paymentType === "RECURRING" &&
+      c.billingCycle &&
+      isRecurringBillingStatus(status) &&
+      !isRecurringBillingStatus(c.status),
   );
+  for (const c of resumed) {
+    const nextInvoiceDate = await resolveNextInvoiceDate({
+      contractId: c.id,
+      startDate: c.date,
+      cycle: c.billingCycle as BillingCycle,
+      enteringBilling: true,
+      previousNext: c.nextInvoiceDate,
+    });
+    await prisma.contract.update({
+      where: { id: c.id },
+      data: { nextInvoiceDate },
+    });
+    await generateDueRecurringInvoices({ contractId: c.id });
+  }
+
+  await Promise.all(changed.map((c) => notifyContractStatusChanged(c.id)));
   await Promise.all(
-    before
-      .filter((c) => c.status !== status)
-      .map((c) =>
-        logActivity(appUser, {
-          action: "status-changed",
-          entityType: "contract",
-          entityId: c.id,
-          summary: `Changed contract "${c.projectName}" status ${CONTRACT_STATUS_LABELS[c.status as ContractStatus]} → ${CONTRACT_STATUS_LABELS[status]}`,
-          page: "contracts",
-        }),
-      ),
+    changed.map((c) =>
+      logActivity(appUser, {
+        action: "status-changed",
+        entityType: "contract",
+        entityId: c.id,
+        summary: `Changed contract "${c.projectName}" status ${statusLabel(c.status, c.paymentType)} → ${statusLabel(status, c.paymentType)}`,
+        page: "contracts",
+      }),
+    ),
   );
 
-  revalidatePath("/projects/contracts");
+  revalidateContractPages();
 }

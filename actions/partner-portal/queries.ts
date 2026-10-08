@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import type {
+  BillingCycle,
   ContractPaymentType,
   ContractStatus,
 } from "@/lib/contracts/constants";
@@ -152,6 +153,7 @@ export async function getPartnerOverview(
 
 export type PartnerContract = {
   id: string;
+  number: number;
   projectName: string;
   description: string | null;
   clientId: string;
@@ -163,10 +165,12 @@ export type PartnerContract = {
   clientPhone: string | null;
   clientEmail: string | null;
   date: Date;
-  deadline: Date;
+  deadline: Date | null;
   currency: PaymentCurrency;
   paymentType: ContractPaymentType;
   amount: number | null;
+  billingCycle: BillingCycle | null;
+  nextInvoiceDate: Date | null;
   status: ContractStatus;
   milestones: { id: string; name: string; amount: number; deadline: Date }[];
 };
@@ -176,11 +180,22 @@ export type PartnerContract = {
  * this. */
 export async function listPartnerContracts(
   partnerId: string,
+  /** Omit for every contract; "project" excludes recurring services. */
+  kind?: "project" | "recurring",
 ): Promise<PartnerContract[]> {
   const contracts = await prisma.contract.findMany({
-    where: { partnerId },
+    where: {
+      partnerId,
+      ...(kind
+        ? {
+            paymentType:
+              kind === "recurring" ? "RECURRING" : { not: "RECURRING" },
+          }
+        : {}),
+    },
     select: {
       id: true,
+      number: true,
       projectName: true,
       description: true,
       date: true,
@@ -188,6 +203,8 @@ export async function listPartnerContracts(
       currency: true,
       paymentType: true,
       amount: true,
+      billingCycle: true,
+      nextInvoiceDate: true,
       status: true,
       milestones: {
         select: { id: true, name: true, amount: true, deadline: true },
@@ -208,6 +225,7 @@ export async function listPartnerContracts(
 
   return contracts.map((c) => ({
     id: c.id,
+    number: c.number,
     projectName: c.projectName,
     description: c.description,
     clientId: c.client.id,
@@ -219,6 +237,8 @@ export async function listPartnerContracts(
     currency: c.currency as PaymentCurrency,
     paymentType: c.paymentType as ContractPaymentType,
     amount: c.amount === null ? null : Number(c.amount),
+    billingCycle: c.billingCycle as BillingCycle | null,
+    nextInvoiceDate: c.nextInvoiceDate,
     status: c.status as ContractStatus,
     milestones: c.milestones.map((m) => ({ ...m, amount: Number(m.amount) })),
   }));
@@ -344,7 +364,11 @@ export async function listPartnerInvoiceSources(
   partnerId: string,
 ): Promise<PartnerInvoiceSources> {
   const contracts = await prisma.contract.findMany({
-    where: { partnerId, status: { not: "COMPLETED" } },
+    where: {
+      partnerId,
+      status: { not: "COMPLETED" },
+      paymentType: { in: ["PROJECT", "MILESTONE"] },
+    },
     select: {
       id: true,
       clientId: true,

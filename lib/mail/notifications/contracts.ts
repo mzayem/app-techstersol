@@ -1,6 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail/transport";
-import type { ContractStatus } from "@/lib/contracts/constants";
+import {
+  contractAmountLabel,
+  type ContractStatus,
+} from "@/lib/contracts/constants";
+import {
+  agreementFilename,
+  getAgreementContract,
+  renderAgreementPdf,
+} from "@/lib/contracts/agreement";
 import type { UserKind } from "@/generated/prisma/client";
 import {
   renderChatNotificationEmail,
@@ -8,6 +16,7 @@ import {
   renderContractCreatedEmail,
   renderContractStatusEmail,
   renderProposalNotificationEmail,
+  renderServiceAgreementEmail,
 } from "@/lib/mail/templates/contract";
 import {
   getPartnerNotificationEmail,
@@ -25,6 +34,11 @@ function formatDate(date: Date) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+/** An open-ended contract may have no end date. */
+function deadlineLabel(date: Date | null) {
+  return date ? formatDate(date) : "Ongoing";
 }
 
 /** Every notifier here swallows and logs its own errors — a mail outage
@@ -84,7 +98,9 @@ export async function notifyContractCreated(contractId: string) {
         select: {
           projectName: true,
           status: true,
+          date: true,
           deadline: true,
+          paymentType: true,
           statusEmailsEnabled: true,
           client: { select: { email: true, emailNotificationsEnabled: true } },
         },
@@ -97,13 +113,36 @@ export async function notifyContractCreated(contractId: string) {
         return;
       if (!contract.client.email) return;
 
+      if (contract.paymentType === "RECURRING") {
+        const agreement = await getAgreementContract(contractId);
+        if (!agreement) return;
+        await sendMail({
+          to: contract.client.email,
+          subject: `Service agreement #${agreement.number}: ${contract.projectName}`,
+          html: renderServiceAgreementEmail({
+            projectName: `#${agreement.number} — ${contract.projectName}`,
+            billing: contractAmountLabel(agreement),
+            startDate: formatDate(contract.date),
+            endDate: deadlineLabel(contract.deadline),
+          }),
+          attachments: [
+            {
+              filename: agreementFilename(agreement),
+              content: await renderAgreementPdf(agreement, appUrl()),
+              contentType: "application/pdf",
+            },
+          ],
+        });
+        return;
+      }
+
       await sendMail({
         to: contract.client.email,
         subject: `New project: ${contract.projectName}`,
         html: renderContractCreatedEmail({
           projectName: contract.projectName,
           status: contract.status as ContractStatus,
-          deadline: formatDate(contract.deadline),
+          deadline: deadlineLabel(contract.deadline),
         }),
       });
     }),
@@ -152,7 +191,7 @@ export function notifyContractAssigned(
           projectName: contract.projectName,
           clientName: contract.client.name,
           status: contract.status as ContractStatus,
-          deadline: formatDate(contract.deadline),
+          deadline: deadlineLabel(contract.deadline),
           appUrl: appUrl(),
         }),
       });
@@ -215,12 +254,14 @@ export function notifyChatMessage({
       where: { id: contractId },
       select: {
         projectName: true,
+        paymentType: true,
         chatNotificationsEnabled: true,
         partnerId: true,
         client: { select: { email: true } },
       },
     });
     if (!contract) return;
+    const recurring = contract.paymentType === "RECURRING";
 
     const subject = `New message on ${contract.projectName}`;
     const render = (viewPath: string) =>
@@ -236,7 +277,9 @@ export function notifyChatMessage({
       await sendMail({
         to: contract.client.email,
         subject,
-        html: render("/client-portal/contracts"),
+        html: render(
+          recurring ? "/client-portal/services" : "/client-portal/contracts",
+        ),
       });
       return;
     }
@@ -249,12 +292,19 @@ export function notifyChatMessage({
     });
 
     await Promise.all([
-      sendToStaff(staff, { subject, html: render("/projects/contracts") }),
+      sendToStaff(staff, {
+        subject,
+        html: render(recurring ? "/projects/recurring" : "/projects/contracts"),
+      }),
       partnerEmail
         ? sendMail({
             to: partnerEmail,
             subject,
-            html: render("/partner-portal/projects"),
+            html: render(
+              recurring
+                ? "/partner-portal/services"
+                : "/partner-portal/projects",
+            ),
           })
         : Promise.resolve(),
     ]);

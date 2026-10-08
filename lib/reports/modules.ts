@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import type { PageKey } from "@/lib/rbac/pages";
 import type { ReportSpec } from "@/lib/reports/types";
 import {
@@ -14,9 +15,14 @@ import {
 } from "@/lib/finance/constants";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import {
+  BILLING_CYCLE_LABELS,
   CONTRACT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
+  RECURRING_BILLING_STATUSES,
+  contractAmountLabel,
+  contractStatusLabel,
   formatContractAmount,
+  type BillingCycle,
   type ContractStatus,
   type ContractPaymentType,
 } from "@/lib/contracts/constants";
@@ -278,33 +284,27 @@ const contracts: ReportModuleDef = {
       params.to,
     );
     const rows = await listContracts({
+      kind: "project",
       search: params.q,
       status,
       sort: params.sort as ContractSortOption | undefined,
       dateRange,
     });
 
-    const reportRows = rows.map((contract) => {
-      const currency = contract.currency as PaymentCurrency;
-      const milestoneTotal = contract.milestones.reduce(
-        (sum, m) => sum + Number(m.amount),
-        0,
-      );
-      const totalAmount =
-        contract.paymentType === "MILESTONE"
-          ? milestoneTotal
-          : Number(contract.amount ?? 0);
-      return {
-        client: contract.client.name,
-        project: contract.projectName,
-        startDate: contract.date,
-        deadline: contract.deadline,
-        payment:
-          PAYMENT_TYPE_LABELS[contract.paymentType as ContractPaymentType],
-        amount: formatContractAmount(totalAmount, currency),
-        status: CONTRACT_STATUS_LABELS[contract.status as ContractStatus],
-      };
-    });
+    const reportRows = rows.map((contract) => ({
+      number: contract.number,
+      client: contract.client.name,
+      project: contract.projectName,
+      startDate: contract.date,
+      deadline: contract.deadline,
+      payment:
+        PAYMENT_TYPE_LABELS[contract.paymentType as ContractPaymentType] +
+        (contract.billingCycle
+          ? ` (${BILLING_CYCLE_LABELS[contract.billingCycle as BillingCycle].toLowerCase()})`
+          : ""),
+      amount: contractAmountLabel(contract),
+      status: CONTRACT_STATUS_LABELS[contract.status as ContractStatus],
+    }));
 
     return {
       title: contracts.title,
@@ -313,12 +313,92 @@ const contracts: ReportModuleDef = {
         statusLabel: status ? CONTRACT_STATUS_LABELS[status] : undefined,
       }),
       columns: [
+        { key: "number", label: "No." },
         { key: "client", label: "Client", flexible: true, flexWeight: 1 },
         { key: "project", label: "Project", flexible: true, flexWeight: 2 },
         { key: "startDate", label: "Start date", numFmt: "dd mmm yyyy" },
         { key: "deadline", label: "Deadline", numFmt: "dd mmm yyyy" },
         { key: "payment", label: "Payment" },
         { key: "amount", label: "Amount", align: "right" },
+        { key: "status", label: "Status" },
+      ],
+      rows: reportRows,
+    };
+  },
+};
+
+const recurring: ReportModuleDef = {
+  pageKey: "contracts",
+  title: "RECURRING CONTRACTS REPORT",
+  filename: "recurring-contracts-report",
+  async fetch(params) {
+    const status = params.status as ContractStatus | undefined;
+    const dateRange = resolveDateRange(
+      params.range ?? "all",
+      params.from,
+      params.to,
+    );
+    const rows = await listContracts({
+      kind: "recurring",
+      search: params.q,
+      status,
+      sort: params.sort as ContractSortOption | undefined,
+      dateRange,
+    });
+
+    // What's been invoiced but not paid yet, per contract.
+    const owing = rows.length
+      ? await prisma.invoiceItem.groupBy({
+          by: ["contractId"],
+          where: {
+            contractId: { in: rows.map((c) => c.id) },
+            invoice: { status: "UNPAID" },
+          },
+          _sum: { amount: true },
+        })
+      : [];
+    const owingOf = new Map(
+      owing.map((o) => [o.contractId, Number(o._sum.amount ?? 0)]),
+    );
+
+    const reportRows = rows.map((contract) => ({
+      number: contract.number,
+      client: contract.client.name,
+      service: contract.projectName,
+      startDate: contract.date,
+      endDate: contract.deadline,
+      billing: contractAmountLabel(contract),
+      nextInvoice: (RECURRING_BILLING_STATUSES as readonly string[]).includes(
+        contract.status,
+      )
+        ? contract.nextInvoiceDate
+        : null,
+      received: formatContractAmount(contract.paidAmount, contract.currency),
+      outstanding: formatContractAmount(
+        owingOf.get(contract.id) ?? 0,
+        contract.currency,
+      ),
+      status: contractStatusLabel(contract.status, contract.paymentType),
+    }));
+
+    return {
+      title: recurring.title,
+      subtitle: dateRangeSubtitle(params, {
+        defaultPreset: "all",
+        statusLabel: status
+          ? contractStatusLabel(status, "RECURRING")
+          : undefined,
+      }),
+      columns: [
+        { key: "number", label: "No." },
+        { key: "client", label: "Client", flexible: true, flexWeight: 1 },
+        { key: "service", label: "Service", flexible: true, flexWeight: 2 },
+        { key: "startDate", label: "Start date", numFmt: "dd mmm yyyy" },
+        { key: "endDate", label: "End date", numFmt: "dd mmm yyyy" },
+        { key: "billing", label: "Billing", align: "right" },
+        { key: "nextInvoice", label: "Next invoice", numFmt: "dd mmm yyyy" },
+        { key: "received", label: "Received", align: "right" },
+        { key: "outstanding", label: "Outstanding", align: "right" },
         { key: "status", label: "Status" },
       ],
       rows: reportRows,
@@ -585,6 +665,7 @@ export const REPORT_MODULES: Record<string, ReportModuleDef> = {
   donations,
   expenses,
   contracts,
+  recurring,
   invoices,
   payslips,
   clients,

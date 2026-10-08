@@ -14,8 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  CONTRACT_STATUSES,
-  CONTRACT_STATUS_LABELS,
+  PROJECT_STATUSES,
+  RECURRING_STATUSES,
+  contractStatusLabel,
 } from "@/lib/contracts/constants";
 import type { SortOption } from "@/actions/contracts/queries";
 
@@ -23,7 +24,9 @@ import type { SortOption } from "@/actions/contracts/queries";
  * then completed/cancelled by last modified) used when `sort` is absent. */
 const DEFAULT_SORT = "default";
 
-const SORT_LABELS: Record<typeof DEFAULT_SORT | SortOption, string> = {
+type SortChoice = typeof DEFAULT_SORT | SortOption;
+
+const SORT_LABELS: Partial<Record<SortChoice, string>> = {
   [DEFAULT_SORT]: "Default (open first)",
   "deadline-asc": "Deadline: nearest first",
   "deadline-desc": "Deadline: furthest first",
@@ -34,7 +37,27 @@ const SORT_LABELS: Record<typeof DEFAULT_SORT | SortOption, string> = {
   "name-desc": "Project name: Z → A",
 };
 
-export function ContractFilterBar() {
+/** On the recurring page the default view orders open contracts by their
+ * next invoice date instead of a deadline. */
+const RECURRING_SORT_LABELS: Partial<Record<SortChoice, string>> = {
+  [DEFAULT_SORT]: "Default (open first)",
+  "next-invoice-asc": "Next invoice: soonest first",
+  "deadline-asc": "End date: soonest first",
+  "updated-desc": "Recently updated",
+  "date-desc": "Start date: newest first",
+  "date-asc": "Start date: oldest first",
+  "name-asc": "Service name: A → Z",
+  "name-desc": "Service name: Z → A",
+};
+
+export function ContractFilterBar({
+  variant = "project",
+}: {
+  variant?: "project" | "recurring";
+}) {
+  const isRecurringPage = variant === "recurring";
+  const sortLabels = isRecurringPage ? RECURRING_SORT_LABELS : SORT_LABELS;
+  const statuses = isRecurringPage ? RECURRING_STATUSES : PROJECT_STATUSES;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -83,9 +106,12 @@ export function ContractFilterBar() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All statuses</SelectItem>
-          {CONTRACT_STATUSES.map((s) => (
+          {statuses.map((s) => (
             <SelectItem key={s} value={s}>
-              {CONTRACT_STATUS_LABELS[s]}
+              {contractStatusLabel(
+                s,
+                isRecurringPage ? "RECURRING" : "PROJECT",
+              )}
             </SelectItem>
           ))}
         </SelectContent>
@@ -115,7 +141,7 @@ export function ContractFilterBar() {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {Object.entries(SORT_LABELS).map(([value, label]) => (
+          {Object.entries(sortLabels).map(([value, label]) => (
             <SelectItem key={value} value={value}>
               {label}
             </SelectItem>

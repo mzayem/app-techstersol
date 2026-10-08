@@ -3,7 +3,11 @@
 import { sendMail } from "@/lib/mail/transport";
 import { renderInvoicePdf } from "@/lib/invoices/pdf";
 import { renderPayslipPdf } from "@/lib/team/payslip-pdf";
-import { formatContractAmount } from "@/lib/contracts/constants";
+import {
+  contractAmountLabel,
+  contractRevenueBasis,
+  formatContractAmount,
+} from "@/lib/contracts/constants";
 import { formatInvoiceNumber } from "@/lib/invoices/constants";
 import { formatPayslipNumber } from "@/lib/team/constants";
 import { getInvoiceForPdf, toInvoicePdfData } from "@/actions/invoices/queries";
@@ -70,15 +74,13 @@ export async function sendContractEmail(to: string, contractId: string) {
       currency: true,
       amount: true,
       paymentType: true,
+      billingCycle: true,
       milestones: { select: { amount: true } },
     },
   });
   if (!contract) throw new Error("Contract not found");
 
-  const amount =
-    contract.paymentType === "PROJECT"
-      ? Number(contract.amount ?? 0)
-      : contract.milestones.reduce((sum, m) => sum + Number(m.amount), 0);
+  const amount = contractRevenueBasis(contract);
 
   await sendMail({
     to: recipient,
@@ -86,10 +88,9 @@ export async function sendContractEmail(to: string, contractId: string) {
     html: renderContractDetailsEmail({
       projectName: contract.projectName,
       status: contract.status,
-      deadline: formatDate(contract.deadline),
+      deadline: contract.deadline ? formatDate(contract.deadline) : "Ongoing",
       description: contract.description,
-      amount:
-        amount > 0 ? formatContractAmount(amount, contract.currency) : null,
+      amount: amount > 0 ? contractAmountLabel(contract) : null,
     }),
   });
 

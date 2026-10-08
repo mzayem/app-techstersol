@@ -11,6 +11,7 @@ import {
 import {
   contractRevenueBasis,
   formatContractAmount,
+  isOpenEnded,
 } from "@/lib/contracts/constants";
 import {
   INVOICE_NUMBER_START,
@@ -24,6 +25,7 @@ import { requirePagePermission } from "@/lib/rbac/permissions";
 import {
   notifyInvoiceCreated,
   notifyInvoicePaid,
+  notifyInvoiceReminder,
 } from "@/lib/mail/notifications/invoices";
 import {
   planInvoiceEarning,
@@ -105,6 +107,11 @@ export async function createInvoice(
     }
     if (contract.currency !== currency) {
       throw new Error("Selected contracts must all share the same currency");
+    }
+    if (isOpenEnded(contract.paymentType)) {
+      throw new Error(
+        "Hourly and recurring contracts are invoiced from their own contract, not here",
+      );
     }
   }
 
@@ -249,10 +256,30 @@ export async function markInvoicePaid(id: string, formData: FormData) {
             status: true,
             paymentType: true,
             amount: true,
+            deadline: true,
+            nextInvoiceDate: true,
             milestones: { select: { amount: true } },
           },
         })
       : [];
+
+  // Open-ended contracts still owing on another invoice stay "payment due".
+  const openEndedIds = contracts
+    .filter((c) => isOpenEnded(c.paymentType))
+    .map((c) => c.id);
+  const stillOwing = new Set(
+    openEndedIds.length > 0
+      ? (
+          await prisma.invoiceItem.findMany({
+            where: {
+              contractId: { in: openEndedIds },
+              invoice: { status: "UNPAID", id: { not: id } },
+            },
+            select: { contractId: true },
+          })
+        ).map((item) => item.contractId!)
+      : [],
+  );
 
   const alreadyPaidItems =
     contractIds.length > 0
@@ -274,7 +301,36 @@ export async function markInvoicePaid(id: string, formData: FormData) {
 
   const completedIds: string[] = [];
   const partiallyPaidIds: string[] = [];
+  // Open-ended contracts never complete by being paid off: once nothing's
+  // owed they go back to ACTIVE — or COMPLETED, for a recurring contract
+  // whose end date has passed with every period invoiced.
+  const settledActiveIds: string[] = [];
+  const settledEndedIds: string[] = [];
+  // Advance paid while a later period's invoice is already out.
+  const advancePaidOwingIds: string[] = [];
   for (const contract of contracts) {
+    if (isOpenEnded(contract.paymentType)) {
+      if (
+        contract.status === "AWAITING_ADVANCE" &&
+        stillOwing.has(contract.id)
+      ) {
+        advancePaidOwingIds.push(contract.id);
+        continue;
+      }
+      // Payment due, or a recurring contract's advance invoice being paid.
+      if (
+        !["PENDING_PAYMENT", "AWAITING_ADVANCE"].includes(contract.status) ||
+        stillOwing.has(contract.id)
+      )
+        continue;
+      const ended =
+        contract.paymentType === "RECURRING" &&
+        !!contract.deadline &&
+        !!contract.nextInvoiceDate &&
+        contract.nextInvoiceDate > contract.deadline;
+      (ended ? settledEndedIds : settledActiveIds).push(contract.id);
+      continue;
+    }
     const totalBillable = contractRevenueBasis(contract);
     const thisInvoiceSum = invoice.items
       .filter((item) => item.contractId === contract.id)
@@ -325,9 +381,26 @@ export async function markInvoicePaid(id: string, formData: FormData) {
         data: { status: "PARTIALLY_PAID" },
       });
     }
+    if (settledActiveIds.length > 0) {
+      await tx.contract.updateMany({
+        where: { id: { in: settledActiveIds } },
+        data: { status: "ACTIVE" },
+      });
+    }
+    if (advancePaidOwingIds.length > 0) {
+      await tx.contract.updateMany({
+        where: { id: { in: advancePaidOwingIds } },
+        data: { status: "PENDING_PAYMENT" },
+      });
+    }
+    if (settledEndedIds.length > 0) {
+      await tx.contract.updateMany({
+        where: { id: { in: settledEndedIds } },
+        data: { status: "COMPLETED" },
+      });
+    }
     if (earningPlan) {
       await writeInvoiceEarning(tx, earningPlan, {
-        invoiceId: id,
         date: paidOn,
         createdByUserId,
       });
@@ -388,7 +461,6 @@ export async function addInvoiceEarning(id: string, formData: FormData) {
   await prisma.$transaction(async (tx) => {
     await tx.invoice.update({ where: { id }, data: { pkrAmount } });
     await writeInvoiceEarning(tx, earningPlan, {
-      invoiceId: id,
       date: receivedOn,
       createdByUserId,
     });
@@ -436,10 +508,28 @@ function parsePkrAmount(
  * it. Called before unmarking an invoice paid / deleting a paid invoice —
  * ProjectExpense rows are never touched here, since they're booked
  * independently at entry time, not at contract completion. */
-async function collectReversiblePartnerPaymentIds(contractIds: string[]) {
-  if (contractIds.length === 0) return [];
+async function collectReversiblePartnerPaymentIds(
+  invoiceId: string,
+  contracts: { id: string; paymentType: string }[],
+) {
+  if (contracts.length === 0) return [];
+  const fixedIds = contracts
+    .filter((c) => !isOpenEnded(c.paymentType))
+    .map((c) => c.id);
+  const openEndedIds = contracts
+    .filter((c) => isOpenEnded(c.paymentType))
+    .map((c) => c.id);
   const autoPartnerPayments = await prisma.partnerPayment.findMany({
-    where: { contractId: { in: contractIds }, source: "AUTO_COMPLETION" },
+    where: {
+      source: "AUTO_COMPLETION",
+      OR: [
+        // A fixed-price contract books its share once, on completion.
+        { contractId: { in: fixedIds } },
+        // An open-ended one books a share per paid invoice — only this
+        // invoice's own share is undone.
+        { contractId: { in: openEndedIds }, invoiceId },
+      ],
+    },
     select: { id: true, partnerPayslipId: true },
   });
   if (autoPartnerPayments.some((p) => p.partnerPayslipId)) {
@@ -448,6 +538,32 @@ async function collectReversiblePartnerPaymentIds(contractIds: string[]) {
     );
   }
   return autoPartnerPayments.map((p) => p.id);
+}
+
+async function invoiceContracts(contractIds: string[]) {
+  return contractIds.length > 0
+    ? prisma.contract.findMany({
+        where: { id: { in: contractIds } },
+        select: { id: true, paymentType: true },
+      })
+    : [];
+}
+
+/** Once an open-ended contract has no unpaid invoice left, it's no longer
+ * "payment due" — back to ACTIVE. */
+async function settleOpenEndedContracts(contractIds: string[]) {
+  if (contractIds.length === 0) return;
+  const owing = await prisma.invoiceItem.findMany({
+    where: { contractId: { in: contractIds }, invoice: { status: "UNPAID" } },
+    select: { contractId: true },
+  });
+  const owingIds = new Set(owing.map((item) => item.contractId));
+  const settled = contractIds.filter((id) => !owingIds.has(id));
+  if (settled.length === 0) return;
+  await prisma.contract.updateMany({
+    where: { id: { in: settled }, status: "PENDING_PAYMENT" },
+    data: { status: "ACTIVE" },
+  });
 }
 
 export async function markInvoiceUnpaid(id: string) {
@@ -465,9 +581,38 @@ export async function markInvoiceUnpaid(id: string) {
   if (!invoice) throw new Error("Invoice not found");
   if (invoice.status === "UNPAID") return;
 
-  const contractIds = invoice.contracts.map((c) => c.contractId);
-  const partnerPaymentIds =
-    await collectReversiblePartnerPaymentIds(contractIds);
+  const contracts = await invoiceContracts(
+    invoice.contracts.map((c) => c.contractId),
+  );
+  const fixedIds = contracts
+    .filter((c) => !isOpenEnded(c.paymentType))
+    .map((c) => c.id);
+  const openEndedIds = contracts
+    .filter((c) => isOpenEnded(c.paymentType))
+    .map((c) => c.id);
+  const partnerPaymentIds = await collectReversiblePartnerPaymentIds(
+    id,
+    contracts,
+  );
+  // A recurring contract with no other paid invoice was only ever paid its
+  // advance — un-paying it puts it back to awaiting that advance.
+  const recurringIds = contracts
+    .filter((c) => c.paymentType === "RECURRING")
+    .map((c) => c.id);
+  const everPaid = new Set(
+    recurringIds.length > 0
+      ? (
+          await prisma.invoiceItem.findMany({
+            where: {
+              contractId: { in: recurringIds },
+              invoice: { status: "PAID", id: { not: id } },
+            },
+            select: { contractId: true },
+          })
+        ).map((item) => item.contractId!)
+      : [],
+  );
+  const awaitingAdvanceIds = recurringIds.filter((cid) => !everPaid.has(cid));
 
   await prisma.$transaction([
     prisma.invoice.update({
@@ -482,10 +627,27 @@ export async function markInvoiceUnpaid(id: string) {
     }),
     prisma.contract.updateMany({
       where: {
-        id: { in: contractIds },
+        id: { in: fixedIds },
         status: { in: [...PAID_CONTRACT_STATUSES] },
       },
       data: { status: "PENDING_PAYMENT" },
+    }),
+    // An open-ended contract owes this invoice again.
+    prisma.contract.updateMany({
+      where: {
+        id: {
+          in: openEndedIds.filter((cid) => !awaitingAdvanceIds.includes(cid)),
+        },
+        status: { in: ["ACTIVE", "COMPLETED"] },
+      },
+      data: { status: "PENDING_PAYMENT" },
+    }),
+    prisma.contract.updateMany({
+      where: {
+        id: { in: awaitingAdvanceIds },
+        status: { in: ["ACTIVE", "COMPLETED", "PENDING_PAYMENT"] },
+      },
+      data: { status: "AWAITING_ADVANCE" },
     }),
     prisma.earning.deleteMany({ where: { invoiceId: id } }),
     prisma.partnerPayment.deleteMany({
@@ -503,6 +665,7 @@ export async function markInvoiceUnpaid(id: string) {
 
   revalidatePath("/projects/invoices");
   revalidatePath("/projects/contracts");
+  revalidatePath("/projects/recurring");
   revalidatePath("/account/earning");
   revalidatePath("/account/distributions");
   revalidatePath("/account/balance-sheet");
@@ -522,14 +685,25 @@ export async function deleteInvoice(id: string) {
   });
   if (!invoice) throw new Error("Invoice not found");
 
+  const contracts = await invoiceContracts(
+    invoice.contracts.map((c) => c.contractId),
+  );
+  const fixedIds = contracts
+    .filter((c) => !isOpenEnded(c.paymentType))
+    .map((c) => c.id);
+  const openEndedIds = contracts
+    .filter((c) => isOpenEnded(c.paymentType))
+    .map((c) => c.id);
+
   if (invoice.status === "PAID") {
-    const contractIds = invoice.contracts.map((c) => c.contractId);
-    const partnerPaymentIds =
-      await collectReversiblePartnerPaymentIds(contractIds);
+    const partnerPaymentIds = await collectReversiblePartnerPaymentIds(
+      id,
+      contracts,
+    );
     await prisma.$transaction([
       prisma.contract.updateMany({
         where: {
-          id: { in: contractIds },
+          id: { in: fixedIds },
           status: { in: [...PAID_CONTRACT_STATUSES] },
         },
         data: { status: "PENDING_PAYMENT" },
@@ -539,13 +713,15 @@ export async function deleteInvoice(id: string) {
       }),
       prisma.invoice.delete({ where: { id } }),
     ]);
-    revalidatePath("/projects/contracts");
     revalidatePath("/account/earning");
     revalidatePath("/account/distributions");
     revalidatePath("/account/balance-sheet");
   } else {
+    // Deleting an invoice frees any hours it billed (ContractHourLog's
+    // invoiceItemId is set null) so they can be invoiced again.
     await prisma.invoice.delete({ where: { id } });
   }
+  await settleOpenEndedContracts(openEndedIds);
 
   await logActivity(appUser, {
     action: "deleted",
@@ -556,6 +732,8 @@ export async function deleteInvoice(id: string) {
   });
 
   revalidatePath("/projects/invoices");
+  revalidatePath("/projects/contracts");
+  revalidatePath("/projects/recurring");
 }
 
 /** Switches overdue reminders on/off for one invoice. Turning them back on
@@ -579,4 +757,64 @@ export async function setInvoiceReminders(id: string, enabled: boolean) {
   });
 
   revalidatePath("/projects/invoices");
+}
+
+/** Sends an overdue reminder for one invoice right now, from the invoice's
+ * actions menu — works whether or not automatic reminders are switched on.
+ * It counts toward the automatic schedule (reminderCount/lastReminderAt),
+ * so the daily run won't send a second one a day later. */
+export async function sendInvoiceReminderNow(id: string) {
+  const { appUser } = await requirePagePermission("invoices", "edit");
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id },
+    select: {
+      number: true,
+      status: true,
+      dueDate: true,
+      reminderCount: true,
+      client: { select: { name: true, email: true } },
+    },
+  });
+  if (!invoice) throw new Error("Invoice not found");
+  if (invoice.status !== "UNPAID") {
+    throw new Error("This invoice is already paid");
+  }
+
+  const now = new Date();
+  const today = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+  if (invoice.dueDate >= today) {
+    throw new Error(
+      "This invoice isn't overdue yet — reminders can only be sent after its due date",
+    );
+  }
+  if (!invoice.client.email) {
+    throw new Error("This client has no email address on file");
+  }
+
+  const daysOverdue = Math.max(
+    1,
+    Math.round(
+      (today.getTime() - invoice.dueDate.getTime()) / (24 * 60 * 60 * 1000),
+    ),
+  );
+  // Throws if the email couldn't be sent, so nothing is recorded then.
+  await notifyInvoiceReminder(id, daysOverdue);
+
+  await prisma.invoice.update({
+    where: { id },
+    data: { reminderCount: { increment: 1 }, lastReminderAt: now },
+  });
+  await logActivity(appUser, {
+    action: "reminder-sent",
+    entityType: "invoice",
+    entityId: id,
+    summary: `Sent an overdue reminder for invoice ${formatInvoiceNumber(invoice.number)} to ${invoice.client.name} (${daysOverdue} day${daysOverdue === 1 ? "" : "s"} overdue)`,
+    page: "invoices",
+  });
+
+  revalidatePath("/projects/invoices");
+  return { sentTo: invoice.client.email };
 }

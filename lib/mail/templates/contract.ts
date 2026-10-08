@@ -18,6 +18,7 @@ import {
  * that mapping ever changes. */
 const CONTRACT_STATUS_TONE: Record<ContractStatus, StatusTone> = {
   PROPOSED: "neutral",
+  AWAITING_ADVANCE: "violet",
   UPFRONT_PAYMENT: "violet",
   ACTIVE: "emerald",
   PENDING_PAYMENT: "amber",
@@ -89,6 +90,35 @@ export function renderContractCreatedEmail({
   return renderEmailShell({ title: "New project created", bodyHtml });
 }
 
+/** Sent to the client when a recurring contract is created — the service
+ * agreement letter goes along as a PDF attachment. */
+export function renderServiceAgreementEmail({
+  projectName,
+  billing,
+  startDate,
+  endDate,
+}: {
+  projectName: string;
+  billing: string;
+  startDate: string;
+  endDate: string;
+}) {
+  const bodyHtml = `
+    <div style="margin-bottom:20px;">${emailBadge("Service Agreement")}</div>
+    <h1 class="em-heading" style="margin:0 0 12px 0;font-size:26px;font-weight:800;color:#18181b;">Your service agreement with Techstersol</h1>
+    <p class="em-muted" style="margin:0 0 24px 0;font-size:14px;line-height:1.8;color:#5b5b62;font-weight:300;">
+      We've set up a recurring service on your account. Your service agreement letter is attached — please keep it for your records. Invoices for each billing period will be emailed to you automatically.
+    </p>
+    ${emailInfoTable(
+      emailInfoRow("Service", projectName) +
+        emailInfoRow("Billing", billing) +
+        emailInfoRow("Start date", startDate) +
+        emailInfoRow("End date", endDate),
+    )}
+  `;
+  return renderEmailShell({ title: "Service agreement", bodyHtml });
+}
+
 /** Sent to a contract's partner or assigned team member when a dashboard
  * user adds them to a project (on create, or when an edit newly assigns
  * them) — never for a proposal the partner submitted themselves. The team
@@ -124,7 +154,10 @@ export function renderContractAssignedEmail({
     )}
     <div style="margin-top:28px;">${
       isPartner
-        ? emailButton("View in partner portal", `${appUrl}/partner-portal/projects`)
+        ? emailButton(
+            "View in partner portal",
+            `${appUrl}/partner-portal/projects`,
+          )
         : emailButton("View in your portal", `${appUrl}/portal/projects`)
     }</div>
   `;

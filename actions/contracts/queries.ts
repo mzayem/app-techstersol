@@ -5,6 +5,7 @@ import { dateWhere, type DateRange } from "@/lib/finance/date-range";
 export type SortOption =
   | "deadline-asc"
   | "deadline-desc"
+  | "next-invoice-asc"
   | "updated-desc"
   | "date-desc"
   | "date-asc"
@@ -12,6 +13,9 @@ export type SortOption =
   | "name-desc";
 
 export type ListFilters = {
+  /** "project" (the Contracts page: fixed-price and hourly) or "recurring"
+   * (the Recurring Contracts page). */
+  kind?: "project" | "recurring";
   search?: string;
   status?: ContractStatus;
   /** Omit for the default grouped view (see `sortDefaultView`); any
@@ -24,12 +28,27 @@ export type ListFilters = {
 const NEWEST = { createdAt: "desc" as const };
 const OLDEST = { createdAt: "asc" as const };
 
-function orderBy(sort: SortOption | undefined) {
+function orderBy(sort: SortOption | undefined, kind: "project" | "recurring") {
+  if (!sort && kind === "recurring") {
+    // Default recurring view: whichever bills next comes first.
+    return [
+      { nextInvoiceDate: { sort: "asc" as const, nulls: "last" as const } },
+      NEWEST,
+    ];
+  }
   switch (sort) {
+    case "next-invoice-asc":
+      return [
+        { nextInvoiceDate: { sort: "asc" as const, nulls: "last" as const } },
+        NEWEST,
+      ];
     case "date-asc":
       return [{ date: "asc" as const }, OLDEST];
     case "deadline-desc":
-      return [{ deadline: "desc" as const }, NEWEST];
+      return [
+        { deadline: { sort: "desc" as const, nulls: "last" as const } },
+        NEWEST,
+      ];
     case "updated-desc":
       return [{ updatedAt: "desc" as const }, NEWEST];
     case "name-asc":
@@ -41,7 +60,11 @@ function orderBy(sort: SortOption | undefined) {
     case "deadline-asc":
     default:
       // Soonest deadline first, newest as a tiebreak.
-      return [{ deadline: "asc" as const }, { date: "desc" as const }, NEWEST];
+      return [
+        { deadline: { sort: "asc" as const, nulls: "last" as const } },
+        { date: "desc" as const },
+        NEWEST,
+      ];
   }
 }
 
@@ -49,7 +72,8 @@ function orderBy(sort: SortOption | undefined) {
 const CLOSED_STATUSES: readonly string[] = ["COMPLETED", "CANCELLED"];
 
 /** The default view (no sort explicitly chosen): open contracts first by
- * soonest deadline (already ordered by the query), then completed and
+ * soonest deadline — or next invoice date, on the recurring page — as
+ * already ordered by the query, then completed and
  * cancelled ones by most recently modified — finished projects are just
  * history, so their deadline no longer matters. Any explicit sort from the
  * dropdown skips this grouping and applies flat across every status. */
@@ -63,9 +87,17 @@ function sortDefaultView<T extends { status: string; updatedAt: Date }>(
   return [...open, ...closed];
 }
 
+/** "101" or "#101" also finds contract #101. */
+function contractNumberMatch(search: string) {
+  const digits = search.trim().replace(/^#/, "");
+  return /^\d{1,9}$/.test(digits) ? [{ number: Number(digits) }] : [];
+}
+
 export async function listContracts(filters: ListFilters) {
+  const kind = filters.kind ?? "project";
   const contracts = await prisma.contract.findMany({
     where: {
+      paymentType: kind === "recurring" ? "RECURRING" : { not: "RECURRING" },
       status: filters.status,
       date: filters.dateRange ? dateWhere(filters.dateRange) : undefined,
       OR: filters.search
@@ -76,6 +108,7 @@ export async function listContracts(filters: ListFilters) {
                 name: { contains: filters.search, mode: "insensitive" },
               },
             },
+            ...contractNumberMatch(filters.search),
           ]
         : undefined,
     },
@@ -84,14 +117,20 @@ export async function listContracts(filters: ListFilters) {
       milestones: { orderBy: { deadline: "asc" } },
       projectExpenses: { orderBy: { date: "asc" } },
     },
-    orderBy: orderBy(filters.sort),
+    orderBy: orderBy(filters.sort, kind),
   });
 
-  const paidAmounts = await paidAmountsByContract(contracts.map((c) => c.id));
+  const [paidAmounts, unbilledHours] = await Promise.all([
+    paidAmountsByContract(contracts.map((c) => c.id)),
+    unbilledHoursByContract(
+      contracts.filter((c) => c.paymentType === "HOURLY").map((c) => c.id),
+    ),
+  ]);
 
   const withPaidAmount = contracts.map((contract) => ({
     ...contract,
     paidAmount: paidAmounts.get(contract.id) ?? 0,
+    unbilledHours: unbilledHours.get(contract.id) ?? 0,
   }));
 
   return filters.sort ? withPaidAmount : sortDefaultView(withPaidAmount);
@@ -115,6 +154,34 @@ async function paidAmountsByContract(contractIds: string[]) {
     );
   }
   return paid;
+}
+
+/** Logged hours not yet on any invoice, per HOURLY contract. */
+async function unbilledHoursByContract(contractIds: string[]) {
+  const hours = new Map<string, number>();
+  if (contractIds.length === 0) return hours;
+  const rows = await prisma.contractHourLog.groupBy({
+    by: ["contractId"],
+    where: { contractId: { in: contractIds }, invoiceItemId: null },
+    _sum: { hours: true },
+  });
+  for (const row of rows)
+    hours.set(row.contractId, Number(row._sum.hours ?? 0));
+  return hours;
+}
+
+/** Bank accounts an hourly/recurring contract's invoices can be issued
+ * against. */
+export async function listBankAccountOptions() {
+  return prisma.bankAccount.findMany({
+    select: {
+      id: true,
+      currency: true,
+      bankName: true,
+      accountHolderName: true,
+    },
+    orderBy: { bankName: "asc" },
+  });
 }
 
 export async function listClientOptions() {

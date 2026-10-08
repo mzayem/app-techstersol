@@ -29,7 +29,7 @@ import {
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import {
-  PAYMENT_TYPES,
+  FIXED_PAYMENT_TYPES,
   PAYMENT_TYPE_LABELS,
   type ContractPaymentType,
   type MilestoneInput,
@@ -320,7 +320,7 @@ export function PartnerContractRequestDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_TYPES.map((t) => (
+                  {FIXED_PAYMENT_TYPES.map((t) => (
                     <SelectItem key={t} value={t}>
                       {PAYMENT_TYPE_LABELS[t]}
                     </SelectItem>

@@ -29,13 +29,21 @@ import {
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import {
-  CONTRACT_STATUSES,
-  CONTRACT_STATUS_LABELS,
-  PAYMENT_TYPES,
+  BILLING_CYCLES,
+  BILLING_CYCLE_LABELS,
+  BILLING_CYCLE_UNITS,
+  PROJECT_STATUSES,
+  HOURLY_BILLING_CYCLES,
   PAYMENT_TYPE_LABELS,
+  PROJECT_PAYMENT_TYPES,
+  RECURRING_CREATE_STATUSES,
+  RECURRING_STATUSES,
   WORK_COST_MODES,
   WORK_COST_MODE_LABELS,
   contractRevenueBasis,
+  contractStatusLabel,
+  isOpenEnded,
+  type BillingCycle,
   type ContractPaymentType,
   type ContractStatus,
   type ContractWorkCostMode,
@@ -49,6 +57,8 @@ import { ContractChatButton } from "@/components/contracts/contract-chat";
 import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 import { ProjectExpensesSection } from "@/components/contracts/project-expenses-section";
+import { HourLogDialog } from "@/components/contracts/hour-log-dialog";
+import { formatContractNumber } from "@/lib/contracts/numbering-format";
 import { getFxEstimate } from "@/actions/contracts/actions";
 
 export type ClientOption = {
@@ -67,12 +77,24 @@ export type PartnerOption = {
   currency: PaymentCurrency;
 };
 
+export type BankAccountOption = {
+  id: string;
+  currency: PaymentCurrency;
+  bankName: string;
+  accountHolderName: string;
+};
+
+/** "project": the Contracts page (fixed-price and hourly). "recurring": the
+ * Recurring Contracts page — always paymentType RECURRING. */
+export type ContractVariant = "project" | "recurring";
+
 export type ContractEntry = {
   id: string;
+  number: number;
   clientId: string;
   clientEmail: string;
   date: Date;
-  deadline: Date;
+  deadline: Date | null;
   projectName: string;
   description: string | null;
   currency: PaymentCurrency;
@@ -87,6 +109,13 @@ export type ContractEntry = {
   workCostMode: ContractWorkCostMode | null;
   workCostPercent: number | null;
   partnerSharePercent: number | null;
+  billingCycle: BillingCycle | null;
+  bankAccountId: string | null;
+  invoiceDueDays: number;
+  terms: string | null;
+  nextInvoiceDate: Date | null;
+  /** HOURLY only — logged hours not yet on an invoice. */
+  unbilledHours: number;
   milestones: { name: string; amount: number; deadline: Date }[];
   projectExpenses: { id: string; date: Date; name: string; amount: number }[];
 };
@@ -110,6 +139,8 @@ export function ContractDialog({
   clients,
   teamMembers,
   partners,
+  bankAccounts,
+  variant = "project",
   open: openProp,
   onOpenChange: onOpenChangeProp,
   locked = false,
@@ -120,6 +151,8 @@ export function ContractDialog({
   clients: ClientOption[];
   teamMembers: TeamMemberOption[];
   partners: PartnerOption[];
+  bankAccounts: BankAccountOption[];
+  variant?: ContractVariant;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   locked?: boolean;
@@ -129,6 +162,10 @@ export function ContractDialog({
   canEdit?: boolean;
 }) {
   const isEdit = !!contract;
+  const isRecurringPage = variant === "recurring";
+  const defaultPaymentType: ContractPaymentType = isRecurringPage
+    ? "RECURRING"
+    : "PROJECT";
   const [internalOpen, setInternalOpen] = React.useState(false);
   const open = isEdit ? (openProp ?? false) : internalOpen;
   const setOpen = isEdit ? (onOpenChangeProp ?? (() => {})) : setInternalOpen;
@@ -142,7 +179,13 @@ export function ContractDialog({
   );
   const [paymentType, setPaymentType] = React.useState<
     ContractPaymentType | ""
-  >(contract?.paymentType ?? "PROJECT");
+  >(contract?.paymentType ?? defaultPaymentType);
+  const [billingCycle, setBillingCycle] = React.useState<BillingCycle | "">(
+    contract?.billingCycle ?? "MONTHLY",
+  );
+  const [bankAccountId, setBankAccountId] = React.useState(
+    contract?.bankAccountId ?? "",
+  );
   const [milestones, setMilestones] = React.useState<MilestoneRow[]>(
     contract?.milestones.length
       ? contract.milestones.map((m) => ({
@@ -217,7 +260,7 @@ export function ContractDialog({
 
     const revenue = contractRevenueBasis({
       paymentType: (paymentType || "PROJECT") as ContractPaymentType,
-      amount: paymentType === "PROJECT" ? Number(amount) : null,
+      amount: paymentType !== "MILESTONE" ? Number(amount) : null,
       milestones: milestones.map((m) => ({ amount: Number(m.amount) || 0 })),
     });
     const rate =
@@ -245,7 +288,9 @@ export function ContractDialog({
   function resetForm() {
     setClientId("");
     setCurrency("");
-    setPaymentType("PROJECT");
+    setPaymentType(defaultPaymentType);
+    setBillingCycle("MONTHLY");
+    setBankAccountId("");
     setMilestones([emptyMilestoneRow()]);
     setHandledBy("company");
     setTeamMemberId("");
@@ -263,7 +308,33 @@ export function ContractDialog({
   function onClientChange(id: string | null) {
     setClientId(id ?? "");
     const client = clients.find((c) => c.id === id);
-    if (client) setCurrency(client.currency);
+    if (client) onCurrencyChange(client.currency);
+  }
+
+  // Keeps the invoice bank account in step with the contract currency —
+  // invoices can only be paid into an account in their own currency.
+  function onCurrencyChange(next: PaymentCurrency | "") {
+    setCurrency(next);
+    const current = bankAccounts.find((b) => b.id === bankAccountId);
+    if (!current || current.currency !== next) {
+      setBankAccountId(bankAccounts.find((b) => b.currency === next)?.id ?? "");
+    }
+  }
+
+  function onPaymentTypeChange(next: ContractPaymentType | "") {
+    setPaymentType(next);
+    // Hourly work is only ever evaluated weekly or monthly.
+    if (
+      next === "HOURLY" &&
+      !(HOURLY_BILLING_CYCLES as readonly string[]).includes(billingCycle)
+    ) {
+      setBillingCycle("WEEKLY");
+    }
+    if (next && isOpenEnded(next) && !bankAccountId && currency) {
+      setBankAccountId(
+        bankAccounts.find((b) => b.currency === currency)?.id ?? "",
+      );
+    }
   }
 
   function updateMilestone(index: number, patch: Partial<MilestoneRow>) {
@@ -320,17 +391,42 @@ export function ContractDialog({
     });
   }
 
+  const openEnded = !!paymentType && isOpenEnded(paymentType);
+  const unit =
+    paymentType === "HOURLY"
+      ? "hour"
+      : paymentType === "RECURRING" && billingCycle
+        ? BILLING_CYCLE_UNITS[billingCycle]
+        : null;
+  // A new recurring contract is paid in advance: it starts as a Draft or
+  // goes straight to awaiting its advance (which invoices the first period).
+  const statusOptions: readonly ContractStatus[] = isRecurringPage
+    ? isEdit
+      ? RECURRING_STATUSES
+      : RECURRING_CREATE_STATUSES
+    : PROJECT_STATUSES;
+  const cycleOptions: readonly BillingCycle[] =
+    paymentType === "HOURLY" ? HOURLY_BILLING_CYCLES : BILLING_CYCLES;
+  const accountOptions = bankAccounts.filter(
+    (b) => !currency || b.currency === currency,
+  );
+  const noun = isRecurringPage ? "recurring contract" : "contract";
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
-          Add contract
+          Add {noun}
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit contract" : "Add contract"}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? `Edit ${noun} ${formatContractNumber(contract.number)}`
+              : `Add ${noun}`}
+          </DialogTitle>
         </DialogHeader>
         <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
@@ -347,10 +443,12 @@ export function ContractDialog({
               <input type="hidden" name="clientId" value={clientId} />
             </Field>
 
-            <Field label="Project name">
+            <Field label={isRecurringPage ? "Service name" : "Project name"}>
               <Input
                 name="projectName"
-                placeholder="Project name"
+                placeholder={
+                  isRecurringPage ? "e.g. Website maintenance" : "Project name"
+                }
                 required
                 disabled={locked}
                 defaultValue={contract?.projectName}
@@ -368,13 +466,15 @@ export function ContractDialog({
                   }
                 />
               </Field>
-              <Field label="Deadline">
+              <Field label={openEnded ? "End date (optional)" : "Deadline"}>
                 <DatePicker
                   name="deadline"
-                  required
+                  required={!openEnded}
                   disabled={locked}
                   defaultValue={
-                    contract ? toDateInputValue(contract.deadline) : undefined
+                    contract?.deadline
+                      ? toDateInputValue(contract.deadline)
+                      : undefined
                   }
                 />
               </Field>
@@ -396,7 +496,7 @@ export function ContractDialog({
                   name="currency"
                   value={currency}
                   onValueChange={(v) =>
-                    setCurrency((v ?? "") as PaymentCurrency | "")
+                    onCurrencyChange((v ?? "") as PaymentCurrency | "")
                   }
                   disabled={locked}
                 >
@@ -424,9 +524,9 @@ export function ContractDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Status</SelectItem>
-                    {CONTRACT_STATUSES.map((s) => (
+                    {statusOptions.map((s) => (
                       <SelectItem key={s} value={s}>
-                        {CONTRACT_STATUS_LABELS[s]}
+                        {contractStatusLabel(s, defaultPaymentType)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -434,28 +534,60 @@ export function ContractDialog({
               </Field>
             </div>
 
-            <Field label="Payment structure">
-              <Select
-                name="paymentType"
-                value={paymentType}
-                onValueChange={(v) =>
-                  setPaymentType((v ?? "") as ContractPaymentType | "")
+            {isRecurringPage ? (
+              <input type="hidden" name="paymentType" value="RECURRING" />
+            ) : (
+              <Field label="Payment structure">
+                <Select
+                  name="paymentType"
+                  value={paymentType}
+                  onValueChange={(v) =>
+                    onPaymentTypeChange((v ?? "") as ContractPaymentType | "")
+                  }
+                  disabled={locked}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Payment structure</SelectItem>
+                    {PROJECT_PAYMENT_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {PAYMENT_TYPE_LABELS[t]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+
+            {openEnded && (
+              <Field
+                label={
+                  paymentType === "HOURLY" ? "Hours invoiced" : "Billing cycle"
                 }
-                disabled={locked}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Payment structure</SelectItem>
-                  {PAYMENT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {PAYMENT_TYPE_LABELS[t]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+                <Select
+                  name="billingCycle"
+                  value={billingCycle}
+                  onValueChange={(v) =>
+                    setBillingCycle((v ?? "") as BillingCycle | "")
+                  }
+                  disabled={locked}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Billing cycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cycleOptions.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {BILLING_CYCLE_LABELS[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
 
             {paymentType === "MILESTONE" ? (
               <div className="flex flex-col gap-2">
@@ -517,7 +649,15 @@ export function ContractDialog({
                 </Button>
               </div>
             ) : (
-              <Field label="Amount">
+              <Field
+                label={
+                  paymentType === "HOURLY"
+                    ? "Hourly rate"
+                    : unit
+                      ? `Amount per ${unit}`
+                      : "Amount"
+                }
+              >
                 <Input
                   type="number"
                   name="amount"
@@ -530,6 +670,64 @@ export function ContractDialog({
                   onChange={(e) => setAmount(e.target.value)}
                 />
               </Field>
+            )}
+
+            {openEnded && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Invoices paid into">
+                  <Select
+                    value={bankAccountId}
+                    onValueChange={(v) => setBankAccountId(v ?? "")}
+                    disabled={locked}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Bank account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accountOptions.length === 0 && (
+                        <SelectItem value="" disabled>
+                          {currency
+                            ? `No ${currency} bank account`
+                            : "Pick a currency first"}
+                        </SelectItem>
+                      )}
+                      {accountOptions.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.bankName} — {b.accountHolderName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <input
+                    type="hidden"
+                    name="bankAccountId"
+                    value={bankAccountId}
+                  />
+                </Field>
+                <Field label="Invoice due after (days)">
+                  <Input
+                    type="number"
+                    name="invoiceDueDays"
+                    min="0"
+                    max="120"
+                    step="1"
+                    required
+                    disabled={locked}
+                    defaultValue={contract?.invoiceDueDays ?? 7}
+                  />
+                </Field>
+              </div>
+            )}
+
+            {isRecurringPage && (
+              <p className="text-xs text-muted-foreground">
+                Billed in advance: an invoice for each{" "}
+                {unit ?? "billing period"} is generated at the start of the
+                period and emailed to the client automatically.
+                {isEdit
+                  ? " Draft, paused, cancelled and completed contracts are never invoiced."
+                  : " Save as Awaiting advance payment to send the first invoice now — the contract turns Active once it's paid. Save as Draft to send nothing yet."}
+              </p>
             )}
 
             <div className="flex flex-col gap-1.5">
@@ -655,7 +853,13 @@ export function ContractDialog({
                 <input type="hidden" name="workCostMode" value={workCostMode} />
 
                 {workCostMode === "PERCENTAGE" && (
-                  <Field label="Work cost % of revenue">
+                  <Field
+                    label={
+                      unit
+                        ? `Work cost % of revenue per ${unit}`
+                        : "Work cost % of revenue"
+                    }
+                  >
                     <Input
                       type="number"
                       name="workCostPercent"
@@ -675,9 +879,9 @@ export function ContractDialog({
             {(handledBy === "outsourced" || partnerEnabled) && (
               <Field
                 label={
-                  partnerEnabled && workCostMode === "PERCENTAGE"
+                  (partnerEnabled && workCostMode === "PERCENTAGE"
                     ? "Estimated work cost (PKR) — editable"
-                    : "Work cost (PKR)"
+                    : "Work cost (PKR)") + (unit ? ` per ${unit}` : "")
                 }
               >
                 <Input
@@ -693,6 +897,20 @@ export function ContractDialog({
                   disabled={locked}
                   value={teamPayAmount}
                   onChange={(e) => setTeamPayAmount(e.target.value)}
+                />
+              </Field>
+            )}
+
+            {isRecurringPage && (
+              <Field label="Terms (printed on the service agreement)">
+                <Textarea
+                  name="terms"
+                  placeholder={
+                    "Optional — one term per line, e.g.\nEither party may cancel with 30 days' written notice."
+                  }
+                  rows={3}
+                  disabled={locked}
+                  defaultValue={contract?.terms ?? undefined}
                 />
               </Field>
             )}
@@ -778,11 +996,7 @@ export function ContractDialog({
           {!locked && (
             <DialogFooter>
               <Button key="save" type="submit" loading={pending}>
-                {pending
-                  ? "Saving…"
-                  : isEdit
-                    ? "Save changes"
-                    : "Save contract"}
+                {pending ? "Saving…" : isEdit ? "Save changes" : `Save ${noun}`}
               </Button>
             </DialogFooter>
           )}
@@ -797,6 +1011,8 @@ export function ContractRowActions({
   clients,
   teamMembers,
   partners,
+  bankAccounts,
+  variant = "project",
   children,
   selected,
   onRowClick,
@@ -807,6 +1023,8 @@ export function ContractRowActions({
   clients: ClientOption[];
   teamMembers: TeamMemberOption[];
   partners: PartnerOption[];
+  bankAccounts: BankAccountOption[];
+  variant?: ContractVariant;
   children: React.ReactNode;
   selected?: boolean;
   onRowClick?: (e: React.MouseEvent) => void;
@@ -816,6 +1034,7 @@ export function ContractRowActions({
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [hoursOpen, setHoursOpen] = React.useState(false);
 
   function openView() {
     setLocked(true);
@@ -856,6 +1075,16 @@ export function ContractRowActions({
             <ContractActionsMenu
               onEdit={openEdit}
               onDelete={() => setDeleteOpen(true)}
+              onLogHours={
+                entry.paymentType === "HOURLY"
+                  ? () => setHoursOpen(true)
+                  : undefined
+              }
+              agreementHref={
+                isOpenEnded(entry.paymentType)
+                  ? `/api/contracts/${entry.id}/agreement`
+                  : undefined
+              }
               canEdit={canEdit}
               canDelete={canDelete}
             />
@@ -867,12 +1096,22 @@ export function ContractRowActions({
         clients={clients}
         teamMembers={teamMembers}
         partners={partners}
+        bankAccounts={bankAccounts}
+        variant={variant}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         locked={locked}
         onUnlock={() => setLocked(false)}
         canEdit={canEdit}
       />
+      {entry.paymentType === "HOURLY" && (
+        <HourLogDialog
+          open={hoursOpen}
+          onOpenChange={setHoursOpen}
+          contract={entry}
+          canEdit={canEdit}
+        />
+      )}
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}

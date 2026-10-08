@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatContractNumber } from "@/lib/contracts/numbering-format";
 
 import { PartnerEarningsChart } from "@/components/partner-portal/partner-earnings-chart";
 import { PartnerClientRevenueChart } from "@/components/partner-portal/partner-client-revenue-chart";
@@ -14,8 +15,8 @@ import {
 } from "@/components/ui/table";
 import { formatPkr } from "@/lib/finance/constants";
 import {
-  formatContractAmount,
-  CONTRACT_STATUS_LABELS,
+  contractAmountLabel,
+  contractStatusLabel,
 } from "@/lib/contracts/constants";
 import { requirePartnerUser } from "@/lib/rbac/permissions";
 import {
@@ -101,26 +102,30 @@ export default async function PartnerPortalOverviewPage() {
                 </TableRow>
               )}
               {contracts.slice(0, OVERVIEW_ROW_LIMIT).map((contract) => {
-                const total =
-                  contract.paymentType === "PROJECT"
-                    ? (contract.amount ?? 0)
-                    : contract.milestones.reduce((sum, m) => sum + m.amount, 0);
                 return (
                   <TableRow key={contract.id}>
                     <TableCell className="font-medium">
+                      <span className="mr-1.5 text-xs font-normal text-muted-foreground tabular-nums">
+                        {formatContractNumber(contract.number)}
+                      </span>
                       {contract.projectName}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {contract.clientName}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDate(contract.deadline)}
+                      {contract.deadline
+                        ? formatDate(contract.deadline)
+                        : "Ongoing"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatContractAmount(total, contract.currency)}
+                      {contractAmountLabel(contract)}
                     </TableCell>
                     <TableCell>
-                      {CONTRACT_STATUS_LABELS[contract.status]}
+                      {contractStatusLabel(
+                        contract.status,
+                        contract.paymentType,
+                      )}
                     </TableCell>
                     <TableCell>
                       <ContractChatButton

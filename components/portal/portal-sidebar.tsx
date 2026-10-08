@@ -7,6 +7,7 @@ import {
   CalendarDays,
   FolderKanban,
   LayoutDashboard,
+  Repeat,
   ReceiptText,
   Settings,
   UserCircle,
@@ -31,6 +32,7 @@ import { Separator } from "@/components/ui/separator";
 const PORTAL_NAV = [
   { title: "Overview", url: "/portal", icon: LayoutDashboard },
   { title: "My Projects", url: "/portal/projects", icon: FolderKanban },
+  { title: "My Services", url: "/portal/services", icon: Repeat },
   {
     title: "Work Diary",
     url: "/portal/work-diary",

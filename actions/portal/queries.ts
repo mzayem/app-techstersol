@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { CONTRACT_STATUSES_EXCLUDED_FROM_PENDING } from "@/lib/contracts/constants";
+import { pendingContractTeamPay } from "@/lib/contracts/team-pay";
 
 export type PortalOverview = {
   completedProjects: number;
@@ -25,20 +25,12 @@ export async function getPortalOverview(
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const yearEnd = new Date(now.getFullYear(), 11, 31);
 
-  const [contracts, openContracts, diarySum, paidThisYear] = await Promise.all([
+  const [contracts, openTeamPay, diarySum, paidThisYear] = await Promise.all([
     prisma.contract.findMany({
       where: { teamMemberId },
       select: { status: true },
     }),
-    prisma.contract.findMany({
-      where: {
-        teamMemberId,
-        status: {
-          notIn: ["COMPLETED", ...CONTRACT_STATUSES_EXCLUDED_FROM_PENDING],
-        },
-      },
-      select: { teamPayAmount: true },
-    }),
+    pendingContractTeamPay({ teamMemberId }),
     prisma.workDiaryEntry.aggregate({
       where: { teamMemberId },
       _sum: { amount: true },
@@ -56,10 +48,6 @@ export async function getPortalOverview(
     (c) => c.status === "COMPLETED",
   ).length;
   const pendingProjects = contracts.length - completedProjects;
-  const openTeamPay = openContracts.reduce(
-    (sum, c) => sum + Number(c.teamPayAmount ?? 0),
-    0,
-  );
 
   return {
     completedProjects,
@@ -71,20 +59,38 @@ export async function getPortalOverview(
 
 export type MyProject = {
   id: string;
+  number: number;
   projectName: string;
-  deadline: Date;
+  date: Date;
+  deadline: Date | null;
   status: string;
+  paymentType: string;
+  billingCycle: string | null;
 };
 
-/** Project name and deadline only — the contract amount and client
- * details are confidential and never exposed here. */
+/** Project name and dates only — the contract amount and client details
+ * are confidential and never exposed here. "project" (default) excludes
+ * recurring services, which have their own page. */
 export async function listMyProjects(
   teamMemberId: string,
+  kind: "project" | "recurring" = "project",
 ): Promise<MyProject[]> {
   return prisma.contract.findMany({
-    where: { teamMemberId },
-    select: { id: true, projectName: true, deadline: true, status: true },
-    orderBy: { deadline: "asc" },
+    where: {
+      teamMemberId,
+      paymentType: kind === "recurring" ? "RECURRING" : { not: "RECURRING" },
+    },
+    select: {
+      id: true,
+      number: true,
+      projectName: true,
+      date: true,
+      deadline: true,
+      status: true,
+      paymentType: true,
+      billingCycle: true,
+    },
+    orderBy: { deadline: { sort: "asc", nulls: "last" } },
   });
 }
 

@@ -1,6 +1,12 @@
 "use client";
 
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import {
+  ClockIcon,
+  FileBadgeIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,15 +22,21 @@ import {
 export function ContractActionsMenu({
   onEdit,
   onDelete,
+  onLogHours,
+  agreementHref,
   canEdit = true,
   canDelete = true,
 }: {
   onEdit: () => void;
   onDelete: () => void;
+  /** HOURLY contracts only — opens the logged-hours dialog. */
+  onLogHours?: () => void;
+  /** Hourly/recurring contracts only — the agreement letter PDF. */
+  agreementHref?: string;
   canEdit?: boolean;
   canDelete?: boolean;
 }) {
-  if (!canEdit && !canDelete) return null;
+  if (!canEdit && !canDelete && !onLogHours && !agreementHref) return null;
 
   return (
     <DropdownMenu>
@@ -48,7 +60,23 @@ export function ContractActionsMenu({
               Update
             </DropdownMenuItem>
           )}
-          {canEdit && canDelete && <DropdownMenuSeparator />}
+          {onLogHours && (
+            <DropdownMenuItem onClick={onLogHours}>
+              <ClockIcon />
+              Hours &amp; invoicing
+            </DropdownMenuItem>
+          )}
+          {agreementHref && (
+            <DropdownMenuItem
+              render={
+                <a href={agreementHref} target="_blank" rel="noreferrer" />
+              }
+            >
+              <FileBadgeIcon />
+              Service agreement
+            </DropdownMenuItem>
+          )}
+          {canDelete && <DropdownMenuSeparator />}
           {canDelete && (
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               <Trash2Icon />

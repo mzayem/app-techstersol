@@ -3,6 +3,7 @@ import { renderCustomerPerformance } from "@/lib/reports/analysis/customer-perfo
 import { renderMonthlyRevenue } from "@/lib/reports/analysis/monthly-revenue";
 import { renderExpenseTracking } from "@/lib/reports/analysis/expense-tracking";
 import { renderPerformance } from "@/lib/reports/analysis/performance";
+import { renderRecurringRevenue } from "@/lib/reports/analysis/recurring-revenue";
 import { renderTaxYearReport } from "@/lib/reports/analysis/tax-year";
 
 export type AnalysisReportType =
@@ -11,6 +12,7 @@ export type AnalysisReportType =
   | "monthly-revenue"
   | "expense-tracking"
   | "performance"
+  | "recurring-revenue"
   | "tax-year";
 
 export type AnalysisReportDef = {
@@ -69,6 +71,15 @@ export const ANALYSIS_REPORTS: Record<AnalysisReportType, AnalysisReportDef> = {
     tab: "performance",
     periodKind: "range",
     render: renderPerformance,
+  },
+  "recurring-revenue": {
+    title: "Recurring Revenue Report",
+    description:
+      "MRR, invoiced vs. collected by month, outstanding, and every recurring contract.",
+    filename: "recurring-revenue-report",
+    tab: "performance",
+    periodKind: "range",
+    render: renderRecurringRevenue,
   },
   "tax-year": {
     title: "Annual Report",

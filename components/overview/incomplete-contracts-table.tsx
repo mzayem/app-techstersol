@@ -18,13 +18,13 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   CONTRACT_STATUS_LABELS,
-  formatContractAmount,
   type ContractStatus,
 } from "@/lib/contracts/constants";
 import type { IncompleteContract } from "@/actions/overview/queries";
 
 const STATUS_STYLES: Record<ContractStatus, string> = {
   PROPOSED: "bg-muted text-muted-foreground",
+  AWAITING_ADVANCE: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
   UPFRONT_PAYMENT: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   ACTIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   PENDING_PAYMENT: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
@@ -85,9 +85,13 @@ export function IncompleteContractsTable({
                   <TableCell className="font-medium">
                     {contract.projectName}
                   </TableCell>
-                  <TableCell>{formatDate(contract.deadline)}</TableCell>
+                  <TableCell>
+                    {contract.deadline
+                      ? formatDate(contract.deadline)
+                      : "Ongoing"}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatContractAmount(contract.amount, contract.currency)}
+                    {contract.amountLabel}
                   </TableCell>
                   <TableCell>
                     <span

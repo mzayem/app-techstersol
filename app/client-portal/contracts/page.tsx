@@ -1,4 +1,5 @@
 import { ClientContractRequestDialog } from "@/components/client-portal/client-contract-request-dialog";
+import { formatContractNumber } from "@/lib/contracts/numbering-format";
 import { ClientContractsFilterBar } from "@/components/client-portal/client-contracts-filter-bar";
 import { ContractStatusStepper } from "@/components/client-portal/contract-status-stepper";
 import { StatTile } from "@/components/client-portal/stat-breakdown";
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
-import { formatContractAmount } from "@/lib/contracts/constants";
+import { contractAmountLabel } from "@/lib/contracts/constants";
 import {
   getActiveClientProfiles,
   requireClientUser,
@@ -114,13 +115,12 @@ export default async function ClientContractsPage({
               </TableRow>
             )}
             {paginated.items.map((contract) => {
-              const total =
-                contract.paymentType === "PROJECT"
-                  ? (contract.amount ?? 0)
-                  : contract.milestones.reduce((sum, m) => sum + m.amount, 0);
               return (
                 <TableRow key={contract.id}>
                   <TableCell className="font-medium">
+                    <span className="mr-1.5 text-xs font-normal text-muted-foreground tabular-nums">
+                      {formatContractNumber(contract.number)}
+                    </span>
                     {contract.projectName}
                     {contract.description && (
                       <span className="block text-xs font-normal text-muted-foreground">
@@ -134,10 +134,12 @@ export default async function ClientContractsPage({
                     </TableCell>
                   )}
                   <TableCell className="text-muted-foreground">
-                    {formatDate(contract.deadline)}
+                    {contract.deadline
+                      ? formatDate(contract.deadline)
+                      : "Ongoing"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatContractAmount(total, contract.currency)}
+                    {contractAmountLabel(contract)}
                   </TableCell>
                   <TableCell>
                     <ContractStatusStepper status={contract.status} />

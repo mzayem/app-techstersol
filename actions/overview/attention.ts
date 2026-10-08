@@ -103,7 +103,9 @@ export async function getAttentionGroups(
       ? prisma.contract.findMany({
           where: {
             status: { in: ["UPFRONT_PAYMENT", "ACTIVE"] },
-            deadline: { lte: windowEnd },
+            // A recurring contract's end date isn't a delivery deadline.
+            paymentType: { not: "RECURRING" },
+            deadline: { not: null, lte: windowEnd },
           },
           select: {
             id: true,
@@ -129,7 +131,10 @@ export async function getAttentionGroups(
       : [],
     access.contracts && access.invoices
       ? prisma.contract.findMany({
-          where: { status: { in: ["PENDING_PAYMENT", "PARTIALLY_PAID"] } },
+          where: {
+            status: { in: ["PENDING_PAYMENT", "PARTIALLY_PAID"] },
+            paymentType: { in: ["PROJECT", "MILESTONE"] },
+          },
           select: {
             id: true,
             projectName: true,
@@ -204,7 +209,7 @@ export async function getAttentionGroups(
       count: workingContracts.length,
       href: "/projects/contracts",
       rows: workingContracts.map((c) => {
-        const days = daysBetween(today, c.deadline);
+        const days = daysBetween(today, c.deadline!);
         return {
           id: c.id,
           label: `${c.projectName} · ${c.client.name}`,

@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatContractNumber } from "@/lib/contracts/numbering-format";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import { requireTeamUser } from "@/lib/rbac/permissions";
@@ -73,10 +74,13 @@ export default async function PortalProjectsPage({
             {paginated.items.map((project) => (
               <TableRow key={project.id}>
                 <TableCell className="font-medium">
+                  <span className="mr-1.5 text-xs font-normal text-muted-foreground tabular-nums">
+                    {formatContractNumber(project.number)}
+                  </span>
                   {project.projectName}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {formatDate(project.deadline)}
+                  {project.deadline ? formatDate(project.deadline) : "Ongoing"}
                 </TableCell>
                 <TableCell>
                   {STATUS_LABELS[project.status] ?? project.status}

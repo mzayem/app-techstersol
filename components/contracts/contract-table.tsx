@@ -21,21 +21,29 @@ import {
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import {
-  CONTRACT_STATUSES,
-  CONTRACT_STATUS_LABELS,
+  BILLING_CYCLE_LABELS,
+  PROJECT_STATUSES,
   PAYMENT_TYPE_LABELS,
+  RECURRING_BILLING_STATUSES,
+  RECURRING_STATUSES,
+  contractAmountLabel,
+  contractStatusLabel,
   formatContractAmount,
+  isOpenEnded,
   type ContractStatus,
 } from "@/lib/contracts/constants";
 import { bulkUpdateContractStatus } from "@/actions/contracts/actions";
 import {
   ContractRowActions,
+  type BankAccountOption,
   type ClientOption,
   type ContractEntry,
+  type ContractVariant,
   type PartnerOption,
   type TeamMemberOption,
 } from "@/components/contracts/contract-dialog";
 import { toast } from "@/components/ui/toast";
+import { formatContractNumber } from "@/lib/contracts/numbering-format";
 
 export type ContractListItem = ContractEntry & {
   clientName: string;
@@ -48,6 +56,8 @@ export function ContractTable({
   clients,
   teamMembers,
   partners,
+  bankAccounts,
+  variant = "project",
   canEdit = true,
   canDelete = true,
   pagination,
@@ -56,6 +66,8 @@ export function ContractTable({
   clients: ClientOption[];
   teamMembers: TeamMemberOption[];
   partners: PartnerOption[];
+  bankAccounts: BankAccountOption[];
+  variant?: ContractVariant;
   canEdit?: boolean;
   canDelete?: boolean;
   pagination?: {
@@ -135,6 +147,11 @@ export function ContractTable({
     });
   }
 
+  const isRecurringPage = variant === "recurring";
+  const statusOptions: readonly ContractStatus[] = isRecurringPage
+    ? RECURRING_STATUSES
+    : PROJECT_STATUSES;
+
   const allSelected =
     contracts.length > 0 && visibleSelectedIds.length === contracts.length;
   const someSelected = visibleSelectedIds.length > 0 && !allSelected;
@@ -154,9 +171,12 @@ export function ContractTable({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CONTRACT_STATUSES.map((s) => (
+              {statusOptions.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {CONTRACT_STATUS_LABELS[s]}
+                  {contractStatusLabel(
+                    s,
+                    isRecurringPage ? "RECURRING" : "PROJECT",
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -184,11 +204,20 @@ export function ContractTable({
                 />
               </TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Project</TableHead>
+              <TableHead>{isRecurringPage ? "Service" : "Project"}</TableHead>
               <TableHead>Start date</TableHead>
-              <TableHead>Deadline</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>{isRecurringPage ? "End date" : "Deadline"}</TableHead>
+              {isRecurringPage ? (
+                <>
+                  <TableHead className="text-right">Billing</TableHead>
+                  <TableHead>Next invoice</TableHead>
+                </>
+              ) : (
+                <>
+                  <TableHead>Payment</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </>
+              )}
               <TableHead>Status</TableHead>
               <TableHead className="w-0" />
             </TableRow>
@@ -200,7 +229,9 @@ export function ContractTable({
                   colSpan={9}
                   className="py-8 text-center text-muted-foreground"
                 >
-                  No contracts found.
+                  {isRecurringPage
+                    ? "No recurring contracts found."
+                    : "No contracts found."}
                 </TableCell>
               </TableRow>
             )}
@@ -213,6 +244,8 @@ export function ContractTable({
                   clients={clients}
                   teamMembers={teamMembers}
                   partners={partners}
+                  bankAccounts={bankAccounts}
+                  variant={variant}
                   selected={isSelected}
                   onRowClick={(e) => onRowClick(index, contract.id, e)}
                   canEdit={canEdit}
@@ -228,42 +261,98 @@ export function ContractTable({
                   </TableCell>
                   <TableCell>{contract.clientName}</TableCell>
                   <TableCell className="font-medium">
+                    <span className="mr-1.5 text-xs font-normal text-muted-foreground tabular-nums">
+                      {formatContractNumber(contract.number)}
+                    </span>
                     {contract.projectName}
                   </TableCell>
                   <TableCell>{formatDate(contract.date)}</TableCell>
-                  <TableCell>{formatDate(contract.deadline)}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {PAYMENT_TYPE_LABELS[contract.paymentType]}
-                    {contract.paymentType === "MILESTONE" && (
-                      <span className="block text-xs">
-                        {contract.milestones.length} installment
-                        {contract.milestones.length === 1 ? "" : "s"}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatContractAmount(
-                      contract.totalAmount,
-                      contract.currency,
-                    )}
-                    {contract.paidAmount > 0.01 &&
-                      contract.paidAmount < contract.totalAmount - 0.01 && (
-                        <span className="block text-xs font-normal text-muted-foreground">
-                          Received{" "}
-                          {formatContractAmount(
-                            contract.paidAmount,
-                            contract.currency,
-                          )}{" "}
-                          · Pending{" "}
-                          {formatContractAmount(
-                            contract.totalAmount - contract.paidAmount,
-                            contract.currency,
-                          )}
-                        </span>
-                      )}
-                  </TableCell>
                   <TableCell>
-                    <StatusPill status={contract.status} />
+                    {contract.deadline ? (
+                      formatDate(contract.deadline)
+                    ) : (
+                      <span className="text-muted-foreground">Ongoing</span>
+                    )}
+                  </TableCell>
+                  {isRecurringPage ? (
+                    <>
+                      <TableCell className="text-right tabular-nums">
+                        {contractAmountLabel(contract)}
+                        {contract.billingCycle && (
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {BILLING_CYCLE_LABELS[contract.billingCycle]}
+                            {contract.paidAmount > 0.01 &&
+                              ` · ${formatContractAmount(contract.paidAmount, contract.currency)} received`}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <NextInvoiceCell contract={contract} />
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell className="text-muted-foreground">
+                        {PAYMENT_TYPE_LABELS[contract.paymentType]}
+                        {contract.paymentType === "MILESTONE" && (
+                          <span className="block text-xs">
+                            {contract.milestones.length} installment
+                            {contract.milestones.length === 1 ? "" : "s"}
+                          </span>
+                        )}
+                        {contract.paymentType === "HOURLY" &&
+                          contract.billingCycle && (
+                            <span className="block text-xs">
+                              Invoiced{" "}
+                              {BILLING_CYCLE_LABELS[
+                                contract.billingCycle
+                              ].toLowerCase()}
+                              {contract.unbilledHours > 0 &&
+                                ` · ${contract.unbilledHours} h unbilled`}
+                            </span>
+                          )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {isOpenEnded(contract.paymentType)
+                          ? contractAmountLabel(contract)
+                          : formatContractAmount(
+                              contract.totalAmount,
+                              contract.currency,
+                            )}
+                        {isOpenEnded(contract.paymentType) &&
+                          contract.paidAmount > 0.01 && (
+                            <span className="block text-xs font-normal text-muted-foreground">
+                              Received{" "}
+                              {formatContractAmount(
+                                contract.paidAmount,
+                                contract.currency,
+                              )}
+                            </span>
+                          )}
+                        {!isOpenEnded(contract.paymentType) &&
+                          contract.paidAmount > 0.01 &&
+                          contract.paidAmount < contract.totalAmount - 0.01 && (
+                            <span className="block text-xs font-normal text-muted-foreground">
+                              Received{" "}
+                              {formatContractAmount(
+                                contract.paidAmount,
+                                contract.currency,
+                              )}{" "}
+                              · Pending{" "}
+                              {formatContractAmount(
+                                contract.totalAmount - contract.paidAmount,
+                                contract.currency,
+                              )}
+                            </span>
+                          )}
+                      </TableCell>
+                    </>
+                  )}
+                  <TableCell>
+                    <StatusPill
+                      status={contract.status}
+                      paymentType={contract.paymentType}
+                    />
                   </TableCell>
                 </ContractRowActions>
               );
@@ -283,9 +372,33 @@ export function ContractTable({
   );
 }
 
-function StatusPill({ status }: { status: ContractStatus }) {
+/** When the next invoice goes out — or why it won't. */
+function NextInvoiceCell({ contract }: { contract: ContractListItem }) {
+  const billing = (RECURRING_BILLING_STATUSES as readonly string[]).includes(
+    contract.status,
+  );
+  if (!billing) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  if (
+    !contract.nextInvoiceDate ||
+    (contract.deadline && contract.nextInvoiceDate > contract.deadline)
+  ) {
+    return <span className="text-muted-foreground">All periods invoiced</span>;
+  }
+  return <span>{formatDate(contract.nextInvoiceDate)}</span>;
+}
+
+function StatusPill({
+  status,
+  paymentType,
+}: {
+  status: ContractStatus;
+  paymentType: string;
+}) {
   const styles: Record<ContractStatus, string> = {
     PROPOSED: "bg-muted text-muted-foreground",
+    AWAITING_ADVANCE: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
     UPFRONT_PAYMENT: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
     ACTIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     PENDING_PAYMENT: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
@@ -301,7 +414,7 @@ function StatusPill({ status }: { status: ContractStatus }) {
         styles[status]
       }
     >
-      {CONTRACT_STATUS_LABELS[status]}
+      {contractStatusLabel(status, paymentType)}
     </span>
   );
 }
@@ -311,5 +424,6 @@ function formatDate(date: Date) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   }).format(date);
 }

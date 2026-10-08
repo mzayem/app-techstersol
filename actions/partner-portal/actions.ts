@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { createNumberedContract } from "@/lib/contracts/numbering";
 import {
   PAYMENT_CURRENCIES,
   type PaymentCurrency,
 } from "@/lib/clients/constants";
 import {
-  PAYMENT_TYPES,
+  FIXED_PAYMENT_TYPES,
   formatContractAmount,
   type ContractPaymentType,
   type MilestoneInput,
@@ -110,7 +111,7 @@ function readPartnerContractFields(
   if (!date || !deadline || !projectName) {
     throw new Error("Dates and project name are required");
   }
-  if (!PAYMENT_TYPES.includes(paymentTypeRaw as ContractPaymentType)) {
+  if (!(FIXED_PAYMENT_TYPES as readonly string[]).includes(paymentTypeRaw)) {
     throw new Error("Invalid payment type");
   }
 
@@ -189,24 +190,22 @@ export async function createPartnerContractRequest(
     ...fields
   } = readPartnerContractFields(formData, milestones);
 
-  const created = await prisma.contract.create({
-    data: {
-      ...fields,
-      clientId: client.id,
-      currency: client.currency,
-      status: "PROPOSED",
-      partnerId,
-      // Locked in from this partner's own profile at proposal time, rather
-      // than left null to fall back on later — so it's visible to the admin
-      // reviewing the proposal right away, not just implicit at booking time.
-      // Still just a default: the admin can override it like any other
-      // contract field before activating the project.
-      partnerSharePercent: sharePercentage,
-      teamMemberId,
-      teamPayAmount: suggestedWorkCost,
-      createdByUserId: appUser.authUserId,
-      milestones: { create: validMilestones },
-    },
+  const created = await createNumberedContract({
+    ...fields,
+    clientId: client.id,
+    currency: client.currency,
+    status: "PROPOSED",
+    partnerId,
+    // Locked in from this partner's own profile at proposal time, rather
+    // than left null to fall back on later — so it's visible to the admin
+    // reviewing the proposal right away, not just implicit at booking time.
+    // Still just a default: the admin can override it like any other
+    // contract field before activating the project.
+    partnerSharePercent: sharePercentage,
+    teamMemberId,
+    teamPayAmount: suggestedWorkCost,
+    createdByUserId: appUser.authUserId,
+    milestones: { create: validMilestones },
   });
 
   await notifyProposalSubmitted({
@@ -274,7 +273,12 @@ export async function createPartnerInvoice(
   const contractIds = [...new Set(items.map((item) => item.contractId))];
 
   const contracts = await prisma.contract.findMany({
-    where: { id: { in: contractIds }, partnerId },
+    // Hourly and recurring contracts are invoiced by staff, not here.
+    where: {
+      id: { in: contractIds },
+      partnerId,
+      paymentType: { in: ["PROJECT", "MILESTONE"] },
+    },
     select: {
       id: true,
       clientId: true,

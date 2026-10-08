@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   FolderKanban,
   LayoutDashboard,
+  Repeat,
   ReceiptText,
   Settings,
   UserCircle,
@@ -30,6 +31,7 @@ import { Separator } from "@/components/ui/separator";
 const CLIENT_NAV = [
   { title: "Overview", url: "/client-portal", icon: LayoutDashboard },
   { title: "Contracts", url: "/client-portal/contracts", icon: FolderKanban },
+  { title: "Services", url: "/client-portal/services", icon: Repeat },
   { title: "Invoices", url: "/client-portal/invoices", icon: ReceiptText },
   {
     title: "Profile",

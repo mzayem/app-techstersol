@@ -5,6 +5,7 @@ import {
   BellRingIcon,
   CheckCircleIcon,
   DownloadIcon,
+  MailWarningIcon,
   MoreHorizontalIcon,
   RotateCcwIcon,
   WalletIcon,
@@ -28,6 +29,8 @@ export function InvoiceActionsMenu({
   pdfHref,
   remindersEnabled,
   needsEarning,
+  overdue,
+  onSendReminder,
   onMarkPaid,
   onAddEarning,
   onMarkUnpaid,
@@ -39,6 +42,9 @@ export function InvoiceActionsMenu({
   remindersEnabled: boolean;
   /** Paid, but its earning hasn't been booked yet. */
   needsEarning: boolean;
+  /** Unpaid and past its due date — a reminder can be sent now. */
+  overdue: boolean;
+  onSendReminder: () => void;
   onMarkPaid: () => void;
   onAddEarning: () => void;
   onMarkUnpaid: () => void;
@@ -83,6 +89,12 @@ export function InvoiceActionsMenu({
             <DropdownMenuItem onClick={onAddEarning}>
               <WalletIcon />
               Add to earning
+            </DropdownMenuItem>
+          )}
+          {status === "UNPAID" && overdue && (
+            <DropdownMenuItem onClick={onSendReminder}>
+              <MailWarningIcon />
+              Send reminder now
             </DropdownMenuItem>
           )}
           {status === "UNPAID" && (

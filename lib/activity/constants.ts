@@ -4,6 +4,7 @@ export const ACTIVITY_ENTITY_LABELS: Record<string, string> = {
   client: "Client",
   contract: "Contract",
   "project-expense": "Project expense",
+  "hour-log": "Logged hours",
   invoice: "Invoice",
   earning: "Earning",
   expense: "Expense",

@@ -108,7 +108,11 @@ export async function listInvoiceSources() {
       take: 100,
     }),
     prisma.contract.findMany({
-      where: { status: { not: "COMPLETED" } },
+      // Hourly and recurring contracts are invoiced from their own flows.
+      where: {
+        status: { not: "COMPLETED" },
+        paymentType: { in: ["PROJECT", "MILESTONE"] },
+      },
       select: {
         id: true,
         clientId: true,
@@ -199,7 +203,11 @@ async function getProjectBalance(
   if (contractIds.length === 0) return null;
 
   const contracts = await prisma.contract.findMany({
-    where: { id: { in: contractIds } },
+    // An open-ended contract has no total, so no remaining balance to show.
+    where: {
+      id: { in: contractIds },
+      paymentType: { in: ["PROJECT", "MILESTONE"] },
+    },
     select: {
       paymentType: true,
       amount: true,

@@ -61,12 +61,21 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
     can("contracts")
       ? prisma.contract.findMany({
           where: {
-            OR: [{ projectName: contains }, { client: { name: contains } }],
+            OR: [
+              { projectName: contains },
+              { client: { name: contains } },
+              // "101" or "#101" finds contract #101.
+              ...(/^#?\d{1,9}$/.test(q)
+                ? [{ number: Number(q.replace("#", "")) }]
+                : []),
+            ],
           },
           select: {
             id: true,
+            number: true,
             projectName: true,
             status: true,
+            paymentType: true,
             client: { select: { name: true } },
           },
           orderBy: { createdAt: "desc" },
@@ -168,9 +177,14 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
     ...contracts.map((c) => ({
       id: `contract-${c.id}`,
       group: "Contracts",
-      title: c.projectName,
+      title: `#${c.number} ${c.projectName}`,
       subtitle: c.client.name,
-      href: listHref("/projects/contracts", c.projectName),
+      href: listHref(
+        c.paymentType === "RECURRING"
+          ? "/projects/recurring"
+          : "/projects/contracts",
+        c.projectName,
+      ),
     })),
     ...invoices.map((i) => ({
       id: `invoice-${i.id}`,

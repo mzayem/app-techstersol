@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import type {
+  BillingCycle,
   ContractPaymentType,
   ContractStatus,
 } from "@/lib/contracts/constants";
@@ -153,22 +154,30 @@ export async function getClientOverview(
 
 export type MyContract = {
   id: string;
+  number: number;
   clientId: string;
   clientName: string;
   projectName: string;
   description: string | null;
   date: Date;
-  deadline: Date;
+  deadline: Date | null;
   currency: PaymentCurrency;
   paymentType: ContractPaymentType;
   amount: number | null;
+  billingCycle: BillingCycle | null;
+  nextInvoiceDate: Date | null;
   status: ContractStatus;
   milestones: { id: string; name: string; amount: number; deadline: Date }[];
 };
 
 export async function listMyContracts(
   clients: ClientProfileOption[],
-  filters: { search?: string; profileClientId?: string } = {},
+  filters: {
+    search?: string;
+    profileClientId?: string;
+    /** "project" (default): everything but recurring services. */
+    kind?: "project" | "recurring";
+  } = {},
 ): Promise<MyContract[]> {
   const clientIds = filters.profileClientId
     ? [filters.profileClientId]
@@ -178,6 +187,8 @@ export async function listMyContracts(
   const contracts = await prisma.contract.findMany({
     where: {
       clientId: { in: clientIds },
+      paymentType:
+        filters.kind === "recurring" ? "RECURRING" : { not: "RECURRING" },
       ...(filters.search
         ? {
             OR: [
@@ -193,6 +204,7 @@ export async function listMyContracts(
     },
     select: {
       id: true,
+      number: true,
       clientId: true,
       projectName: true,
       description: true,
@@ -201,6 +213,8 @@ export async function listMyContracts(
       currency: true,
       paymentType: true,
       amount: true,
+      billingCycle: true,
+      nextInvoiceDate: true,
       status: true,
       milestones: {
         select: { id: true, name: true, amount: true, deadline: true },
@@ -214,6 +228,7 @@ export async function listMyContracts(
     clientName: nameOf.get(c.clientId) ?? "",
     currency: c.currency as PaymentCurrency,
     paymentType: c.paymentType as ContractPaymentType,
+    billingCycle: c.billingCycle as BillingCycle | null,
     status: c.status as ContractStatus,
     amount: c.amount === null ? null : Number(c.amount),
     milestones: c.milestones.map((m) => ({ ...m, amount: Number(m.amount) })),

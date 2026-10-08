@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import type { PaymentCurrency } from "@/lib/clients/constants";
-import { CONTRACT_STATUSES_EXCLUDED_FROM_PENDING } from "@/lib/contracts/constants";
+import {
+  CONTRACT_STATUSES_EXCLUDED_FROM_PENDING,
+  contractAmountLabel,
+} from "@/lib/contracts/constants";
 import { DISTRIBUTION_SPLIT } from "@/lib/finance/constants";
 import { getRatesToPkr } from "@/lib/fx/rates";
+import { pendingContractTeamPay } from "@/lib/contracts/team-pay";
 import type { ResolvedPeriod } from "@/lib/overview/period";
 
 export type MonthlyPoint = {
@@ -256,7 +260,10 @@ export async function getPendingPayments(): Promise<{
       },
     }),
     prisma.contract.findMany({
-      where: { status: { in: ["PENDING_PAYMENT", "PARTIALLY_PAID"] } },
+      where: {
+        status: { in: ["PENDING_PAYMENT", "PARTIALLY_PAID"] },
+        paymentType: { in: ["PROJECT", "MILESTONE"] },
+      },
       select: {
         currency: true,
         paymentType: true,
@@ -323,22 +330,10 @@ export async function getPendingPayments(): Promise<{
  * CANCELLED contract's teamPayAmount is excluded since no payment is
  * expected on it while it stays in that status. */
 export async function getTeamPendingPayments(): Promise<number> {
-  const [openOutsourced, diarySum] = await Promise.all([
-    prisma.contract.findMany({
-      where: {
-        teamMemberId: { not: null },
-        status: {
-          notIn: ["COMPLETED", ...CONTRACT_STATUSES_EXCLUDED_FROM_PENDING],
-        },
-      },
-      select: { teamPayAmount: true },
-    }),
+  const [contractPending, diarySum] = await Promise.all([
+    pendingContractTeamPay({}),
     prisma.workDiaryEntry.aggregate({ _sum: { amount: true } }),
   ]);
-  const contractPending = openOutsourced.reduce(
-    (sum, c) => sum + Number(c.teamPayAmount ?? 0),
-    0,
-  );
   return contractPending + Number(diarySum._sum.amount ?? 0);
 }
 
@@ -448,9 +443,10 @@ export type IncompleteContract = {
   id: string;
   clientName: string;
   projectName: string;
-  deadline: Date;
+  deadline: Date | null;
   currency: PaymentCurrency;
-  amount: number;
+  /** The fixed total, or the rate for an hourly contract. */
+  amountLabel: string;
   status: string;
 };
 
@@ -463,6 +459,8 @@ export async function getIncompleteContracts(
     where: {
       status: { not: "COMPLETED" },
       date: { gte: period.from, lte: period.to },
+      // Recurring contracts are followed up on their own page.
+      paymentType: { not: "RECURRING" },
     },
     select: {
       id: true,
@@ -473,9 +471,10 @@ export async function getIncompleteContracts(
       amount: true,
       status: true,
       client: { select: { name: true } },
+      billingCycle: true,
       milestones: { select: { amount: true } },
     },
-    orderBy: { deadline: "asc" },
+    orderBy: { deadline: { sort: "asc", nulls: "last" } },
   });
 
   return contracts.map((contract) => ({
@@ -484,10 +483,7 @@ export async function getIncompleteContracts(
     projectName: contract.projectName,
     deadline: contract.deadline,
     currency: contract.currency as PaymentCurrency,
-    amount:
-      contract.paymentType === "PROJECT"
-        ? Number(contract.amount ?? 0)
-        : contract.milestones.reduce((sum, m) => sum + Number(m.amount), 0),
+    amountLabel: contractAmountLabel(contract),
     status: contract.status,
   }));
 }

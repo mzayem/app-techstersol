@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { createNumberedContract } from "@/lib/contracts/numbering";
 import {
-  PAYMENT_TYPES,
+  FIXED_PAYMENT_TYPES,
   type ContractPaymentType,
   type MilestoneInput,
 } from "@/lib/contracts/constants";
@@ -35,7 +36,7 @@ function readClientContractFields(
   if (!date || !deadline || !projectName) {
     throw new Error("Dates and project name are required");
   }
-  if (!PAYMENT_TYPES.includes(paymentTypeRaw as ContractPaymentType)) {
+  if (!(FIXED_PAYMENT_TYPES as readonly string[]).includes(paymentTypeRaw)) {
     throw new Error("Invalid payment type");
   }
 
@@ -99,17 +100,15 @@ export async function createClientContractRequest(
     milestones,
   );
 
-  const created = await prisma.contract.create({
-    data: {
-      ...fields,
-      clientId: profile.id,
-      currency: profile.currency,
-      status: "PROPOSED",
-      teamMemberId: null,
-      teamPayAmount: null,
-      createdByUserId: appUser.authUserId,
-      milestones: { create: validMilestones },
-    },
+  const created = await createNumberedContract({
+    ...fields,
+    clientId: profile.id,
+    currency: profile.currency,
+    status: "PROPOSED",
+    teamMemberId: null,
+    teamPayAmount: null,
+    createdByUserId: appUser.authUserId,
+    milestones: { create: validMilestones },
   });
 
   await notifyProposalSubmitted({

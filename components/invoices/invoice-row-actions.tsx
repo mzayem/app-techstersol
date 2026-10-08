@@ -19,6 +19,7 @@ import {
 } from "@/lib/invoices/constants";
 import {
   markInvoiceUnpaid,
+  sendInvoiceReminderNow,
   setInvoiceReminders,
 } from "@/actions/invoices/actions";
 import { enqueueMutation } from "@/lib/sync/mutate";
@@ -38,6 +39,7 @@ export function InvoiceRowActions({
   balanceDue,
   suggestedPkrAmount,
   remindersEnabled,
+  overdue,
   hasEarning,
 }: {
   id: string;
@@ -51,6 +53,8 @@ export function InvoiceRowActions({
    * amount received can differ (bank fees, rate at time of transfer). */
   suggestedPkrAmount?: number;
   remindersEnabled: boolean;
+  /** Unpaid and past its due date. */
+  overdue: boolean;
   hasEarning: boolean;
 }) {
   const [markPaidOpen, setMarkPaidOpen] = React.useState(false);
@@ -70,6 +74,23 @@ export function InvoiceRowActions({
             e instanceof Error
               ? e.message
               : "Couldn't mark this invoice as unpaid",
+          type: "error",
+        });
+      }
+    });
+  }
+
+  function sendReminder() {
+    startTransition(async () => {
+      try {
+        const { sentTo } = await sendInvoiceReminderNow(id);
+        toast.add({
+          title: `Reminder for ${formatInvoiceNumber(number)} sent to ${sentTo}`,
+          type: "success",
+        });
+      } catch (e) {
+        toast.add({
+          title: e instanceof Error ? e.message : "Couldn't send the reminder",
           type: "error",
         });
       }
@@ -107,6 +128,8 @@ export function InvoiceRowActions({
         onAddEarning={() => setAddEarningOpen(true)}
         onMarkUnpaid={() => setMarkUnpaidOpen(true)}
         onToggleReminders={toggleReminders}
+        overdue={overdue}
+        onSendReminder={sendReminder}
         onDelete={() => setDeleteOpen(true)}
       />
       <SendEmailDialog

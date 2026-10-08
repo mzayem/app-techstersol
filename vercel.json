@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
+      "path": "/api/cron/recurring-invoices",
+      "schedule": "0 4 * * *"
+    },
+    {
       "path": "/api/cron/invoice-reminders",
       "schedule": "0 5 * * *"
     }

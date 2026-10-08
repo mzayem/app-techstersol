@@ -143,6 +143,10 @@ export async function createContractMessage(
   revalidatePath("/portal/projects");
   revalidatePath("/client-portal/contracts");
   revalidatePath("/partner-portal/projects");
+  revalidatePath("/projects/recurring");
+  revalidatePath("/portal/services");
+  revalidatePath("/client-portal/services");
+  revalidatePath("/partner-portal/services");
   return { ...message, isMine: true };
 }
 
@@ -169,4 +173,8 @@ export async function deleteContractMessage(
   revalidatePath("/portal/projects");
   revalidatePath("/client-portal/contracts");
   revalidatePath("/partner-portal/projects");
+  revalidatePath("/projects/recurring");
+  revalidatePath("/portal/services");
+  revalidatePath("/client-portal/services");
+  revalidatePath("/partner-portal/services");
 }

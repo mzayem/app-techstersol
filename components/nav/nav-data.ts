@@ -16,6 +16,7 @@ import {
   Printer,
   Receipt,
   ReceiptText,
+  Repeat,
   ScrollText,
   Settings,
   Share2,
@@ -101,6 +102,13 @@ export const navGroups = [
         title: "Contracts",
         url: "/projects/contracts",
         icon: FileSignature,
+        key: "contracts" as PageKey,
+      },
+      {
+        // Shares the Contracts permission — it is the same Contract table.
+        title: "Recurring Contracts",
+        url: "/projects/recurring",
+        icon: Repeat,
         key: "contracts" as PageKey,
       },
       {

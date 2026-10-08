@@ -8,7 +8,7 @@ import {
   PAYSLIP_NUMBER_START,
   formatPayslipNumber,
 } from "@/lib/team/constants";
-import { formatContractAmount } from "@/lib/contracts/constants";
+import { formatContractAmount, isOpenEnded } from "@/lib/contracts/constants";
 import { logActivity } from "@/lib/activity/log";
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { notifyPayslipIssued } from "@/lib/mail/notifications/payslips";
@@ -56,10 +56,13 @@ export async function createPayslip(formData: FormData) {
   if (contractId) {
     const contract = await prisma.contract.findUnique({
       where: { id: contractId },
-      select: { status: true },
+      select: { status: true, paymentType: true },
     });
     if (!contract) throw new Error("Selected project no longer exists");
-    alreadyBookedViaEarning = contract.status === "COMPLETED";
+    // Hourly/recurring contracts book their team pay through each paid
+    // invoice's Earning, so a payslip for one is always just paperwork.
+    alreadyBookedViaEarning =
+      contract.status === "COMPLETED" || isOpenEnded(contract.paymentType);
   }
 
   const issueDateObj = new Date(issueDate);
