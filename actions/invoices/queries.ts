@@ -59,6 +59,7 @@ export async function listInvoices(filters: ListFilters) {
       client: { select: { id: true, name: true, email: true } },
       bankAccount: { select: { bankName: true } },
       items: true,
+      earning: { select: { id: true } },
     },
     orderBy: orderBy(filters.sort),
   });

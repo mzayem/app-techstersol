@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Switch } from "@/components/ui/switch";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import { markInvoicePaid } from "@/actions/invoices/actions";
 
@@ -30,6 +31,7 @@ export function MarkPaidDialog({
 }) {
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
+  const [addToEarning, setAddToEarning] = React.useState(true);
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -47,7 +49,9 @@ export function MarkPaidDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!pending) onOpenChange(next);
+        if (pending) return;
+        onOpenChange(next);
+        if (!next) setAddToEarning(true);
       }}
     >
       <DialogContent className="sm:max-w-sm">
@@ -65,24 +69,27 @@ export function MarkPaidDialog({
               defaultValue={new Date().toISOString().slice(0, 10)}
             />
           </Field>
-          {currency !== "PKR" && (
-            <Field label={`Amount received in PKR (invoice is in ${currency})`}>
-              <Input
-                type="number"
-                name="pkrAmount"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                defaultValue={suggestedPkrAmount?.toFixed(2)}
-                required
-              />
-              {suggestedPkrAmount !== undefined && (
-                <span className="text-xs text-muted-foreground">
-                  Estimated at today&apos;s FX rate — adjust if the actual
-                  amount received differs.
-                </span>
-              )}
-            </Field>
+          <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2.5 ring-1 ring-foreground/10">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">Add to earning</span>
+              <span className="text-xs text-muted-foreground">
+                {addToEarning
+                  ? "The money has reached the PKR account."
+                  : "Not transferred yet — add it to earning later from the invoice's actions."}
+              </span>
+            </div>
+            <Switch checked={addToEarning} onCheckedChange={setAddToEarning} />
+            <input
+              type="hidden"
+              name="addToEarning"
+              value={addToEarning ? "true" : "false"}
+            />
+          </div>
+          {addToEarning && currency !== "PKR" && (
+            <PkrAmountField
+              currency={currency}
+              suggestedPkrAmount={suggestedPkrAmount}
+            />
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
@@ -96,7 +103,35 @@ export function MarkPaidDialog({
   );
 }
 
-function Field({
+export function PkrAmountField({
+  currency,
+  suggestedPkrAmount,
+}: {
+  currency: PaymentCurrency;
+  suggestedPkrAmount?: number;
+}) {
+  return (
+    <Field label={`Amount received in PKR (invoice is in ${currency})`}>
+      <Input
+        type="number"
+        name="pkrAmount"
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+        defaultValue={suggestedPkrAmount?.toFixed(2)}
+        required
+      />
+      {suggestedPkrAmount !== undefined && (
+        <span className="text-xs text-muted-foreground">
+          Estimated at today&apos;s FX rate — adjust if the actual amount
+          received differs.
+        </span>
+      )}
+    </Field>
+  );
+}
+
+export function Field({
   label,
   children,
 }: {

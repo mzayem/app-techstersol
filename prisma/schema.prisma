@@ -669,35 +669,40 @@ model BankAccount {
 }
 
 model Invoice {
-  id               String            @id @default(cuid())
-  number           Int               @unique
-  clientId         String
-  client           Client            @relation(fields: [clientId], references: [id])
-  bankAccountId    String
-  bankAccount      BankAccount       @relation(fields: [bankAccountId], references: [id])
-  currency         PaymentCurrency
-  discount         Decimal           @default(0) @db.Decimal(14, 2)
-  issueDate        DateTime          @db.Date
-  dueDate          DateTime          @db.Date
-  status           InvoiceStatus     @default(UNPAID)
-  paidOn           DateTime?         @db.Date
-  transactionId    String?
+  id                   String            @id @default(cuid())
+  number               Int               @unique
+  clientId             String
+  client               Client            @relation(fields: [clientId], references: [id])
+  bankAccountId        String
+  bankAccount          BankAccount       @relation(fields: [bankAccountId], references: [id])
+  currency             PaymentCurrency
+  discount             Decimal           @default(0) @db.Decimal(14, 2)
+  issueDate            DateTime          @db.Date
+  dueDate              DateTime          @db.Date
+  status               InvoiceStatus     @default(UNPAID)
+  paidOn               DateTime?         @db.Date
+  transactionId        String?
   /// The actual PKR amount received when this invoice was marked paid —
   /// for a PKR invoice this equals its own balance due; for any other
   /// currency it's the admin-entered PKR equivalent. Kept on the invoice
   /// itself (not just derived from Earning.amount) so the gross figure the
   /// client actually paid stays visible even though Earning.amount is net
   /// of the partner share and project expenses booked against it.
-  pkrAmount        Decimal?          @db.Decimal(14, 2)
-  remindersEnabled Boolean           @default(false)
-  reminderCount    Int               @default(0)
-  lastReminderAt   DateTime?
-  createdByUserId  String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  earning          Earning?
-  items            InvoiceItem[]
-  contracts        InvoiceContract[]
+  pkrAmount            Decimal?          @db.Decimal(14, 2)
+  /// Contracts this invoice's payment fully paid off, recorded when it's
+  /// marked paid — so an invoice marked paid without an Earning (money not
+  /// yet in the PKR account) can book that contract's team pay, project
+  /// expenses and partner share later via addInvoiceEarning.
+  completedContractIds String[]          @default([])
+  remindersEnabled     Boolean           @default(false)
+  reminderCount        Int               @default(0)
+  lastReminderAt       DateTime?
+  createdByUserId      String
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  earning              Earning?
+  items                InvoiceItem[]
+  contracts            InvoiceContract[]
 
   @@index([status])
   @@index([clientId])

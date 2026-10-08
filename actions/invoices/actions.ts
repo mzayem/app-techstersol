@@ -25,8 +25,10 @@ import {
   notifyInvoiceCreated,
   notifyInvoicePaid,
 } from "@/lib/mail/notifications/invoices";
-import { computePartnerSplit } from "@/lib/partners/calc";
-import { getRatesToPkr } from "@/lib/fx/rates";
+import {
+  planInvoiceEarning,
+  writeInvoiceEarning,
+} from "@/lib/invoices/earning";
 import { logActivity } from "@/lib/activity/log";
 
 function str(formData: FormData, key: string) {
@@ -214,6 +216,10 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   const transactionId = str(formData, "transactionId");
   const paidOnRaw = str(formData, "paidOn");
   const pkrAmountRaw = str(formData, "pkrAmount");
+  // Off when the client has paid but the money hasn't reached the PKR
+  // account yet — the invoice/contracts/emails still update, but no Earning
+  // is booked until addInvoiceEarning is run for it later.
+  const addToEarning = str(formData, "addToEarning") !== "false";
 
   if (!transactionId) {
     throw new Error("Transaction ID is required to mark an invoice as paid");
@@ -229,20 +235,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   });
   if (!invoice) throw new Error("Invoice not found");
 
-  const total = invoice.items.reduce(
-    (sum, item) => sum + Number(item.amount),
-    0,
-  );
-  const balanceDue = total - Number(invoice.discount);
-  const currency = invoice.currency as PaymentCurrency;
-
-  let pkrAmount = balanceDue;
-  if (currency !== "PKR") {
-    pkrAmount = Number(pkrAmountRaw);
-    if (!pkrAmountRaw || Number.isNaN(pkrAmount) || pkrAmount <= 0) {
-      throw new Error("Enter the PKR amount received for this payment");
-    }
-  }
+  const pkrAmount = addToEarning ? parsePkrAmount(invoice, pkrAmountRaw) : null;
 
   const paidOn = paidOnRaw ? new Date(paidOnRaw) : new Date();
   const contractIds = invoice.contracts.map((c) => c.contractId);
@@ -253,18 +246,10 @@ export async function markInvoicePaid(id: string, formData: FormData) {
           where: { id: { in: contractIds } },
           select: {
             id: true,
-            projectName: true,
             status: true,
             paymentType: true,
             amount: true,
-            currency: true,
-            teamMemberId: true,
-            teamPayAmount: true,
             milestones: { select: { amount: true } },
-            partnerId: true,
-            partnerSharePercent: true,
-            partner: { select: { name: true, sharePercentage: true } },
-            projectExpenses: { select: { amount: true } },
           },
         })
       : [];
@@ -287,12 +272,10 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     );
   }
 
-  const revenueByContract = new Map<string, number>();
   const completedIds: string[] = [];
   const partiallyPaidIds: string[] = [];
   for (const contract of contracts) {
     const totalBillable = contractRevenueBasis(contract);
-    revenueByContract.set(contract.id, totalBillable);
     const thisInvoiceSum = invoice.items
       .filter((item) => item.contractId === contract.id)
       .reduce((sum, item) => sum + Number(item.amount), 0);
@@ -310,94 +293,25 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     }
   }
 
-  const completedContracts = contracts.filter((c) =>
-    completedIds.includes(c.id),
-  );
-
-  // A contract's outsourced pay is credited to the team member once, when
-  // that contract is fully paid off — not per invoice, since a contract can
-  // span several partial invoices before it completes.
-  const teamPay = completedContracts
-    .filter((c) => c.teamMemberId)
-    .reduce((sum, c) => sum + Number(c.teamPayAmount ?? 0), 0);
-
-  // Project-level expenses reduce net earning on every completing contract,
-  // partnered or not — booked to the ledger already at entry time (see
-  // ProjectExpense), this is just the aggregate for the Earning row.
-  const projectExpensesTotal = completedContracts.reduce(
-    (sum, c) =>
-      sum + c.projectExpenses.reduce((s, e) => s + Number(e.amount), 0),
-    0,
-  );
-
-  // A partner's share is booked once, the same moment a partnered contract
-  // completes — never pro-rated across partial/milestone payments, matching
-  // teamPay's existing behavior. See lib/partners/calc.ts for the formula.
-  // workCost/projectExpenses are always PKR (same convention as team pay),
-  // so a non-PKR contract's face-value revenue must be converted to PKR
-  // before combining them — otherwise profit is computed from mismatched
-  // units (e.g. $100 revenue minus a PKR 8,327 work cost).
-  const partneredContracts = completedContracts.filter(
-    (c) => c.partnerId && c.partner,
-  );
-  const ratesToPkr = partneredContracts.some((c) => c.currency !== "PKR")
-    ? await getRatesToPkr()
-    : null;
-
-  const partnerBookings = partneredContracts
-    .map((c) => {
-      const rawRevenue = revenueByContract.get(c.id) ?? 0;
-      const revenue =
-        c.currency === "PKR"
-          ? rawRevenue
-          : rawRevenue * (ratesToPkr?.[c.currency as PaymentCurrency] ?? 1);
-      const workCost = Number(c.teamPayAmount ?? 0);
-      const projectExpenses = c.projectExpenses.reduce(
-        (s, e) => s + Number(e.amount),
-        0,
-      );
-      const sharePercent = Number(
-        c.partnerSharePercent ?? c.partner!.sharePercentage,
-      );
-      const split = computePartnerSplit({
-        revenue,
-        workCost,
-        projectExpenses,
-        sharePercent,
-      });
-      return {
-        contractId: c.id,
-        partnerId: c.partnerId!,
-        partnerName: c.partner!.name,
-        projectName: c.projectName,
-        ...split,
-      };
-    })
-    .filter((b) => b.partnerShareAmount > 0);
-
-  const partnerShareTotal = partnerBookings.reduce(
-    (sum, b) => sum + b.partnerShareAmount,
-    0,
-  );
-
-  // Earning.amount (the P&L/tax-relevant figure shown on the Earning page)
-  // is net of the partner share and project expenses — the gross figure
-  // the client actually paid stays on Invoice.pkrAmount instead, so it's
-  // never lost. This is deliberately separate from the ledger's own EARNING
-  // credit below, which stays GROSS: the full pkrAmount really did land in
-  // the company's bank account the moment this invoice was paid, and the
-  // partner's cut is a real cash-OUT event that hasn't happened yet (it's
-  // deferred to whenever their payslip is actually issued) — crediting only
-  // the net figure here would make the ledger's running balance understate
-  // real cash on hand until that payout happens.
-  const netEarningAmount = pkrAmount - partnerShareTotal - projectExpensesTotal;
-
-  const earningName = `${invoice.client.name} — Invoice ${formatInvoiceNumber(invoice.number)}`;
+  const earningPlan =
+    pkrAmount !== null
+      ? await planInvoiceEarning({
+          invoice,
+          completedContractIds: completedIds,
+          pkrAmount,
+        })
+      : null;
 
   await prisma.$transaction(async (tx) => {
     await tx.invoice.update({
       where: { id },
-      data: { status: "PAID", paidOn, transactionId, pkrAmount },
+      data: {
+        status: "PAID",
+        paidOn,
+        transactionId,
+        pkrAmount,
+        completedContractIds: completedIds,
+      },
     });
     if (completedIds.length > 0) {
       await tx.contract.updateMany({
@@ -411,65 +325,11 @@ export async function markInvoicePaid(id: string, formData: FormData) {
         data: { status: "PARTIALLY_PAID" },
       });
     }
-    await tx.earning.create({
-      data: {
-        date: paidOn,
-        name: earningName,
-        amount: netEarningAmount,
-        teamPay,
-        partnerShare: partnerShareTotal,
-        projectExpenses: projectExpensesTotal,
-        referenceAmount: currency === "PKR" ? null : balanceDue,
-        referenceCurrency: currency === "PKR" ? null : currency,
+    if (earningPlan) {
+      await writeInvoiceEarning(tx, earningPlan, {
         invoiceId: id,
+        date: paidOn,
         createdByUserId,
-        ledgerEntries: {
-          create: [
-            {
-              type: "EARNING",
-              name: earningName,
-              date: paidOn,
-              credit: pkrAmount,
-            },
-            ...(teamPay > 0
-              ? [
-                  {
-                    type: "TEAM_PAYMENT" as const,
-                    name: `Team pay — ${earningName}`,
-                    date: paidOn,
-                    debit: teamPay,
-                  },
-                ]
-              : []),
-          ],
-        },
-      },
-    });
-
-    // Each partner's share gets its own directly-attributable PartnerPayment
-    // so "who is owed how much for which contract" is never lost — but
-    // unlike teamPay (expensed immediately above), its ledger debit is
-    // deferred until the share is actually paid out via a partner payslip
-    // (see createPartnerPayslip). Booking it here too, alongside an
-    // already-net Earning credit, would double-subtract it from the
-    // balance — it isn't real cash out yet, just an accrued liability.
-    for (const booking of partnerBookings) {
-      const paymentName = `${booking.partnerName} — ${booking.projectName}`;
-      await tx.partnerPayment.create({
-        data: {
-          date: paidOn,
-          name: paymentName,
-          partnerId: booking.partnerId,
-          contractId: booking.contractId,
-          amount: booking.partnerShareAmount,
-          source: "AUTO_COMPLETION",
-          revenueAmount: booking.revenue,
-          workCostAmount: booking.workCost,
-          projectExpensesAmount: booking.projectExpenses,
-          profitAmount: booking.profit,
-          sharePercentageUsed: booking.sharePercent,
-          createdByUserId,
-        },
       });
     }
   });
@@ -479,7 +339,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     action: "marked-paid",
     entityType: "invoice",
     entityId: id,
-    summary: `Marked invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name}) as paid — txn ${transactionId}`,
+    summary: `Marked invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name}) as paid — txn ${transactionId}${earningPlan ? "" : " (not added to earning)"}`,
     page: "invoices",
   });
 
@@ -488,6 +348,87 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   revalidatePath("/account/earning");
   revalidatePath("/account/distributions");
   revalidatePath("/account/balance-sheet");
+}
+
+/** Books the Earning for a paid invoice that was marked paid without one
+ * (money not yet in the PKR account at the time) — the same figures
+ * markInvoicePaid would have booked, dated when the money actually arrived. */
+export async function addInvoiceEarning(id: string, formData: FormData) {
+  const { appUser } = await requirePagePermission("invoices", "edit");
+  const createdByUserId = appUser.authUserId;
+
+  const receivedOnRaw = str(formData, "receivedOn");
+  const pkrAmountRaw = str(formData, "pkrAmount");
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id },
+    include: {
+      client: { select: { name: true } },
+      items: true,
+      earning: { select: { id: true } },
+    },
+  });
+  if (!invoice) throw new Error("Invoice not found");
+  if (invoice.status !== "PAID") {
+    throw new Error("Only a paid invoice can be added to earning");
+  }
+  if (invoice.earning) {
+    throw new Error("This invoice has already been added to earning");
+  }
+
+  const pkrAmount = parsePkrAmount(invoice, pkrAmountRaw);
+  const receivedOn = receivedOnRaw ? new Date(receivedOnRaw) : new Date();
+
+  const earningPlan = await planInvoiceEarning({
+    invoice,
+    completedContractIds: invoice.completedContractIds,
+    pkrAmount,
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.invoice.update({ where: { id }, data: { pkrAmount } });
+    await writeInvoiceEarning(tx, earningPlan, {
+      invoiceId: id,
+      date: receivedOn,
+      createdByUserId,
+    });
+  });
+
+  await logActivity(appUser, {
+    action: "added-earning",
+    entityType: "invoice",
+    entityId: id,
+    summary: `Added invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name}) to earning — ${formatContractAmount(pkrAmount, "PKR")} received`,
+    page: "invoices",
+  });
+
+  revalidatePath("/projects/invoices");
+  revalidatePath("/account/earning");
+  revalidatePath("/account/distributions");
+  revalidatePath("/account/balance-sheet");
+}
+
+/** PKR actually received for an invoice — its own balance due when it's
+ * billed in PKR, otherwise the admin-entered figure. */
+function parsePkrAmount(
+  invoice: {
+    currency: string;
+    discount: unknown;
+    items: { amount: unknown }[];
+  },
+  pkrAmountRaw: string,
+) {
+  if (invoice.currency === "PKR") {
+    return (
+      invoice.items.reduce((sum, item) => sum + Number(item.amount), 0) -
+      Number(invoice.discount)
+    );
+  }
+  const pkrAmount = Number(pkrAmountRaw);
+  if (!pkrAmountRaw || Number.isNaN(pkrAmount) || pkrAmount <= 0) {
+    throw new Error("Enter the PKR amount received for this payment");
+  }
+  return pkrAmount;
 }
 
 /** Every markInvoicePaid-booked partner share for these contracts, plus a
@@ -536,6 +477,7 @@ export async function markInvoiceUnpaid(id: string) {
         paidOn: null,
         transactionId: null,
         pkrAmount: null,
+        completedContractIds: [],
       },
     }),
     prisma.contract.updateMany({

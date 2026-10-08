@@ -150,6 +150,11 @@ export default async function InvoicesPage({
                         {formatContractAmount(Number(invoice.pkrAmount), "PKR")}
                       </span>
                     )}
+                    {status === "PAID" && !invoice.earning && (
+                      <span className="block text-xs text-amber-600 dark:text-amber-400">
+                        Not in earning yet
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <StatusPill status={status} />
@@ -168,8 +173,10 @@ export default async function InvoicesPage({
                         status={status}
                         currency={currency}
                         clientEmail={invoice.client.email}
+                        balanceDue={balanceDue}
                         suggestedPkrAmount={suggestedPkrAmount}
                         remindersEnabled={invoice.remindersEnabled}
+                        hasEarning={invoice.earning !== null}
                       />
                     </div>
                   </TableCell>

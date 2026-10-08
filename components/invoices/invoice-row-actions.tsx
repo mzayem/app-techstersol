@@ -24,6 +24,7 @@ import {
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { InvoiceActionsMenu } from "@/components/invoices/invoice-actions-menu";
 import { MarkPaidDialog } from "@/components/invoices/mark-paid-dialog";
+import { AddEarningDialog } from "@/components/invoices/add-earning-dialog";
 import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 import { toast } from "@/components/ui/toast";
@@ -34,21 +35,26 @@ export function InvoiceRowActions({
   status,
   currency,
   clientEmail,
+  balanceDue,
   suggestedPkrAmount,
   remindersEnabled,
+  hasEarning,
 }: {
   id: string;
   number: number;
   status: InvoiceStatus;
   currency: PaymentCurrency;
   clientEmail: string;
+  balanceDue: number;
   /** Balance due converted to PKR at the current FX rate — prefilled as a
    * default in the mark-paid dialog's PKR amount field, since the actual
    * amount received can differ (bank fees, rate at time of transfer). */
   suggestedPkrAmount?: number;
   remindersEnabled: boolean;
+  hasEarning: boolean;
 }) {
   const [markPaidOpen, setMarkPaidOpen] = React.useState(false);
+  const [addEarningOpen, setAddEarningOpen] = React.useState(false);
   const [markUnpaidOpen, setMarkUnpaidOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
@@ -96,7 +102,9 @@ export function InvoiceRowActions({
         status={status}
         pdfHref={`/api/invoices/${id}/pdf`}
         remindersEnabled={remindersEnabled}
+        needsEarning={status === "PAID" && !hasEarning}
         onMarkPaid={() => setMarkPaidOpen(true)}
+        onAddEarning={() => setAddEarningOpen(true)}
         onMarkUnpaid={() => setMarkUnpaidOpen(true)}
         onToggleReminders={toggleReminders}
         onDelete={() => setDeleteOpen(true)}
@@ -110,6 +118,14 @@ export function InvoiceRowActions({
         onOpenChange={setMarkPaidOpen}
         invoiceId={id}
         currency={currency}
+        suggestedPkrAmount={suggestedPkrAmount}
+      />
+      <AddEarningDialog
+        open={addEarningOpen}
+        onOpenChange={setAddEarningOpen}
+        invoiceId={id}
+        currency={currency}
+        balanceDue={balanceDue}
         suggestedPkrAmount={suggestedPkrAmount}
       />
       <AlertDialog

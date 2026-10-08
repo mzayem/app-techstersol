@@ -7,6 +7,7 @@ import {
   DownloadIcon,
   MoreHorizontalIcon,
   RotateCcwIcon,
+  WalletIcon,
   Trash2Icon,
 } from "lucide-react";
 
@@ -26,7 +27,9 @@ export function InvoiceActionsMenu({
   status,
   pdfHref,
   remindersEnabled,
+  needsEarning,
   onMarkPaid,
+  onAddEarning,
   onMarkUnpaid,
   onToggleReminders,
   onDelete,
@@ -34,7 +37,10 @@ export function InvoiceActionsMenu({
   status: InvoiceStatus;
   pdfHref: string;
   remindersEnabled: boolean;
+  /** Paid, but its earning hasn't been booked yet. */
+  needsEarning: boolean;
   onMarkPaid: () => void;
+  onAddEarning: () => void;
   onMarkUnpaid: () => void;
   onToggleReminders: () => void;
   onDelete: () => void;
@@ -71,6 +77,12 @@ export function InvoiceActionsMenu({
             <DropdownMenuItem onClick={onMarkUnpaid}>
               <RotateCcwIcon />
               Mark as unpaid
+            </DropdownMenuItem>
+          )}
+          {needsEarning && (
+            <DropdownMenuItem onClick={onAddEarning}>
+              <WalletIcon />
+              Add to earning
             </DropdownMenuItem>
           )}
           {status === "UNPAID" && (
