@@ -182,6 +182,7 @@ export async function getInvoiceForPdf(id: string) {
       client: true,
       bankAccount: true,
       items: { orderBy: { sortOrder: "asc" } },
+      fees: { orderBy: { sortOrder: "asc" } },
     },
   });
 }
@@ -234,10 +235,18 @@ async function getProjectBalance(
 /** Maps a `getInvoiceForPdf` result into the shape `renderInvoicePdf`
  * expects — shared by the PDF route handler and the invoice-email
  * notifiers so both build the exact same document. */
+/** `taxCopy` adds the payment settlement (fees/taxes deducted and what
+ * was actually received) to a paid invoice — for the internal tax copy
+ * only; the client's own copy never shows it. */
 export async function toInvoicePdfData(
   invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>,
+  { taxCopy = false }: { taxCopy?: boolean } = {},
 ) {
   const projectBalance = await getProjectBalance(invoice.items);
+  const balanceDue =
+    invoice.items.reduce((sum, item) => sum + Number(item.amount), 0) -
+    Number(invoice.discount);
+  const feesTotal = Number(invoice.feesAmount);
 
   return {
     id: invoice.id,
@@ -271,6 +280,20 @@ export async function toInvoicePdfData(
       amount: Number(item.amount),
     })),
     projectBalance,
+    settlement:
+      taxCopy && invoice.status === "PAID"
+        ? {
+            fees: invoice.fees.map((fee) => ({
+              label: fee.label,
+              amount: Number(fee.amount),
+            })),
+            feesTotal,
+            netReceived: balanceDue - feesTotal,
+            pkrReceived:
+              invoice.pkrAmount != null ? Number(invoice.pkrAmount) : null,
+            feesPkr: invoice.feesPkr != null ? Number(invoice.feesPkr) : null,
+          }
+        : null,
   };
 }
 

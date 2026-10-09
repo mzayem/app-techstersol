@@ -80,6 +80,7 @@ export default async function EarningPage({
               <TableHead>Date</TableHead>
               <TableHead>Name</TableHead>
               <TableHead className="text-right">Gross</TableHead>
+              <TableHead className="text-right">Fees</TableHead>
               <TableHead className="text-right">Team pay</TableHead>
               <TableHead className="text-right">Partner share</TableHead>
               <TableHead className="text-right">Expenses</TableHead>
@@ -92,7 +93,7 @@ export default async function EarningPage({
             {paginated.totalItems === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="py-8 text-center text-muted-foreground"
                 >
                   No earnings recorded for this range.
@@ -101,19 +102,20 @@ export default async function EarningPage({
             )}
             {paginated.items.map((earning) => {
               // Earning.amount is net of partnerShare/projectExpenses at
-              // source (see markInvoicePaid) — "Gross" here recovers what
-              // the client actually paid, from the invoice's own recorded
-              // PKR amount, falling back to amount itself for entries with
-              // no linked invoice (manual entries) or from before this
-              // column existed.
+              // source (see markInvoicePaid), and the invoice's recorded
+              // PKR amount is what arrived after fees — "Gross" adds those
+              // fees back to recover what the client actually paid, falling
+              // back to amount itself for entries with no linked invoice
+              // (manual entries) or from before this column existed.
               const amount = Number(earning.amount);
               const teamPay = Number(earning.teamPay);
               const partnerShare = Number(earning.partnerShare);
               const projectExpenses = Number(earning.projectExpenses);
+              const fees = Number(earning.fees);
               const gross =
-                earning.invoice?.pkrAmount != null
+                (earning.invoice?.pkrAmount != null
                   ? Number(earning.invoice.pkrAmount)
-                  : amount + partnerShare + projectExpenses;
+                  : amount + partnerShare + projectExpenses) + fees;
               const entry = {
                 id: earning.id,
                 date: earning.date,
@@ -137,6 +139,9 @@ export default async function EarningPage({
                   <TableCell className="font-medium">{earning.name}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatPkr(gross)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {fees > 0 ? formatPkr(fees) : "—"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {teamPay > 0 ? formatPkr(teamPay) : "—"}

@@ -186,14 +186,9 @@ model Earning {
   name              String
   amount            Decimal          @db.Decimal(14, 2)
   teamPay           Decimal          @default(0) @db.Decimal(14, 2)
-  /// Aggregate partner profit-share booked against this invoice's
-  /// completing contracts (see markInvoicePaid) — same role as teamPay,
-  /// feeding net-earning KPIs. Not attributable back to one partner; use
-  /// PartnerPayment for that.
   partnerShare      Decimal          @default(0) @db.Decimal(14, 2)
-  /// Aggregate ProjectExpense sum for this invoice's completing contracts
-  /// (every contract, partnered or not) — also nets out of net earning.
   projectExpenses   Decimal          @default(0) @db.Decimal(14, 2)
+  fees              Decimal          @default(0) @db.Decimal(14, 2)
   referenceAmount   Decimal?         @db.Decimal(14, 2)
   referenceCurrency PaymentCurrency?
   invoiceId         String?          @unique
@@ -529,16 +524,22 @@ model TeamPayment {
 /// not). Booked to the ledger immediately on creation, independent of
 /// when/if the contract's invoices are ever paid.
 model ProjectExpense {
-  id              String        @id @default(cuid())
+  id              String          @id @default(cuid())
   contractId      String
-  contract        Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  date            DateTime      @db.Date
+  contract        Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  date            DateTime        @db.Date
   name            String
-  /// Always PKR, same convention as team pay / payslips.
-  amount          Decimal       @db.Decimal(14, 2)
+  /// In the contract's currency (`currency`, copied from the contract when
+  /// the expense is saved).
+  amount          Decimal         @db.Decimal(14, 2)
+  currency        PaymentCurrency
+  /// `amount` converted to PKR at the FX rate when it was saved — what the
+  /// ledger debit, net earning and partner profit split all use, since
+  /// those are kept in PKR.
+  pkrAmount       Decimal         @db.Decimal(14, 2)
   createdByUserId String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   ledgerEntries   LedgerEntry[]
 
   @@index([contractId])
@@ -738,17 +739,10 @@ model Invoice {
   status               InvoiceStatus     @default(UNPAID)
   paidOn               DateTime?         @db.Date
   transactionId        String?
-  /// The actual PKR amount received when this invoice was marked paid —
-  /// for a PKR invoice this equals its own balance due; for any other
-  /// currency it's the admin-entered PKR equivalent. Kept on the invoice
-  /// itself (not just derived from Earning.amount) so the gross figure the
-  /// client actually paid stays visible even though Earning.amount is net
-  /// of the partner share and project expenses booked against it.
   pkrAmount            Decimal?          @db.Decimal(14, 2)
-  /// Contracts this invoice's payment fully paid off, recorded when it's
-  /// marked paid — so an invoice marked paid without an Earning (money not
-  /// yet in the PKR account) can book that contract's team pay, project
-  /// expenses and partner share later via addInvoiceEarning.
+  feesAmount           Decimal           @default(0) @db.Decimal(14, 2)
+  feesPkr              Decimal?          @db.Decimal(14, 2)
+  fees                 InvoiceFee[]
   completedContractIds String[]          @default([])
   remindersEnabled     Boolean           @default(false)
   reminderCount        Int               @default(0)
@@ -803,6 +797,19 @@ model InvoiceItem {
   @@index([invoiceId])
   @@index([contractId])
   @@index([milestoneId])
+}
+
+/// One fee/tax line deducted from an invoice payment (e.g. "Upwork
+/// commission", "Withdrawal fee"), in the invoice currency.
+model InvoiceFee {
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  label     String
+  amount    Decimal @db.Decimal(14, 2)
+  sortOrder Int     @default(0)
+
+  @@index([invoiceId])
 }
 
 /// Links an invoice to the contract(s) it bills, so paying the invoice can

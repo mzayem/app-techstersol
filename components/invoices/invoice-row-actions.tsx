@@ -37,6 +37,7 @@ export function InvoiceRowActions({
   currency,
   clientEmail,
   balanceDue,
+  feesAmount,
   suggestedPkrAmount,
   remindersEnabled,
   overdue,
@@ -48,6 +49,8 @@ export function InvoiceRowActions({
   currency: PaymentCurrency;
   clientEmail: string;
   balanceDue: number;
+  /** Fees deducted from the payment, in the invoice currency. */
+  feesAmount: number;
   /** Balance due converted to PKR at the current FX rate — prefilled as a
    * default in the mark-paid dialog's PKR amount field, since the actual
    * amount received can differ (bank fees, rate at time of transfer). */
@@ -141,6 +144,7 @@ export function InvoiceRowActions({
         onOpenChange={setMarkPaidOpen}
         invoiceId={id}
         currency={currency}
+        balanceDue={balanceDue}
         suggestedPkrAmount={suggestedPkrAmount}
       />
       <AddEarningDialog
@@ -149,6 +153,7 @@ export function InvoiceRowActions({
         invoiceId={id}
         currency={currency}
         balanceDue={balanceDue}
+        feesAmount={feesAmount}
         suggestedPkrAmount={suggestedPkrAmount}
       />
       <AlertDialog

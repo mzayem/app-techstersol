@@ -86,6 +86,15 @@ export type InvoicePdfData = {
    * has been paid so far — null when this invoice covers the full project
    * value on its own, so no separate remaining-balance line is needed. */
   projectBalance: { totalValue: number; remaining: number } | null;
+  /** Internal tax copy only — what was actually received after platform
+   * fees/taxes. Null on the client's copy. */
+  settlement?: {
+    fees: { label: string; amount: number }[];
+    feesTotal: number;
+    netReceived: number;
+    pkrReceived: number | null;
+    feesPkr: number | null;
+  } | null;
 };
 
 const styles = StyleSheet.create({
@@ -103,7 +112,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  invoiceTitle: { fontSize: 22, fontWeight: 700, color: "#111827" },
+  // Own lineHeight: the page-level 1.5 is sized for 9.5pt body text, so
+  // a 22pt title inheriting it overflows its box (and anything under it).
+  invoiceTitle: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: "#111827",
+    lineHeight: 1.2,
+  },
   small: { fontSize: 9, color: "#434343" },
   infoBlock: {
     marginTop: 16,
@@ -195,6 +211,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   verifyGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
+  taxCopyLabel: {
+    marginTop: 4,
+    lineHeight: 1.2,
+    fontSize: 9,
+    fontWeight: 700,
+    letterSpacing: 2,
+    color: "#b45309",
+  },
+  settlementBox: {
+    marginTop: 18,
+    marginLeft: "auto",
+    width: 280,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 2,
+  },
+  settlementRow: { flexDirection: "row", justifyContent: "space-between" },
+  settlementTotal: {
+    marginTop: 4,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: "#111827",
+  },
 });
 
 function formatMoney(amount: number, currency: string) {
@@ -263,7 +304,12 @@ function InvoiceDocument({
               {COMPANY_INFO.name.toUpperCase()}
             </Text>
           )}
-          <Text style={styles.invoiceTitle}>INVOICE</Text>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={styles.invoiceTitle}>INVOICE</Text>
+            {invoice.settlement && (
+              <Text style={styles.taxCopyLabel}>TAX COPY</Text>
+            )}
+          </View>
         </View>
 
         <View style={styles.infoBlock}>
@@ -400,6 +446,50 @@ function InvoiceDocument({
             </View>
           )}
         </View>
+
+        {invoice.settlement && (
+          <View style={styles.settlementBox} wrap={false}>
+            <Text style={styles.label}>PAYMENT SETTLEMENT</Text>
+            <View style={styles.settlementRow}>
+              <Text>Amount paid by client</Text>
+              <Text>{formatMoney(balanceDue, invoice.currency)}</Text>
+            </View>
+            {invoice.settlement.fees.map((fee, index) => (
+              <View key={index} style={styles.settlementRow}>
+                <Text>Less: {fee.label}</Text>
+                <Text>-{formatMoney(fee.amount, invoice.currency)}</Text>
+              </View>
+            ))}
+            <View style={[styles.settlementRow, styles.settlementTotal]}>
+              <Text style={styles.bold}>Net amount received</Text>
+              <Text style={styles.bold}>
+                {formatMoney(invoice.settlement.netReceived, invoice.currency)}
+              </Text>
+            </View>
+            {invoice.settlement.pkrReceived !== null &&
+              invoice.currency !== "PKR" && (
+                <View style={styles.settlementRow}>
+                  <Text>Received in PKR account</Text>
+                  <Text>
+                    {formatMoney(invoice.settlement.pkrReceived, "PKR")}
+                  </Text>
+                </View>
+              )}
+            {invoice.settlement.feesPkr !== null &&
+              invoice.settlement.feesTotal > 0 &&
+              invoice.currency !== "PKR" && (
+                <View style={styles.settlementRow}>
+                  <Text>Fees &amp; taxes in PKR</Text>
+                  <Text>{formatMoney(invoice.settlement.feesPkr, "PKR")}</Text>
+                </View>
+              )}
+            {invoice.settlement.fees.length === 0 && (
+              <Text style={[styles.small, { marginTop: 2 }]}>
+                No fees or taxes were deducted from this payment.
+              </Text>
+            )}
+          </View>
+        )}
 
         <View style={{ marginTop: 24 }}>
           <Text style={{ textDecoration: "underline" }}>

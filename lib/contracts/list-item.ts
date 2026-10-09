@@ -63,6 +63,8 @@ export function toContractListItem(contract: ListedContract): ContractListItem {
       date: e.date,
       name: e.name,
       amount: Number(e.amount),
+      currency: e.currency as PaymentCurrency,
+      pkrAmount: Number(e.pkrAmount),
     })),
     totalAmount,
     paidAmount: contract.paidAmount,

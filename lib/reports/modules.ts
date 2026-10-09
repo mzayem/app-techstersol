@@ -135,11 +135,14 @@ const earning: ReportModuleDef = {
 
     let totalAmount = 0;
     let totalTeamPay = 0;
+    let totalFees = 0;
     const reportRows = rows.map((row) => {
       const amount = Number(row.amount);
       const teamPay = Number(row.teamPay);
+      const fees = Number(row.fees);
       totalAmount += amount;
       totalTeamPay += teamPay;
+      totalFees += fees;
       const reference =
         row.referenceAmount && row.referenceCurrency
           ? `${CURRENCY_SYMBOLS[row.referenceCurrency as ReferenceCurrency]}${Number(row.referenceAmount).toLocaleString()}`
@@ -147,6 +150,7 @@ const earning: ReportModuleDef = {
       return {
         date: row.date,
         name: row.name,
+        fees,
         amount,
         teamPay,
         netEarning: amount - teamPay,
@@ -160,6 +164,7 @@ const earning: ReportModuleDef = {
       columns: [
         { key: "date", label: "Date", numFmt: "dd mmm yyyy" },
         { key: "name", label: "Name", flexible: true },
+        { key: "fees", label: "Fees", align: "right", numFmt: "#,##0" },
         { key: "amount", label: "Amount", align: "right", numFmt: "#,##0" },
         { key: "teamPay", label: "Team pay", align: "right", numFmt: "#,##0" },
         {
@@ -174,6 +179,7 @@ const earning: ReportModuleDef = {
       totals: {
         date: "Total",
         name: null,
+        fees: totalFees,
         amount: totalAmount,
         teamPay: totalTeamPay,
         netEarning: totalAmount - totalTeamPay,
@@ -438,6 +444,14 @@ const invoices: ReportModuleDef = {
         issueDate: invoice.issueDate,
         dueDate: invoice.dueDate,
         amount: formatContractAmount(balanceDue, currency),
+        fees:
+          Number(invoice.feesAmount) > 0
+            ? formatContractAmount(Number(invoice.feesAmount), currency)
+            : null,
+        received:
+          invoice.pkrAmount != null
+            ? formatContractAmount(Number(invoice.pkrAmount), "PKR")
+            : null,
         status: INVOICE_STATUS_LABELS[invoice.status as InvoiceStatus],
       };
     });
@@ -455,6 +469,8 @@ const invoices: ReportModuleDef = {
         { key: "issueDate", label: "Issue date", numFmt: "dd mmm yyyy" },
         { key: "dueDate", label: "Due date", numFmt: "dd mmm yyyy" },
         { key: "amount", label: "Amount", align: "right" },
+        { key: "fees", label: "Fees", align: "right" },
+        { key: "received", label: "Received (PKR)", align: "right" },
         { key: "status", label: "Status" },
       ],
       rows: reportRows,

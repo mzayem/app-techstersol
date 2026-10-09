@@ -31,6 +31,7 @@ import {
   planInvoiceEarning,
   writeInvoiceEarning,
 } from "@/lib/invoices/earning";
+import { feesToPkr, parseFeeInputs } from "@/lib/invoices/fees";
 import { logActivity } from "@/lib/activity/log";
 
 function str(formData: FormData, key: string) {
@@ -242,7 +243,24 @@ export async function markInvoicePaid(id: string, formData: FormData) {
   });
   if (!invoice) throw new Error("Invoice not found");
 
-  const pkrAmount = addToEarning ? parsePkrAmount(invoice, pkrAmountRaw) : null;
+  // Platform commission, withdrawal fee, tax… deducted before the money
+  // arrived. The PKR entered (or, for a PKR invoice, balance − fees) is
+  // what actually landed, so it's already net of these.
+  const balanceDue = invoiceBalanceDue(invoice);
+  const fees = parseFeeInputs(str(formData, "fees"), balanceDue);
+
+  const pkrAmount = addToEarning
+    ? parsePkrAmount(invoice, pkrAmountRaw, fees.total)
+    : null;
+  const feesPkr =
+    pkrAmount !== null
+      ? feesToPkr({
+          feesTotal: fees.total,
+          currency: invoice.currency,
+          balanceDue,
+          pkrReceived: pkrAmount,
+        })
+      : null;
 
   const paidOn = paidOnRaw ? new Date(paidOnRaw) : new Date();
   const contractIds = invoice.contracts.map((c) => c.contractId);
@@ -355,6 +373,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
           invoice,
           completedContractIds: completedIds,
           pkrAmount,
+          feesPkr: feesPkr ?? 0,
         })
       : null;
 
@@ -366,6 +385,15 @@ export async function markInvoicePaid(id: string, formData: FormData) {
         paidOn,
         transactionId,
         pkrAmount,
+        feesAmount: fees.total,
+        feesPkr,
+        fees: {
+          deleteMany: {},
+          create: fees.lines.map((line, index) => ({
+            ...line,
+            sortOrder: index,
+          })),
+        },
         completedContractIds: completedIds,
       },
     });
@@ -412,7 +440,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
     action: "marked-paid",
     entityType: "invoice",
     entityId: id,
-    summary: `Marked invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name}) as paid — txn ${transactionId}${earningPlan ? "" : " (not added to earning)"}`,
+    summary: `Marked invoice ${formatInvoiceNumber(invoice.number)} (${invoice.client.name}) as paid — txn ${transactionId}${fees.total > 0 ? `, ${formatContractAmount(fees.total, invoice.currency)} in fees (${fees.lines.map((l) => l.label).join(", ")})` : ""}${earningPlan ? "" : " (not added to earning)"}`,
     page: "invoices",
   });
 
@@ -449,17 +477,27 @@ export async function addInvoiceEarning(id: string, formData: FormData) {
     throw new Error("This invoice has already been added to earning");
   }
 
-  const pkrAmount = parsePkrAmount(invoice, pkrAmountRaw);
+  // Fees were recorded when it was marked paid; the PKR entered now is
+  // what actually arrived, already net of them.
+  const feesTotal = Number(invoice.feesAmount);
+  const pkrAmount = parsePkrAmount(invoice, pkrAmountRaw, feesTotal);
+  const feesPkr = feesToPkr({
+    feesTotal,
+    currency: invoice.currency,
+    balanceDue: invoiceBalanceDue(invoice),
+    pkrReceived: pkrAmount,
+  });
   const receivedOn = receivedOnRaw ? new Date(receivedOnRaw) : new Date();
 
   const earningPlan = await planInvoiceEarning({
     invoice,
     completedContractIds: invoice.completedContractIds,
     pkrAmount,
+    feesPkr,
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.invoice.update({ where: { id }, data: { pkrAmount } });
+    await tx.invoice.update({ where: { id }, data: { pkrAmount, feesPkr } });
     await writeInvoiceEarning(tx, earningPlan, {
       date: receivedOn,
       createdByUserId,
@@ -480,8 +518,19 @@ export async function addInvoiceEarning(id: string, formData: FormData) {
   revalidatePath("/account/balance-sheet");
 }
 
-/** PKR actually received for an invoice — its own balance due when it's
- * billed in PKR, otherwise the admin-entered figure. */
+function invoiceBalanceDue(invoice: {
+  discount: unknown;
+  items: { amount: unknown }[];
+}) {
+  return (
+    invoice.items.reduce((sum, item) => sum + Number(item.amount), 0) -
+    Number(invoice.discount)
+  );
+}
+
+/** PKR actually received for an invoice — its balance due less any fees
+ * when it's billed in PKR, otherwise the admin-entered figure (which is
+ * already what arrived after fees). */
 function parsePkrAmount(
   invoice: {
     currency: string;
@@ -489,12 +538,10 @@ function parsePkrAmount(
     items: { amount: unknown }[];
   },
   pkrAmountRaw: string,
+  feesTotal = 0,
 ) {
   if (invoice.currency === "PKR") {
-    return (
-      invoice.items.reduce((sum, item) => sum + Number(item.amount), 0) -
-      Number(invoice.discount)
-    );
+    return invoiceBalanceDue(invoice) - feesTotal;
   }
   const pkrAmount = Number(pkrAmountRaw);
   if (!pkrAmountRaw || Number.isNaN(pkrAmount) || pkrAmount <= 0) {
@@ -622,6 +669,9 @@ export async function markInvoiceUnpaid(id: string) {
         paidOn: null,
         transactionId: null,
         pkrAmount: null,
+        feesAmount: 0,
+        feesPkr: null,
+        fees: { deleteMany: {} },
         completedContractIds: [],
       },
     }),

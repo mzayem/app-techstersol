@@ -285,6 +285,11 @@ export type PartnerInvoice = {
   status: "UNPAID" | "PAID";
   total: number;
   balanceDue: number;
+  /** Fees/taxes deducted from the payment, in the invoice currency. */
+  feesAmount: number;
+  /** PKR that actually reached the company, after fees — null until the
+   * payment is added to earning. */
+  pkrAmount: number | null;
 };
 
 /** Invoices tied to at least one of this partner's own contracts — a
@@ -311,6 +316,8 @@ export async function listPartnerInvoices(
       issueDate: true,
       dueDate: true,
       status: true,
+      feesAmount: true,
+      pkrAmount: true,
       client: { select: { name: true } },
       items: { select: { amount: true } },
     },
@@ -332,6 +339,8 @@ export async function listPartnerInvoices(
       status: invoice.status as "UNPAID" | "PAID",
       total,
       balanceDue: total - Number(invoice.discount),
+      feesAmount: Number(invoice.feesAmount),
+      pkrAmount: invoice.pkrAmount != null ? Number(invoice.pkrAmount) : null,
     };
   });
 }

@@ -7,6 +7,7 @@ import {
   DownloadIcon,
   MailWarningIcon,
   MoreHorizontalIcon,
+  ReceiptTextIcon,
   RotateCcwIcon,
   WalletIcon,
   Trash2Icon,
@@ -73,6 +74,20 @@ export function InvoiceActionsMenu({
             <DownloadIcon />
             Download PDF
           </DropdownMenuItem>
+          {status === "PAID" && (
+            <DropdownMenuItem
+              render={
+                <a
+                  href={`${pdfHref}?copy=tax`}
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
+            >
+              <ReceiptTextIcon />
+              Download tax copy
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           {status === "UNPAID" ? (
             <DropdownMenuItem onClick={onMarkPaid}>

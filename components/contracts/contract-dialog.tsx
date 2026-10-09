@@ -56,7 +56,10 @@ import { ContractActionsMenu } from "@/components/contracts/contract-actions-men
 import { ContractChatButton } from "@/components/contracts/contract-chat";
 import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
-import { ProjectExpensesSection } from "@/components/contracts/project-expenses-section";
+import {
+  ProjectExpensesSection,
+  type ProjectExpenseRow,
+} from "@/components/contracts/project-expenses-section";
 import { HourLogDialog } from "@/components/contracts/hour-log-dialog";
 import { formatContractNumber } from "@/lib/contracts/numbering-format";
 import { getFxEstimate } from "@/actions/contracts/actions";
@@ -117,7 +120,7 @@ export type ContractEntry = {
   /** HOURLY only — logged hours not yet on an invoice. */
   unbilledHours: number;
   milestones: { name: string; amount: number; deadline: Date }[];
-  projectExpenses: { id: string; date: Date; name: string; amount: number }[];
+  projectExpenses: ProjectExpenseRow[];
 };
 
 type MilestoneRow = { name: string; amount: string; deadline: string };
@@ -918,6 +921,7 @@ export function ContractDialog({
             {isEdit ? (
               <ProjectExpensesSection
                 contractId={contract.id}
+                currency={contract.currency}
                 initialExpenses={contract.projectExpenses}
                 disabled={locked}
               />

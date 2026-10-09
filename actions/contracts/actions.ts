@@ -368,6 +368,7 @@ export async function updateContract(
     select: {
       status: true,
       paymentType: true,
+      currency: true,
       nextInvoiceDate: true,
       teamMemberId: true,
       partnerId: true,
@@ -384,6 +385,18 @@ export async function updateContract(
     throw new Error(
       "A recurring contract can't be converted to another payment structure (or back) — create a new contract instead",
     );
+  }
+  // Project expenses are recorded in the contract currency — switching it
+  // would silently relabel every one of them.
+  if (before.currency !== fields.currency) {
+    const expenses = await prisma.projectExpense.count({
+      where: { contractId: id },
+    });
+    if (expenses > 0) {
+      throw new Error(
+        `This contract has project expenses recorded in ${before.currency} — remove them before changing its currency`,
+      );
+    }
   }
   if (before.paymentType === "HOURLY" && fields.paymentType !== "HOURLY") {
     const loggedHours = await prisma.contractHourLog.count({

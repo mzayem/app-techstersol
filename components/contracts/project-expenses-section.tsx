@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { formatContractAmount } from "@/lib/contracts/constants";
+import type { PaymentCurrency } from "@/lib/clients/constants";
 import {
   createProjectExpense,
   deleteProjectExpense,
@@ -16,7 +17,11 @@ export type ProjectExpenseRow = {
   id: string;
   date: Date;
   name: string;
+  /** In `currency` — the contract's currency. */
   amount: number;
+  currency: PaymentCurrency;
+  /** The PKR equivalent booked to the ledger. */
+  pkrAmount: number;
 };
 
 function todayInput() {
@@ -29,10 +34,13 @@ function todayInput() {
  * contract form's own submit / offline-sync queue. */
 export function ProjectExpensesSection({
   contractId,
+  currency,
   initialExpenses,
   disabled = false,
 }: {
   contractId: string;
+  /** The contract's currency — every expense is entered in it. */
+  currency: PaymentCurrency;
   initialExpenses: ProjectExpenseRow[];
   disabled?: boolean;
 }) {
@@ -44,6 +52,7 @@ export function ProjectExpensesSection({
   const [error, setError] = React.useState<string | null>(null);
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalPkr = expenses.reduce((sum, e) => sum + e.pkrAmount, 0);
 
   function addExpense() {
     setError(null);
@@ -79,10 +88,14 @@ export function ProjectExpensesSection({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Project expenses</span>
+        <span className="text-sm text-muted-foreground">
+          Project expenses ({currency})
+        </span>
         {expenses.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            Total: {formatContractAmount(total, "PKR")}
+            Total: {formatContractAmount(total, currency)}
+            {currency !== "PKR" &&
+              ` ≈ ${formatContractAmount(totalPkr, "PKR")}`}
           </span>
         )}
       </div>
@@ -93,8 +106,13 @@ export function ProjectExpensesSection({
             {row.date.toISOString().slice(0, 10)}
           </span>
           <span className="flex-1">{row.name}</span>
-          <span className="w-24 text-right">
-            {formatContractAmount(row.amount, "PKR")}
+          <span className="w-28 text-right">
+            {formatContractAmount(row.amount, row.currency)}
+            {row.currency !== "PKR" && (
+              <span className="block text-xs text-muted-foreground">
+                ≈ {formatContractAmount(row.pkrAmount, "PKR")}
+              </span>
+            )}
           </span>
           <Button
             type="button"
@@ -127,7 +145,7 @@ export function ProjectExpensesSection({
           type="number"
           min="0"
           step="0.01"
-          placeholder="Amount (PKR)"
+          placeholder={`Amount (${currency})`}
           className="w-32"
           value={amount}
           disabled={disabled}

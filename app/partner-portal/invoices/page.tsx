@@ -1,4 +1,4 @@
-import { DownloadIcon } from "lucide-react";
+import { DownloadIcon, ReceiptTextIcon } from "lucide-react";
 
 import { PartnerInvoiceDialog } from "@/components/partner-portal/partner-invoice-dialog";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,9 @@ export default async function PartnerInvoicesPage({
         <div>
           <h1 className="text-lg font-medium">Invoices</h1>
           <p className="text-sm text-muted-foreground">
-            Invoices raised against your projects. Download a PDF copy any time.
+            Invoices raised against your projects. Download a PDF copy any time
+            — paid ones also have a tax copy showing the fees deducted and what
+            the company actually received.
           </p>
         </div>
         <PartnerInvoiceDialog sources={sources} />
@@ -92,25 +94,59 @@ export default async function PartnerInvoicesPage({
                 <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatContractAmount(invoice.balanceDue, invoice.currency)}
+                  {invoice.feesAmount > 0 && (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      Fees −
+                      {formatContractAmount(
+                        invoice.feesAmount,
+                        invoice.currency,
+                      )}
+                    </span>
+                  )}
+                  {invoice.pkrAmount != null && (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      Received {formatContractAmount(invoice.pkrAmount, "PKR")}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <StatusPill status={invoice.status} />
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Download PDF"
-                    render={
-                      <a
-                        href={`/api/invoices/${invoice.id}/pdf`}
-                        target="_blank"
-                        rel="noreferrer"
-                      />
-                    }
-                  >
-                    <DownloadIcon />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    {invoice.status === "PAID" && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Download tax copy"
+                        title="Tax copy — what the company actually received after fees"
+                        nativeButton={false}
+                        render={
+                          <a
+                            href={`/api/invoices/${invoice.id}/pdf?copy=tax`}
+                            target="_blank"
+                            rel="noreferrer"
+                          />
+                        }
+                      >
+                        <ReceiptTextIcon />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Download PDF"
+                      render={
+                        <a
+                          href={`/api/invoices/${invoice.id}/pdf`}
+                          target="_blank"
+                          rel="noreferrer"
+                        />
+                      }
+                    >
+                      <DownloadIcon />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

@@ -150,6 +150,15 @@ export default async function InvoicesPage({
                         {formatContractAmount(total, currency)} − discount
                       </span>
                     )}
+                    {Number(invoice.feesAmount) > 0 && (
+                      <span className="block text-xs text-muted-foreground">
+                        Fees −
+                        {formatContractAmount(
+                          Number(invoice.feesAmount),
+                          currency,
+                        )}
+                      </span>
+                    )}
                     {invoice.pkrAmount != null && (
                       <span className="block text-xs text-muted-foreground">
                         Received{" "}
@@ -180,6 +189,7 @@ export default async function InvoicesPage({
                         currency={currency}
                         clientEmail={invoice.client.email}
                         balanceDue={balanceDue}
+                        feesAmount={Number(invoice.feesAmount)}
                         suggestedPkrAmount={suggestedPkrAmount}
                         remindersEnabled={invoice.remindersEnabled}
                         overdue={

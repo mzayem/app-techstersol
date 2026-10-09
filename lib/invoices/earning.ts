@@ -67,13 +67,16 @@ export async function planInvoiceEarning({
   invoice,
   completedContractIds,
   pkrAmount,
+  feesPkr = 0,
 }: {
   invoice: InvoiceForEarning;
   /** Fixed-price contracts this invoice's payment fully paid off — their
    * team pay, project expenses and partner shares are booked here, once. */
   completedContractIds: string[];
-  /** Actual PKR received — the gross ledger credit. */
+  /** Actual PKR received — the gross ledger credit. Already net of fees. */
   pkrAmount: number;
+  /** Fees/taxes (in PKR) deducted from this payment before it arrived. */
+  feesPkr?: number;
 }) {
   const currency = invoice.currency as PaymentCurrency;
   const grossTotal = invoice.items.reduce(
@@ -118,14 +121,16 @@ export async function planInvoiceEarning({
     ? await prisma.projectExpense.groupBy({
         by: ["contractId"],
         where: { contractId: { in: completedContracts.map((c) => c.id) } },
-        _sum: { amount: true },
+        _sum: { pkrAmount: true },
       })
     : [];
   const fixedExpenseOf = new Map(
-    fixedExpenses.map((e) => [e.contractId, Number(e._sum.amount ?? 0)]),
+    fixedExpenses.map((e) => [e.contractId, Number(e._sum.pkrAmount ?? 0)]),
   );
 
-  // workCost/projectExpenses are always PKR (same convention as team pay),
+  // workCost is always PKR (same convention as team pay), and project
+  // expenses are summed from their stored PKR equivalent (they're entered
+  // in the contract's own currency),
   // so a non-PKR contract's face-value revenue must be converted to PKR
   // before combining them — otherwise profit is computed from mismatched
   // units (e.g. $100 revenue minus a PKR 8,327 work cost).
@@ -134,6 +139,15 @@ export async function planInvoiceEarning({
   )
     ? await getRatesToPkr()
     : null;
+
+  // Fees deducted from a partnered contract's payments (this one and any
+  // earlier ones) come off its revenue, so the partner's profit share is
+  // worked out on what was actually received.
+  const feesByContract = await feesByFixedContract(
+    invoice,
+    feesPkr,
+    completedContracts.filter((c) => c.partnerId).map((c) => c.id),
+  );
 
   for (const c of completedContracts) {
     const workCost = Number(c.teamPayAmount ?? 0);
@@ -147,9 +161,10 @@ export async function planInvoiceEarning({
 
     const rawRevenue = contractRevenueBasis(c);
     const revenue =
-      c.currency === "PKR"
+      (c.currency === "PKR"
         ? rawRevenue
-        : rawRevenue * (ratesToPkr?.[c.currency as PaymentCurrency] ?? 1);
+        : rawRevenue * (ratesToPkr?.[c.currency as PaymentCurrency] ?? 1)) -
+      (feesByContract.get(c.id) ?? 0);
     shareInputs.push({ contract: c, revenue, workCost, projectExpenses });
   }
 
@@ -186,9 +201,9 @@ export async function planInvoiceEarning({
             lte: new Date(Math.max(...ends.map((d) => d.getTime()))),
           },
         },
-        _sum: { amount: true },
+        _sum: { pkrAmount: true },
       });
-      projectExpenses = Number(sum._sum.amount ?? 0);
+      projectExpenses = Number(sum._sum.pkrAmount ?? 0);
     }
 
     if (c.teamMemberId) teamPay += workCost;
@@ -268,6 +283,7 @@ export async function planInvoiceEarning({
 
   return {
     invoiceId: invoice.id,
+    feesPkr,
     earningName: `${invoice.client.name} — Invoice ${formatInvoiceNumber(invoice.number)}`,
     pkrAmount,
     netEarningAmount,
@@ -297,6 +313,7 @@ export async function writeInvoiceEarning(
       teamPay,
       partnerShare: plan.partnerShareTotal,
       projectExpenses: plan.projectExpensesTotal,
+      fees: plan.feesPkr,
       referenceAmount: plan.referenceAmount,
       referenceCurrency: plan.referenceCurrency,
       invoiceId: plan.invoiceId,
@@ -350,4 +367,70 @@ export async function writeInvoiceEarning(
       },
     });
   }
+}
+
+/** PKR fees attributable to each of these fixed-price contracts across all
+ * their paid invoices — this one (`feesPkr`, not saved yet) plus earlier
+ * ones. An invoice's fees are split across its contracts by billed amount.
+ * Earlier fees not yet converted to PKR (payment not added to earning) are
+ * converted at today's rate. */
+async function feesByFixedContract(
+  invoice: InvoiceForEarning,
+  feesPkr: number,
+  contractIds: string[],
+) {
+  const fees = new Map<string, number>();
+  if (contractIds.length === 0) return fees;
+  const add = (id: string, amount: number) =>
+    fees.set(id, (fees.get(id) ?? 0) + amount);
+
+  const thisGross = invoice.items.reduce((s, i) => s + Number(i.amount), 0);
+  if (feesPkr > 0 && thisGross > 0) {
+    for (const item of invoice.items) {
+      if (item.contractId && contractIds.includes(item.contractId)) {
+        add(item.contractId, (feesPkr * Number(item.amount)) / thisGross);
+      }
+    }
+  }
+
+  const earlier = await prisma.invoiceItem.findMany({
+    where: {
+      contractId: { in: contractIds },
+      invoice: {
+        status: "PAID",
+        id: { not: invoice.id },
+        feesAmount: { gt: 0 },
+      },
+    },
+    select: {
+      contractId: true,
+      amount: true,
+      invoice: {
+        select: {
+          currency: true,
+          feesAmount: true,
+          feesPkr: true,
+          items: { select: { amount: true } },
+        },
+      },
+    },
+  });
+  const rates = earlier.some(
+    (i) => i.invoice.feesPkr == null && i.invoice.currency !== "PKR",
+  )
+    ? await getRatesToPkr()
+    : null;
+  for (const item of earlier) {
+    const gross = item.invoice.items.reduce((s, i) => s + Number(i.amount), 0);
+    if (gross <= 0) continue;
+    const invoiceFeesPkr =
+      item.invoice.feesPkr != null
+        ? Number(item.invoice.feesPkr)
+        : Number(item.invoice.feesAmount) *
+          (item.invoice.currency === "PKR"
+            ? 1
+            : (rates?.[item.invoice.currency as PaymentCurrency] ?? 1));
+    add(item.contractId!, (invoiceFeesPkr * Number(item.amount)) / gross);
+  }
+  return fees;
 }

@@ -25,6 +25,7 @@ export function AddEarningDialog({
   invoiceId,
   currency,
   balanceDue,
+  feesAmount,
   suggestedPkrAmount,
 }: {
   open: boolean;
@@ -32,8 +33,16 @@ export function AddEarningDialog({
   invoiceId: string;
   currency: PaymentCurrency;
   balanceDue: number;
+  /** Fees recorded when it was marked paid, in the invoice currency. */
+  feesAmount: number;
   suggestedPkrAmount?: number;
 }) {
+  const netAmount = balanceDue - feesAmount;
+  const suggestedNetPkr =
+    suggestedPkrAmount !== undefined && balanceDue > 0
+      ? (suggestedPkrAmount * netAmount) / balanceDue
+      : undefined;
+
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
 
@@ -59,10 +68,21 @@ export function AddEarningDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Add to earning</DialogTitle>
-          {currency === "PKR" && (
+          {currency === "PKR" ? (
             <DialogDescription>
-              Books {formatContractAmount(balanceDue, "PKR")} as earning.
+              Books {formatContractAmount(netAmount, "PKR")} as earning
+              {feesAmount > 0 &&
+                ` (${formatContractAmount(balanceDue, "PKR")} less ${formatContractAmount(feesAmount, "PKR")} in fees)`}
+              .
             </DialogDescription>
+          ) : (
+            feesAmount > 0 && (
+              <DialogDescription>
+                {formatContractAmount(feesAmount, currency)} in fees was
+                deducted from this payment —{" "}
+                {formatContractAmount(netAmount, currency)} was received.
+              </DialogDescription>
+            )
           )}
         </DialogHeader>
         <form action={onSubmit} className="flex flex-col gap-3">
@@ -76,7 +96,7 @@ export function AddEarningDialog({
           {currency !== "PKR" && (
             <PkrAmountField
               currency={currency}
-              suggestedPkrAmount={suggestedPkrAmount}
+              suggestedPkrAmount={suggestedNetPkr}
             />
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
