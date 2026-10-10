@@ -823,7 +823,9 @@ export async function sendInvoiceReminderNow(id: string) {
       status: true,
       dueDate: true,
       reminderCount: true,
-      client: { select: { name: true, email: true } },
+      client: {
+        select: { name: true, email: true, emailNotificationsEnabled: true },
+      },
     },
   });
   if (!invoice) throw new Error("Invoice not found");
@@ -842,6 +844,11 @@ export async function sendInvoiceReminderNow(id: string) {
   }
   if (!invoice.client.email) {
     throw new Error("This client has no email address on file");
+  }
+  if (!invoice.client.emailNotificationsEnabled) {
+    throw new Error(
+      "This client has email notifications switched off — turn them on in the client's profile to send a reminder",
+    );
   }
 
   const daysOverdue = Math.max(

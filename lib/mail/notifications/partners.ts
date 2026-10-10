@@ -5,7 +5,19 @@ import {
   getPartnerPayslipForPdf,
   toPartnerPayslipPdfData,
 } from "@/actions/partners/payslip-queries";
-import { renderPartnerPayslipIssuedEmail } from "@/lib/mail/templates/partner-payslip";
+import {
+  renderPartnerInvestmentRecordedEmail,
+  renderPartnerPayslipIssuedEmail,
+} from "@/lib/mail/templates/partner-payslip";
+import { renderPartnerInvestmentPdf } from "@/lib/partners/investment-pdf";
+import {
+  INVESTMENT_METHOD_LABELS,
+  formatPartnerInvestmentNumber,
+} from "@/lib/partners/investment-constants";
+import {
+  getPartnerInvestmentForPdf,
+  toPartnerInvestmentPdfData,
+} from "@/actions/partners/investment-queries";
 
 function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL!;
@@ -79,5 +91,48 @@ export async function notifyPartnerPayslipIssued(payslipId: string) {
     });
   } catch (err) {
     console.error("[mail] partner-payslip-issued notification failed:", err);
+  }
+}
+
+/** Emails the partner their investment slip (PDF attached) when an
+ * investment from them is recorded — same opt-out as payslips
+ * (Partner.payslipEmailsEnabled). Errors are logged, not thrown. */
+export async function notifyPartnerInvestmentRecorded(investmentId: string) {
+  try {
+    const investment = await getPartnerInvestmentForPdf(investmentId);
+    if (
+      !investment ||
+      !investment.partner.email ||
+      !investment.partner.payslipEmailsEnabled
+    ) {
+      return;
+    }
+
+    const pdfData = toPartnerInvestmentPdfData(investment);
+    const buffer = await renderPartnerInvestmentPdf(pdfData);
+    const slipNumber = formatPartnerInvestmentNumber(investment.number);
+
+    await sendMail({
+      to: investment.partner.email,
+      subject: `Investment slip ${slipNumber}`,
+      html: renderPartnerInvestmentRecordedEmail({
+        slipNumber,
+        amount: formatPkr(pdfData.amount),
+        date: formatDate(investment.date),
+        method: INVESTMENT_METHOD_LABELS[investment.method],
+        transactionId: investment.transactionId,
+        projectName: pdfData.projectName,
+        portalUrl: `${appUrl()}/partner-portal/investments`,
+      }),
+      attachments: [
+        {
+          filename: `Investment-${slipNumber}.pdf`,
+          content: buffer,
+          contentType: "application/pdf",
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("[mail] partner-investment notification failed:", err);
   }
 }

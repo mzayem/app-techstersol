@@ -29,9 +29,7 @@ export async function getStaffNotificationRecipients(
     select: { email: true },
   });
 
-  const skip = new Set(
-    exclude.filter((e): e is string => !!e).map(normalize),
-  );
+  const skip = new Set(exclude.filter((e): e is string => !!e).map(normalize));
   const seen = new Set<string>();
   const recipients: string[] = [];
   for (const email of [

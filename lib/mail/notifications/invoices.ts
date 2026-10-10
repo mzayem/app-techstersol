@@ -37,14 +37,22 @@ async function buildInvoicePdfAttachment(invoiceId: string) {
   };
 }
 
-/** No toggle gates this one — invoice emails always go out on create/paid,
- * unlike contract-status emails which respect the client/project
- * notification switches. Errors are logged, not thrown, same as every
- * other notifier here. */
+/** Whether this client gets automatic emails at all — the client's master
+ * "Email notifications" switch turns off every notification to them,
+ * invoices included. While it's on, invoice emails always go out (they
+ * have no per-contract switch, unlike status-change and chat emails). */
+function emailsClient(client: {
+  email: string | null;
+  emailNotificationsEnabled: boolean;
+}) {
+  return !!client.email && client.emailNotificationsEnabled;
+}
+
+/** Errors are logged, not thrown, same as every other notifier here. */
 export async function notifyInvoiceCreated(invoiceId: string) {
   try {
     const built = await buildInvoicePdfAttachment(invoiceId);
-    if (!built || !built.invoice.client.email) return;
+    if (!built || !emailsClient(built.invoice.client)) return;
     const { invoice, pdfData, attachment } = built;
 
     const total = pdfData.items.reduce((sum, item) => sum + item.amount, 0);
@@ -69,13 +77,14 @@ export async function notifyInvoiceCreated(invoiceId: string) {
 /** Unlike the other notifiers this one throws on failure — the reminder
  * job needs to know whether the email actually went out so it can undo
  * its claim on this reminder slot and retry on the next run. Returns false
- * (without sending) when the client has no email address. */
+ * (without sending) when the client has no email address or has email
+ * notifications switched off. */
 export async function notifyInvoiceReminder(
   invoiceId: string,
   daysOverdue: number,
 ): Promise<boolean> {
   const built = await buildInvoicePdfAttachment(invoiceId);
-  if (!built || !built.invoice.client.email) return false;
+  if (!built || !emailsClient(built.invoice.client)) return false;
   const { invoice, pdfData, attachment } = built;
 
   const total = pdfData.items.reduce((sum, item) => sum + item.amount, 0);
@@ -99,7 +108,7 @@ export async function notifyInvoiceReminder(
 export async function notifyInvoicePaid(invoiceId: string) {
   try {
     const built = await buildInvoicePdfAttachment(invoiceId);
-    if (!built || !built.invoice.client.email) return;
+    if (!built || !emailsClient(built.invoice.client)) return;
     const { invoice, pdfData, attachment } = built;
 
     const total = pdfData.items.reduce((sum, item) => sum + item.amount, 0);

@@ -228,9 +228,10 @@ export function ClientDialog({
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-medium">Email notifications</span>
               <span className="text-xs text-muted-foreground">
-                Master switch for contract-status emails to this client. Off
-                disables every project&apos;s notifications, regardless of that
-                project&apos;s own setting.
+                Master switch for every automatic email to this client. Off:
+                nothing is sent — no invoices, reminders, status changes or chat
+                messages. On: invoices are always emailed, and status and chat
+                emails follow each project&apos;s own setting.
               </span>
             </div>
             <Switch

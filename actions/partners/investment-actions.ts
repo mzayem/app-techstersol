@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import type { InvestmentMethod } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { notifyPartnerInvestmentRecorded } from "@/lib/mail/notifications/partners";
 import {
   PARTNER_INVESTMENT_NUMBER_START,
   formatPartnerInvestmentNumber,
@@ -15,7 +16,7 @@ import { logActivity } from "@/lib/activity/log";
 function pkr(amount: unknown) {
   return formatContractAmount(Number(amount), "PKR");
 }
-import { requirePagePermission } from "@/lib/rbac/permissions";
+import { checkPermission, requirePagePermission } from "@/lib/rbac/permissions";
 import { getPartnerInvestmentBalance } from "@/actions/partners/investment-queries";
 
 function str(formData: FormData, key: string) {
@@ -113,6 +114,7 @@ export async function createPartnerInvestment(formData: FormData) {
             : {}),
         },
       });
+      await notifyPartnerInvestmentRecorded(created.id);
       await logActivity(appUser, {
         action: "created",
         entityType: "partner-investment",
@@ -181,14 +183,38 @@ export async function createPartnerInvestmentSpend(formData: FormData) {
   const category = str(formData, "category");
   const amountRaw = str(formData, "amount");
   const note = str(formData, "note");
+  // "Add my share": part of the total is paid by the company instead of the
+  // partner's investment, and is booked as a company Investment expense.
+  const shareEnabled = str(formData, "companyShareEnabled") === "true";
+  const companyShareRaw = str(formData, "companyShare");
 
   if (!partnerId || !date || !category) {
     throw new Error("Partner, date, and category are required");
   }
-  const amount = Number(amountRaw);
-  if (!amountRaw || Number.isNaN(amount) || amount <= 0) {
+  const totalAmount = Number(amountRaw);
+  if (!amountRaw || Number.isNaN(totalAmount) || totalAmount <= 0) {
     throw new Error("Enter a valid amount");
   }
+
+  let companyShare = 0;
+  if (shareEnabled) {
+    companyShare = Number(companyShareRaw);
+    if (!companyShareRaw || Number.isNaN(companyShare) || companyShare <= 0) {
+      throw new Error("Enter your share of this spend");
+    }
+    if (companyShare >= totalAmount) {
+      throw new Error(
+        "Your share must be less than the total — log it as a company expense instead if you're paying all of it",
+      );
+    }
+    if (!checkPermission(appUser, "expenses", "create")) {
+      throw new Error(
+        "Adding your share creates a company expense, which your role isn't allowed to create",
+      );
+    }
+  }
+  // What comes out of the partner's investment.
+  const amount = Math.round((totalAmount - companyShare) * 100) / 100;
 
   const partner = await prisma.partner.findUnique({
     where: { id: partnerId },
@@ -203,26 +229,59 @@ export async function createPartnerInvestmentSpend(formData: FormData) {
     );
   }
 
-  const spend = await prisma.partnerInvestmentSpend.create({
-    data: {
-      partnerId,
-      date: new Date(date),
-      amount,
-      category,
-      note: note || null,
-      createdByUserId,
-    },
+  const dateObj = new Date(date);
+  const spend = await prisma.$transaction(async (tx) => {
+    const companyExpense =
+      companyShare > 0
+        ? await tx.expense.create({
+            data: {
+              date: dateObj,
+              category: "INVESTMENT",
+              name: `${category} — my share (joint spend with ${partner.name})`,
+              amount: companyShare,
+              createdByUserId,
+              ledgerEntries: {
+                create: {
+                  type: "EXPENSE",
+                  name: `${category} — my share (joint spend with ${partner.name})`,
+                  date: dateObj,
+                  debit: companyShare,
+                },
+              },
+            },
+            select: { id: true },
+          })
+        : null;
+    return tx.partnerInvestmentSpend.create({
+      data: {
+        partnerId,
+        date: dateObj,
+        amount,
+        category,
+        note: note || null,
+        companyExpenseId: companyExpense?.id ?? null,
+        createdByUserId,
+      },
+    });
   });
 
   await logActivity(appUser, {
     action: "created",
     entityType: "partner-investment",
     entityId: spend.id,
-    summary: `Spent ${pkr(amount)} of ${partner.name}'s investment on "${category}"`,
+    summary:
+      companyShare > 0
+        ? `Spent ${pkr(totalAmount)} on "${category}" — ${pkr(amount)} from ${partner.name}'s investment, ${pkr(companyShare)} my share (added to expenses as Investment)`
+        : `Spent ${pkr(amount)} of ${partner.name}'s investment on "${category}"`,
     page: "partner-investments",
   });
 
   revalidateInvestmentPaths();
+  if (companyShare > 0) {
+    revalidatePath("/account/expenses");
+    revalidatePath("/account/distributions");
+    revalidatePath("/account/balance-sheet");
+  }
 }
 
 export async function deletePartnerInvestmentSpend(id: string) {
@@ -231,18 +290,30 @@ export async function deletePartnerInvestmentSpend(id: string) {
     "delete",
   );
 
-  const spend = await prisma.partnerInvestmentSpend.delete({
-    where: { id },
-    include: { partner: { select: { name: true } } },
+  const spend = await prisma.$transaction(async (tx) => {
+    const deleted = await tx.partnerInvestmentSpend.delete({
+      where: { id },
+      include: { partner: { select: { name: true } } },
+    });
+    if (deleted.companyExpenseId) {
+      // Its ledger row cascades with it.
+      await tx.expense.deleteMany({ where: { id: deleted.companyExpenseId } });
+    }
+    return deleted;
   });
 
   await logActivity(appUser, {
     action: "deleted",
     entityType: "partner-investment",
     entityId: id,
-    summary: `Deleted a ${pkr(spend.amount)} "${spend.category}" spend from ${spend.partner.name}'s investment`,
+    summary: `Deleted a ${pkr(spend.amount)} "${spend.category}" spend from ${spend.partner.name}'s investment${spend.companyExpenseId ? " (and my share's expense)" : ""}`,
     page: "partner-investments",
   });
 
   revalidateInvestmentPaths();
+  if (spend.companyExpenseId) {
+    revalidatePath("/account/expenses");
+    revalidatePath("/account/distributions");
+    revalidatePath("/account/balance-sheet");
+  }
 }

@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import type { PartnerOption } from "@/components/partners/partner-investment-dialog";
@@ -48,9 +49,23 @@ export function PartnerInvestmentSpendDialog({
   const [error, setError] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
   const [partnerId, setPartnerId] = React.useState("");
+  const [amount, setAmount] = React.useState("");
+  const [shareEnabled, setShareEnabled] = React.useState(false);
+  const [companyShare, setCompanyShare] = React.useState("");
 
   const available =
     balances.find((b) => b.partnerId === partnerId)?.available ?? null;
+  const total = Number(amount) || 0;
+  const myShare = shareEnabled ? Number(companyShare) || 0 : 0;
+  const partnerPart = Math.max(total - myShare, 0);
+
+  function resetForm() {
+    formRef.current?.reset();
+    setPartnerId("");
+    setAmount("");
+    setShareEnabled(false);
+    setCompanyShare("");
+  }
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -62,8 +77,7 @@ export function PartnerInvestmentSpendDialog({
         label: "partner investment spend",
       });
       if (result.ok) {
-        formRef.current?.reset();
-        setPartnerId("");
+        resetForm();
         setOpen(false);
       } else {
         setError(result.error);
@@ -72,7 +86,13 @@ export function PartnerInvestmentSpendDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) resetForm();
+      }}
+    >
       <DialogTrigger render={<Button variant="outline" />}>
         <PlusIcon />
         Log spending
@@ -115,7 +135,7 @@ export function PartnerInvestmentSpendDialog({
             <Field label="Date">
               <DatePicker name="date" required defaultValue={todayInput()} />
             </Field>
-            <Field label="Amount (PKR)">
+            <Field label={shareEnabled ? "Total amount (PKR)" : "Amount (PKR)"}>
               <Input
                 type="number"
                 name="amount"
@@ -123,8 +143,60 @@ export function PartnerInvestmentSpendDialog({
                 step="0.01"
                 placeholder="0.00"
                 required
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
               />
             </Field>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-md px-3 py-2.5 ring-1 ring-foreground/10">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">Add my share</span>
+                <span className="text-xs text-muted-foreground">
+                  Part of this was paid by you. Your share is added to Expenses
+                  as an Investment; only the rest comes out of the
+                  partner&apos;s investment.
+                </span>
+              </div>
+              <Switch
+                checked={shareEnabled}
+                onCheckedChange={setShareEnabled}
+              />
+              <input
+                type="hidden"
+                name="companyShareEnabled"
+                value={shareEnabled ? "true" : "false"}
+              />
+            </div>
+            {shareEnabled && (
+              <>
+                <Field label="My share (PKR)">
+                  <Input
+                    type="number"
+                    name="companyShare"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    required
+                    value={companyShare}
+                    onChange={(e) => setCompanyShare(e.target.value)}
+                  />
+                </Field>
+                {total > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {formatPkr(partnerPart)}
+                    </span>{" "}
+                    from the partner&apos;s investment ·{" "}
+                    <span className="font-medium text-foreground">
+                      {formatPkr(myShare)}
+                    </span>{" "}
+                    from you (added to Expenses → Investment)
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <Field label="Note (optional)">

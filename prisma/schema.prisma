@@ -203,15 +203,18 @@ model Earning {
 
 /// A spend against one of the four non-donation buckets.
 model Expense {
-  id              String          @id @default(cuid())
-  date            DateTime        @db.Date
-  category        ExpenseCategory
-  name            String
-  amount          Decimal         @db.Decimal(14, 2)
-  createdByUserId String
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  ledgerEntries   LedgerEntry[]
+  id                     String                  @id @default(cuid())
+  date                   DateTime                @db.Date
+  category               ExpenseCategory
+  name                   String
+  amount                 Decimal                 @db.Decimal(14, 2)
+  createdByUserId        String
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  ledgerEntries          LedgerEntry[]
+  /// Set when this expense is the company's share of a split partner
+  /// investment spend.
+  partnerInvestmentSpend PartnerInvestmentSpend?
 
   @@index([date])
   @@index([category])
@@ -648,16 +651,21 @@ model PartnerInvestment {
 /// ProjectExpense or the profit-split formula; purely a spend log against
 /// the balance built up by that partner's PartnerInvestment rows.
 model PartnerInvestmentSpend {
-  id              String   @id @default(cuid())
-  partnerId       String
-  partner         Partner  @relation(fields: [partnerId], references: [id])
-  date            DateTime @db.Date
-  amount          Decimal  @db.Decimal(14, 2)
-  category        String
-  note            String?
-  createdByUserId String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  partnerId        String
+  partner          Partner  @relation(fields: [partnerId], references: [id])
+  date             DateTime @db.Date
+  amount           Decimal  @db.Decimal(14, 2)
+  category         String
+  note             String?
+  /// When the spend was split with the company ("my share"), the company
+  /// Expense (INVESTMENT category) booked for that share. `amount` above is
+  /// only the partner's part. Deleting the spend deletes this expense too.
+  companyExpenseId String?  @unique
+  companyExpense   Expense? @relation(fields: [companyExpenseId], references: [id], onDelete: SetNull)
+  createdByUserId  String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([partnerId])
   @@index([date])

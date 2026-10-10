@@ -180,10 +180,12 @@ export function PartnerDialog({
           </div>
           <div className="flex items-center justify-between gap-3 rounded-md ring-1 ring-foreground/10 px-3 py-2.5">
             <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">Payslip emails</span>
+              <span className="text-sm font-medium">
+                Payslip &amp; investment slip emails
+              </span>
               <span className="text-xs text-muted-foreground">
                 {email
-                  ? "Email a copy of each payslip (with PDF) to this address."
+                  ? "Email each payslip and investment slip (with PDF) to this address."
                   : "Add an email address above to enable this."}
               </span>
             </div>

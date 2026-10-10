@@ -947,14 +947,12 @@ export function ContractDialog({
                 onCheckedChange={setStatusEmailsEnabled}
                 disabled={locked || clientNotificationsDisabled}
               />
+              {/* The project's own choice is kept while the client is
+                  muted, so it takes effect again once they're unmuted. */}
               <input
                 type="hidden"
                 name="statusEmailsEnabled"
-                value={
-                  statusEmailsEnabled && !clientNotificationsDisabled
-                    ? "true"
-                    : "false"
-                }
+                value={statusEmailsEnabled ? "true" : "false"}
               />
             </div>
 
@@ -964,15 +962,17 @@ export function ContractDialog({
                   Email client on new chat messages
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Off by default. When on, a message from you emails the client.
-                  Client messages always email the admin and the partner, plus
-                  any staff who turned on chat notifications in their profile.
+                  {clientNotificationsDisabled
+                    ? "Off — this client has email notifications disabled in their profile."
+                    : "Off by default. When on, a message from you emails the client. Client messages always email the admin and the partner, plus any staff who turned on chat notifications in their profile."}
                 </span>
               </div>
               <Switch
-                checked={chatNotificationsEnabled}
+                checked={
+                  chatNotificationsEnabled && !clientNotificationsDisabled
+                }
                 onCheckedChange={setChatNotificationsEnabled}
-                disabled={locked}
+                disabled={locked || clientNotificationsDisabled}
               />
               <input
                 type="hidden"

@@ -55,3 +55,40 @@ export function renderPartnerPayslipIssuedEmail({
   `;
   return renderEmailShell({ title: `Payslip ${payslipNumber}`, bodyHtml });
 }
+
+/** Sent when an investment from a partner is recorded — the investment
+ * slip PDF is attached. */
+export function renderPartnerInvestmentRecordedEmail({
+  slipNumber,
+  amount,
+  date,
+  method,
+  transactionId,
+  projectName,
+  portalUrl,
+}: {
+  slipNumber: string;
+  amount: string;
+  date: string;
+  method: string;
+  transactionId?: string | null;
+  projectName?: string | null;
+  portalUrl: string;
+}) {
+  const bodyHtml = `
+    <div style="margin-bottom:20px;">${emailBadge("Investment Recorded")}</div>
+    <h1 class="em-heading" style="margin:0 0 12px 0;font-size:26px;font-weight:800;color:#18181b;">Investment slip ${slipNumber}</h1>
+    <p class="em-muted" style="margin:0 0 24px 0;font-size:14px;line-height:1.8;color:#5b5b62;font-weight:300;">
+      Your investment has been recorded. The investment slip is attached to this email.
+    </p>
+    ${emailInfoTable(
+      emailInfoRow("Amount", amount) +
+        emailInfoRow("Date", date) +
+        emailInfoRow("Funded by", method) +
+        (projectName ? emailInfoRow("From project payout", projectName) : "") +
+        (transactionId ? emailInfoRow("Transaction ID", transactionId) : ""),
+    )}
+    <div style="margin-top:28px;">${emailButton("View your investments", portalUrl)}</div>
+  `;
+  return renderEmailShell({ title: `Investment slip ${slipNumber}`, bodyHtml });
+}

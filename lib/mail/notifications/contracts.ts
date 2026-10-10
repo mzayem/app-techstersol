@@ -236,8 +236,9 @@ export function notifyContractStatusChanged(contractId: string) {
 /** A new chat message on a contract. A client's message goes to
  * ADMIN_NOTIFY_EMAIL, every staff login that opted into chat notifications,
  * and — on a partnered project — that project's partner. A message from
- * anyone else emails the client, but only while the contract's own "email
- * on new chat messages" toggle is on. */
+ * anyone else emails the client, but only while both the client's master
+ * "Email notifications" switch and the contract's own "email on new chat
+ * messages" toggle are on. */
 export function notifyChatMessage({
   contractId,
   authorKind,
@@ -257,7 +258,7 @@ export function notifyChatMessage({
         paymentType: true,
         chatNotificationsEnabled: true,
         partnerId: true,
-        client: { select: { email: true } },
+        client: { select: { email: true, emailNotificationsEnabled: true } },
       },
     });
     if (!contract) return;
@@ -273,7 +274,13 @@ export function notifyChatMessage({
       });
 
     if (authorKind !== "CLIENT") {
-      if (!contract.chatNotificationsEnabled || !contract.client.email) return;
+      // Needs both the client's master switch and this contract's own.
+      if (
+        !contract.client.emailNotificationsEnabled ||
+        !contract.chatNotificationsEnabled ||
+        !contract.client.email
+      )
+        return;
       await sendMail({
         to: contract.client.email,
         subject,

@@ -30,14 +30,15 @@ export const dynamic = "force-dynamic";
 
 export default async function PartnerInvestmentsPage() {
   const { permission } = await requirePagePermission("partner-investments");
-  const [investments, spends, balances, partners, accruals] =
-    await Promise.all([
+  const [investments, spends, balances, partners, accruals] = await Promise.all(
+    [
       listPartnerInvestments(),
       listPartnerInvestmentSpends(),
       listPartnerInvestmentBalances(),
       listPartnerOptions(),
       listPartnerPendingAccruals(),
-    ]);
+    ],
+  );
 
   const balanceList = partners.map((p) => ({
     partnerId: p.id,
@@ -141,6 +142,11 @@ export default async function PartnerInvestmentsPage() {
               </TableCell>
               <TableCell className="text-right tabular-nums">
                 {formatPkr(Number(spend.amount))}
+                {spend.companyExpense && (
+                  <span className="block text-xs text-muted-foreground">
+                    + {formatPkr(Number(spend.companyExpense.amount))} my share
+                  </span>
+                )}
               </TableCell>
               <TableCell>
                 <div className="flex items-center justify-end">

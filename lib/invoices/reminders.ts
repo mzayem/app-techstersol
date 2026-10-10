@@ -42,6 +42,8 @@ export async function sendDueInvoiceReminders(
       remindersEnabled: true,
       reminderCount: { lt: INVOICE_REMINDER_MAX },
       dueDate: { lt: today },
+      // The client's master email switch silences reminders too.
+      client: { emailNotificationsEnabled: true },
       OR: [
         { lastReminderAt: null },
         { lastReminderAt: { lte: intervalCutoff } },

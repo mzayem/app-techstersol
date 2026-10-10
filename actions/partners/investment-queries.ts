@@ -14,7 +14,10 @@ export async function listPartnerInvestments() {
 
 export async function listPartnerInvestmentSpends() {
   return prisma.partnerInvestmentSpend.findMany({
-    include: { partner: { select: { id: true, name: true } } },
+    include: {
+      partner: { select: { id: true, name: true } },
+      companyExpense: { select: { amount: true } },
+    },
     orderBy: { date: "desc" },
   });
 }
