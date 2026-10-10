@@ -107,6 +107,7 @@ export default async function ClientsPage({
                 <ClientRowActions
                   key={client.id}
                   entry={entry}
+                  partnerOptions={partnerOptions}
                   canEdit={permission.canEdit}
                   canDelete={permission.canDelete}
                 >
