@@ -21,6 +21,7 @@ import {
   sendPartnerPayslipEmail,
   sendPayslipEmail,
 } from "@/actions/mail/actions";
+import { actionErrorMessage } from "@/lib/action-error";
 
 type Attachable =
   | { kind: "contract"; id: string }
@@ -62,13 +63,20 @@ export function SendEmailDialog({
         toast.add({ title: `Email sent to ${to}`, type: "success" });
         setOpen(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Couldn't send email");
+        setError(actionErrorMessage(e, "Couldn't send email"));
       }
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       <DialogTrigger
         render={
           <Button

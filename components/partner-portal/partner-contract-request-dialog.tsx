@@ -40,6 +40,8 @@ import {
 } from "@/actions/partner-portal/actions";
 import type { PartnerClientOption } from "@/actions/partner-portal/queries";
 import { todayIso } from "@/lib/date/iso";
+import { actionErrorMessage } from "@/lib/action-error";
+import { submitForm } from "@/lib/form-submit";
 
 const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: c }));
 
@@ -171,13 +173,20 @@ export function PartnerContractRequestDialog({
         resetForm();
         setOpen(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        setError(actionErrorMessage(err, "Something went wrong"));
       }
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       <DialogTrigger render={<Button />}>
         <PlusIcon />
         Propose a project
@@ -186,7 +195,11 @@ export function PartnerContractRequestDialog({
         <DialogHeader>
           <DialogTitle>Propose a new project</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
             <div className="flex flex-col gap-2">
               <span className="text-sm text-muted-foreground">Client</span>

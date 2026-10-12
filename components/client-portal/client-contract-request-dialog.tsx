@@ -31,6 +31,8 @@ import {
 } from "@/lib/contracts/constants";
 import { createClientContractRequest } from "@/actions/client-portal/actions";
 import { todayIso } from "@/lib/date/iso";
+import { actionErrorMessage } from "@/lib/action-error";
+import { submitForm } from "@/lib/form-submit";
 
 type MilestoneRow = { name: string; amount: string; deadline: string };
 
@@ -104,13 +106,20 @@ export function ClientContractRequestDialog({
         resetForm();
         setOpen(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        setError(actionErrorMessage(err, "Something went wrong"));
       }
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       <DialogTrigger render={<Button />}>
         <PlusIcon />
         Request new project
@@ -119,7 +128,11 @@ export function ClientContractRequestDialog({
         <DialogHeader>
           <DialogTitle>Request a new project</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
             {profiles.length > 1 ? (
               <Field label="Which profile is this for?">

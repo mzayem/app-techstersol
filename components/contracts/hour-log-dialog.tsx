@@ -29,6 +29,7 @@ import {
   type HourLogRow,
 } from "@/actions/contracts/hours";
 import { todayIso } from "@/lib/date/iso";
+import { actionErrorMessage } from "@/lib/action-error";
 
 function todayInput() {
   return todayIso();
@@ -69,9 +70,7 @@ export function HourLogDialog({
   const load = React.useCallback(() => {
     listContractHourLogs(contract.id)
       .then(setLogs)
-      .catch((e) =>
-        setError(e instanceof Error ? e.message : "Couldn't load hours"),
-      );
+      .catch((e) => setError(actionErrorMessage(e, "Couldn't load hours")));
   }, [contract.id]);
 
   React.useEffect(() => {
@@ -85,7 +84,7 @@ export function HourLogDialog({
         await fn();
         load();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }

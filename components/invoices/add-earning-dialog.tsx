@@ -17,6 +17,8 @@ import { formatContractAmount } from "@/lib/contracts/constants";
 import { addInvoiceEarning } from "@/actions/invoices/actions";
 import { Field, PkrAmountField } from "@/components/invoices/mark-paid-dialog";
 import { todayIso } from "@/lib/date/iso";
+import { actionErrorMessage } from "@/lib/action-error";
+import { submitForm } from "@/lib/form-submit";
 
 /** For a paid invoice that was marked paid without booking an Earning —
  * books it once the money has actually reached the PKR account. */
@@ -54,7 +56,7 @@ export function AddEarningDialog({
         await addInvoiceEarning(invoiceId, formData);
         onOpenChange(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }
@@ -86,7 +88,10 @@ export function AddEarningDialog({
             )
           )}
         </DialogHeader>
-        <form action={onSubmit} className="flex flex-col gap-3">
+        <form
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Received in PKR account on">
             <DatePicker name="receivedOn" required defaultValue={todayIso()} />
           </Field>

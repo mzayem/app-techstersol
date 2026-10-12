@@ -61,6 +61,7 @@ import type {
   MailFolder,
   MailListItem,
 } from "@/lib/mail/imap";
+import { actionErrorMessage } from "@/lib/action-error";
 
 type FilterKey = "all" | "unread" | "read" | "starred";
 type SortKey = "newest" | "oldest" | "largest" | "smallest";
@@ -304,9 +305,7 @@ export function EmailsClient() {
           if (opts.background) {
             toast.add({ title: "Couldn't refresh mailbox", type: "error" });
           } else {
-            setListError(
-              err instanceof Error ? err.message : "Couldn't load mailbox",
-            );
+            setListError(actionErrorMessage(err, "Couldn't load mailbox"));
           }
         }
       });
@@ -390,9 +389,7 @@ export function EmailsClient() {
           if (folder === "INBOX") refreshUnseenCount();
         }
       } catch (err) {
-        setDetailError(
-          err instanceof Error ? err.message : "Couldn't load message",
-        );
+        setDetailError(actionErrorMessage(err, "Couldn't load message"));
       }
     });
   }
@@ -419,7 +416,7 @@ export function EmailsClient() {
         }
       } catch (err) {
         toast.add({
-          title: err instanceof Error ? err.message : "Couldn't open draft",
+          title: actionErrorMessage(err, "Couldn't open draft"),
           type: "error",
         });
       } finally {
@@ -478,10 +475,10 @@ export function EmailsClient() {
       })
       .catch((err) => {
         toast.add({
-          title:
-            err instanceof Error
-              ? err.message
-              : "Couldn't delete message — restoring it",
+          title: actionErrorMessage(
+            err,
+            "Couldn't delete message — restoring it",
+          ),
           type: "error",
         });
         fetchList(folder, page, { background: true });
@@ -508,10 +505,7 @@ export function EmailsClient() {
     Promise.all(uids.map((uid) => removeMailMessage(folder, uid))).catch(
       (err) => {
         toast.add({
-          title:
-            err instanceof Error
-              ? err.message
-              : "Some messages couldn't be deleted",
+          title: actionErrorMessage(err, "Some messages couldn't be deleted"),
           type: "error",
         });
         fetchList(folder, page, { background: true });
@@ -535,8 +529,7 @@ export function EmailsClient() {
     Promise.all(uids.map((uid) => setMessageSeen(folder, uid, seen))).catch(
       (err) => {
         toast.add({
-          title:
-            err instanceof Error ? err.message : "Couldn't update messages",
+          title: actionErrorMessage(err, "Couldn't update messages"),
           type: "error",
         });
         fetchList(folder, page, { background: true });
@@ -620,8 +613,7 @@ export function EmailsClient() {
     toast.promise(sendPromise, {
       loading: `Sending to ${recipient}…`,
       success: `Email sent to ${recipient}`,
-      error: (err) =>
-        err instanceof Error ? err.message : "Couldn't send email",
+      error: (err) => actionErrorMessage(err, "Couldn't send email"),
     });
     sendPromise
       .then(() => {
@@ -637,8 +629,7 @@ export function EmailsClient() {
     toast.promise(savePromise, {
       loading: "Saving draft…",
       success: "Draft saved",
-      error: (err) =>
-        err instanceof Error ? err.message : "Couldn't save draft",
+      error: (err) => actionErrorMessage(err, "Couldn't save draft"),
     });
     savePromise.then(() => invalidateFolder("INBOX.Drafts")).catch(() => {});
   }

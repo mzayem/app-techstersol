@@ -20,6 +20,7 @@ import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import type { PartnerAccrual } from "@/actions/partners/queries";
 import { todayIso } from "@/lib/date/iso";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 export type PartnerOption = { id: string; name: string };
 
@@ -77,6 +78,13 @@ export function PartnerPayslipDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      partnerId: "a partner",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     const fields = formDataToRecord(formData);
     startTransition(async () => {
       const result = await enqueueMutation({
@@ -99,7 +107,14 @@ export function PartnerPayslipDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       <DialogTrigger render={<Button />}>
         <PlusIcon />
         Add payslip
@@ -108,7 +123,11 @@ export function PartnerPayslipDialog({
         <DialogHeader>
           <DialogTitle>Add partner payslip</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Partner">
             <Combobox
               value={partnerId}

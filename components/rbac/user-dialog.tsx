@@ -47,6 +47,8 @@ import {
   updateAppUser,
 } from "@/actions/rbac/user-actions";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { actionErrorMessage } from "@/lib/action-error";
+import { submitForm } from "@/lib/form-submit";
 
 export type RoleOption = { id: string; name: string };
 export type TeamMemberOption = { id: string; name: string };
@@ -157,13 +159,20 @@ export function UserDialog({
         }
         setOpen(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -174,7 +183,11 @@ export function UserDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit user" : "Add user"}</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">User type</span>
             <Select
@@ -425,7 +438,7 @@ export function UserRowActions({
         setSendOpen(false);
       } catch (e) {
         toast.add({
-          title: e instanceof Error ? e.message : "Couldn't send credentials",
+          title: actionErrorMessage(e, "Couldn't send credentials"),
           type: "error",
         });
       }

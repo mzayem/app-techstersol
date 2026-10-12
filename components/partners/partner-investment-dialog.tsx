@@ -29,6 +29,7 @@ import { INVESTMENT_METHOD_LABELS } from "@/lib/partners/investment-constants";
 import type { InvestmentMethod } from "@/generated/prisma/client";
 import type { PartnerAccrual } from "@/actions/partners/queries";
 import { todayIso } from "@/lib/date/iso";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 export type PartnerOption = { id: string; name: string };
 
@@ -98,6 +99,14 @@ export function PartnerInvestmentDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      partnerId: "a partner",
+      method: "how it was funded",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     const fields = formDataToRecord(formData);
     startTransition(async () => {
       const result = await enqueueMutation({
@@ -115,7 +124,14 @@ export function PartnerInvestmentDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       <DialogTrigger render={<Button />}>
         <PlusIcon />
         Add investment
@@ -124,7 +140,11 @@ export function PartnerInvestmentDialog({
         <DialogHeader>
           <DialogTitle>Add partner investment</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Partner">
             <Combobox
               value={partnerId}

@@ -34,6 +34,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 import { todayIso } from "@/lib/date/iso";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 export type ExpenseEntry = {
   id: string;
@@ -70,6 +71,13 @@ export function ExpenseDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      category: "a category",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     const amountError = resolveAmountField(formData, "amount", "Amount");
     if (amountError) {
       setError(amountError);
@@ -99,7 +107,14 @@ export function ExpenseDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -110,7 +125,11 @@ export function ExpenseDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit expense" : "Add expense"}</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <div className="grid grid-cols-2 gap-3">
             <Field label="Date">
               <DatePicker

@@ -26,6 +26,8 @@ import { formatContractAmount } from "@/lib/contracts/constants";
 import type { FeeInput } from "@/lib/invoices/fees";
 import { markInvoicePaid } from "@/actions/invoices/actions";
 import { todayIso } from "@/lib/date/iso";
+import { actionErrorMessage } from "@/lib/action-error";
+import { submitForm } from "@/lib/form-submit";
 
 type FeeRow = { label: string; mode: FeeInput["mode"]; value: string };
 
@@ -94,7 +96,7 @@ export function MarkPaidDialog({
         onOpenChange(false);
         reset();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }
@@ -122,7 +124,10 @@ export function MarkPaidDialog({
         <DialogHeader>
           <DialogTitle>Mark invoice as paid</DialogTitle>
         </DialogHeader>
-        <form action={onSubmit} className="flex flex-col gap-3">
+        <form
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Transaction ID">
             <Input name="transactionId" placeholder="TID" required />
           </Field>

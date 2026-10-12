@@ -22,6 +22,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 import { todayIso } from "@/lib/date/iso";
+import { submitForm } from "@/lib/form-submit";
 
 export type DonationEntry = {
   id: string;
@@ -86,7 +87,14 @@ export function DonationDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -97,7 +105,11 @@ export function DonationDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit donation" : "Add donation"}</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Date">
             <DatePicker
               name="date"

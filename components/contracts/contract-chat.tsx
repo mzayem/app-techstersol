@@ -33,6 +33,7 @@ import {
   listContractMessages,
   type ContractMessageEntry,
 } from "@/actions/contracts/messages";
+import { actionErrorMessage } from "@/lib/action-error";
 
 const URL_PATTERN = /(https?:\/\/[^\s<]+)/g;
 
@@ -146,9 +147,7 @@ function ContractChatSheet({
         setMessages(data);
         setLoadError(null);
       } catch (error) {
-        setLoadError(
-          error instanceof Error ? error.message : "Couldn't load messages",
-        );
+        setLoadError(actionErrorMessage(error, "Couldn't load messages"));
       }
     });
   }, [contractId]);
@@ -172,8 +171,7 @@ function ContractChatSheet({
         setBody("");
       } catch (error) {
         toast.add({
-          title:
-            error instanceof Error ? error.message : "Couldn't send message",
+          title: actionErrorMessage(error, "Couldn't send message"),
           type: "error",
         });
       }
@@ -189,8 +187,7 @@ function ContractChatSheet({
         setMessages((prev) => prev?.filter((m) => m.id !== messageId) ?? prev);
       } catch (error) {
         toast.add({
-          title:
-            error instanceof Error ? error.message : "Couldn't delete message",
+          title: actionErrorMessage(error, "Couldn't delete message"),
           type: "error",
         });
       } finally {

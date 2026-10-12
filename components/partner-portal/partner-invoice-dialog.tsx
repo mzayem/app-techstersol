@@ -30,6 +30,8 @@ import {
 } from "@/actions/partner-portal/actions";
 import type { PartnerInvoiceSources } from "@/actions/partner-portal/queries";
 import { todayIso, addDaysIso } from "@/lib/date/iso";
+import { actionErrorMessage } from "@/lib/action-error";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 function lineKey(
   option: Pick<
@@ -140,6 +142,15 @@ export function PartnerInvoiceDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      clientId: "a client",
+      currency: "a currency",
+      bankAccountId: "a bank account",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     startTransition(async () => {
       try {
         await createPartnerInvoice(formData, items);
@@ -147,13 +158,20 @@ export function PartnerInvoiceDialog({
         resetForm();
         setOpen(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        setError(actionErrorMessage(err, "Something went wrong"));
       }
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       <DialogTrigger render={<Button />}>
         <PlusIcon />
         New invoice
@@ -162,7 +180,11 @@ export function PartnerInvoiceDialog({
         <DialogHeader>
           <DialogTitle>New invoice</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
             <Field label="Client">
               <Combobox

@@ -34,6 +34,7 @@ import { type InvoiceItemInput } from "@/actions/invoices/actions";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { todayIso, addDaysIso } from "@/lib/date/iso";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 export type ClientOption = { id: string; name: string };
 
@@ -192,6 +193,15 @@ export function InvoiceDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      clientId: "a client",
+      currency: "a currency",
+      bankAccountId: "a bank account",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     const fields = formDataToRecord(formData);
     startTransition(async () => {
       const result = await enqueueMutation({
@@ -210,7 +220,14 @@ export function InvoiceDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       <DialogTrigger render={<Button />}>
         <PlusIcon />
         Add invoice
@@ -219,7 +236,11 @@ export function InvoiceDialog({
         <DialogHeader>
           <DialogTitle>Add invoice</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
             <Field label="Client">
               <Combobox

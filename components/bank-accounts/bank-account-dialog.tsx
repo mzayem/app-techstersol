@@ -36,6 +36,7 @@ import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { BankAccountActionsMenu } from "@/components/bank-accounts/bank-account-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 export type BankAccountEntry = {
   id: string;
@@ -111,6 +112,13 @@ export function BankAccountDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      currency: "a currency",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     const fields = formDataToRecord(formData);
     const label = `bank account "${fields.bankName}"`;
     startTransition(async () => {
@@ -143,7 +151,14 @@ export function BankAccountDialog({
     : undefined;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -156,7 +171,11 @@ export function BankAccountDialog({
             {isEdit ? "Edit bank account" : "Add bank account"}
           </DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Currency">
             <Select
               name="currency"

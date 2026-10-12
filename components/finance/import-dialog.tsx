@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { buildSampleCsv, parseCsv } from "@/lib/csv/parse";
+import { actionErrorMessage } from "@/lib/action-error";
 
 export type ImportColumn = {
   /** Exact CSV header this column matches (case-insensitive) — also the
@@ -155,7 +156,7 @@ export function ImportDialog({
         } catch (e) {
           errors.push({
             row: i + 2,
-            message: e instanceof Error ? e.message : "Something went wrong",
+            message: actionErrorMessage(e, "Something went wrong"),
           });
         }
       }

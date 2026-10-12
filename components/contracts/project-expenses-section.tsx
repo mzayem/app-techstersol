@@ -13,6 +13,7 @@ import {
   deleteProjectExpense,
 } from "@/actions/contracts/expenses";
 import { todayIso } from "@/lib/date/iso";
+import { actionErrorMessage } from "@/lib/action-error";
 
 export type ProjectExpenseRow = {
   id: string;
@@ -69,7 +70,7 @@ export function ProjectExpensesSection({
         setName("");
         setAmount("");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Couldn't add expense");
+        setError(actionErrorMessage(e, "Couldn't add expense"));
       }
     });
   }
@@ -81,7 +82,7 @@ export function ProjectExpensesSection({
         await deleteProjectExpense(id);
         setExpenses((rows) => rows.filter((r) => r.id !== id));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Couldn't remove expense");
+        setError(actionErrorMessage(e, "Couldn't remove expense"));
       }
     });
   }

@@ -21,6 +21,7 @@ import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import type { PartnerOption } from "@/components/partners/partner-investment-dialog";
 import { todayIso } from "@/lib/date/iso";
+import { submitForm } from "@/lib/form-submit";
 
 function todayInput() {
   return todayIso();
@@ -102,7 +103,11 @@ export function PartnerInvestmentSpendDialog({
         <DialogHeader>
           <DialogTitle>Log investment spending</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Partner">
             <Combobox
               value={partnerId}

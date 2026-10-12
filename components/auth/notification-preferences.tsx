@@ -8,6 +8,7 @@ import {
   updateNotificationPreference,
   type NotificationPreference,
 } from "@/actions/profile/notification-actions";
+import { actionErrorMessage } from "@/lib/action-error";
 
 const OPTIONS: {
   field: NotificationPreference;
@@ -49,8 +50,7 @@ export function NotificationPreferences({
     } catch (err) {
       setValues((v) => ({ ...v, [field]: !enabled }));
       toast.add({
-        title:
-          err instanceof Error ? err.message : "Couldn't save your preference",
+        title: actionErrorMessage(err, "Couldn't save your preference"),
         type: "error",
       });
     } finally {

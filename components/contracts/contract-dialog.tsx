@@ -64,6 +64,7 @@ import { HourLogDialog } from "@/components/contracts/hour-log-dialog";
 import { formatContractNumber } from "@/lib/contracts/numbering-format";
 import { getFxEstimate } from "@/actions/contracts/actions";
 import { todayIso } from "@/lib/date/iso";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 export type ClientOption = {
   id: string;
@@ -359,6 +360,14 @@ export function ContractDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      clientId: "a client",
+      currency: "a currency",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     const milestoneInputs: MilestoneInput[] = milestones.map((m) => ({
       name: m.name.trim(),
       amount: Number(m.amount),
@@ -417,7 +426,14 @@ export function ContractDialog({
   const noun = isRecurringPage ? "recurring contract" : "contract";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -432,7 +448,11 @@ export function ContractDialog({
               : `Add ${noun}`}
           </DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
             <Field label="Client">
               <Combobox

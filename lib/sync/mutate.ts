@@ -1,7 +1,10 @@
 "use client";
 
 import { toast } from "@/components/ui/toast";
-import { ACTION_REGISTRY, type ActionKey } from "@/lib/sync/actions-registry";
+import {
+  runRegisteredAction,
+  type ActionKey,
+} from "@/lib/sync/actions-registry";
 import { pushToQueue } from "@/lib/sync/queue";
 
 /** Distinguishes "the network dropped the request" from "the server
@@ -41,7 +44,7 @@ export async function enqueueMutation<P>({
 
   if (!offline) {
     try {
-      await ACTION_REGISTRY[key](payload);
+      await runRegisteredAction(key, payload);
       toast.update(toastId, {
         title: `Saved ${label}`,
         type: "success",

@@ -4,7 +4,8 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import { toast } from "@/components/ui/toast";
-import { ACTION_REGISTRY } from "@/lib/sync/actions-registry";
+import { runRegisteredAction } from "@/lib/sync/actions-registry";
+import { isActionKey } from "@/lib/sync/action-keys";
 import { isLikelyNetworkError } from "@/lib/sync/mutate";
 import {
   getQueue,
@@ -12,6 +13,7 @@ import {
   bumpAttempts,
   subscribeQueue,
 } from "@/lib/sync/queue";
+import { actionErrorMessage } from "@/lib/action-error";
 
 const RETRY_INTERVAL_MS = 15_000;
 // ~5 minutes of retrying at the interval above before giving up on an
@@ -36,15 +38,14 @@ export function SyncProvider() {
       const queue = getQueue();
       let changed = false;
       for (const item of queue) {
-        const run = ACTION_REGISTRY[item.actionKey];
-        if (!run) {
+        if (!isActionKey(item.actionKey)) {
           // Unrecognized action key (e.g. left over from an older deploy)
           // — drop it rather than retry something that no longer exists.
           removeFromQueue(item.id);
           continue;
         }
         try {
-          await run(item.payload);
+          await runRegisteredAction(item.actionKey, item.payload);
           removeFromQueue(item.id);
           changed = true;
           toast.add({
@@ -63,8 +64,7 @@ export function SyncProvider() {
             removeFromQueue(item.id);
             toast.add({
               title: `Couldn't sync "${item.label}"`,
-              description:
-                error instanceof Error ? error.message : "Unknown error",
+              description: actionErrorMessage(error, "Unknown error"),
               type: "error",
               timeout: 6000,
             });

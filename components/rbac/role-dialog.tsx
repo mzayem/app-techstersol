@@ -24,6 +24,8 @@ import {
 } from "@/actions/rbac/role-actions";
 import { TeamActionsMenu } from "@/components/team/team-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { actionErrorMessage } from "@/lib/action-error";
+import { submitForm } from "@/lib/form-submit";
 
 const ACTIONS = ["view", "create", "edit", "delete"] as const;
 type Action = (typeof ACTIONS)[number];
@@ -94,13 +96,20 @@ export function RoleDialog({
         }
         setOpen(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -111,7 +120,11 @@ export function RoleDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit role" : "Add role"}</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-muted-foreground">Name</span>
             <Input

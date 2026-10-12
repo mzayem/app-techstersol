@@ -29,6 +29,7 @@ import { AddEarningDialog } from "@/components/invoices/add-earning-dialog";
 import { SendEmailDialog } from "@/components/mail/send-email-dialog";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 import { toast } from "@/components/ui/toast";
+import { actionErrorMessage } from "@/lib/action-error";
 
 export function InvoiceRowActions({
   id,
@@ -73,10 +74,7 @@ export function InvoiceRowActions({
         setMarkUnpaidOpen(false);
       } catch (e) {
         toast.add({
-          title:
-            e instanceof Error
-              ? e.message
-              : "Couldn't mark this invoice as unpaid",
+          title: actionErrorMessage(e, "Couldn't mark this invoice as unpaid"),
           type: "error",
         });
       }
@@ -93,7 +91,7 @@ export function InvoiceRowActions({
         });
       } catch (e) {
         toast.add({
-          title: e instanceof Error ? e.message : "Couldn't send the reminder",
+          title: actionErrorMessage(e, "Couldn't send the reminder"),
           type: "error",
         });
       }
@@ -113,7 +111,7 @@ export function InvoiceRowActions({
         });
       } catch (e) {
         toast.add({
-          title: e instanceof Error ? e.message : "Couldn't update reminders",
+          title: actionErrorMessage(e, "Couldn't update reminders"),
           type: "error",
         });
       }

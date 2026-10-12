@@ -28,6 +28,8 @@ import {
 import { TeamActionsMenu } from "@/components/team/team-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 import { WeekPicker } from "@/components/team/week-picker";
+import { actionErrorMessage } from "@/lib/action-error";
+import { submitForm } from "@/lib/form-submit";
 
 export type TeamMemberOption = {
   id: string;
@@ -111,13 +113,20 @@ export function WorkDiaryDialog({
         }
         setOpen(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -130,7 +139,11 @@ export function WorkDiaryDialog({
             {isEdit ? "Edit work diary entry" : "Add work diary entry"}
           </DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Team member">
             <Combobox
               value={teamMemberId}

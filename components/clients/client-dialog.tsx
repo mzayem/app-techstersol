@@ -35,6 +35,7 @@ import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { ClientActionsMenu } from "@/components/clients/client-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: c }));
 
@@ -98,6 +99,14 @@ export function ClientDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      country: "a country",
+      currency: "a payment currency",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     const fields = formDataToRecord(formData);
     const label = `client "${fields.name}"`;
     startTransition(async () => {
@@ -129,7 +138,14 @@ export function ClientDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -140,7 +156,11 @@ export function ClientDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit client" : "Add client"}</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Name">
             <Input
               name="name"

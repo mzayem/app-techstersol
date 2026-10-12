@@ -5,10 +5,6 @@ const nextConfig: NextConfig = {
   images: {
     qualities: [75, 90, 95, 100],
   },
-  // @serwist/next always adds a `webpack()` hook to the config (even though
-  // it's a no-op here in dev, see `disable` below) — without this, Next 16
-  // hard-errors under `next dev`'s default Turbopack bundler, thinking an
-  // unmigrated webpack config was left behind by mistake.
   turbopack: {},
   outputFileTracingIncludes: {
     "/*": ["node_modules/pdfkit/js/**/*", "node_modules/pdfkit/package.json"],

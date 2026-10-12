@@ -33,6 +33,8 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table";
 import { TeamActionsMenu } from "@/components/team/team-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { actionErrorMessage } from "@/lib/action-error";
+import { missingChoices, submitForm } from "@/lib/form-submit";
 
 export type PartnerEntry = {
   id: string;
@@ -82,6 +84,13 @@ export function PartnerDialog({
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const missing = missingChoices(formData, {
+      currency: "a currency",
+    });
+    if (missing) {
+      setError(missing);
+      return;
+    }
     startTransition(async () => {
       try {
         if (isEdit) {
@@ -96,13 +105,20 @@ export function PartnerDialog({
         }
         setOpen(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        // A failed save's message shouldn't greet you next time.
+        if (!next) setError(null);
+      }}
+    >
       {!isEdit && (
         <DialogTrigger render={<Button />}>
           <PlusIcon />
@@ -113,7 +129,11 @@ export function PartnerDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit partner" : "Add partner"}</DialogTitle>
         </DialogHeader>
-        <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
+        <form
+          ref={formRef}
+          onSubmit={(event) => submitForm(event, onSubmit)}
+          className="flex flex-col gap-3"
+        >
           <Field label="Name">
             <Input
               name="name"

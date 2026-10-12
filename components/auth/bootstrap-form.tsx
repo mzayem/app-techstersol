@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { bootstrapAdmin } from "@/actions/auth/bootstrap-actions";
+import { actionErrorMessage } from "@/lib/action-error";
+import { submitForm } from "@/lib/form-submit";
 
 export function BootstrapForm() {
   const router = useRouter();
@@ -19,13 +21,16 @@ export function BootstrapForm() {
         await bootstrapAdmin(formData);
         router.push("/");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }
 
   return (
-    <form action={onSubmit} className="flex w-full max-w-sm flex-col gap-3">
+    <form
+      onSubmit={(event) => submitForm(event, onSubmit)}
+      className="flex w-full max-w-sm flex-col gap-3"
+    >
       <div className="flex flex-col gap-1">
         <h1 className="text-lg font-medium">Create the admin account</h1>
         <p className="text-sm text-muted-foreground">

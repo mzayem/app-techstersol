@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { actionErrorMessage } from "@/lib/action-error";
 
 export function DeleteEntryDialog({
   open,
@@ -34,7 +35,7 @@ export function DeleteEntryDialog({
         await onDelete();
         onOpenChange(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong");
+        setError(actionErrorMessage(e, "Something went wrong"));
       }
     });
   }

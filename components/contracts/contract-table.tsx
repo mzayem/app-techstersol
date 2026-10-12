@@ -44,6 +44,7 @@ import {
 } from "@/components/contracts/contract-dialog";
 import { toast } from "@/components/ui/toast";
 import { formatContractNumber } from "@/lib/contracts/numbering-format";
+import { actionErrorMessage } from "@/lib/action-error";
 
 export type ContractListItem = ContractEntry & {
   clientName: string;
@@ -137,10 +138,10 @@ export function ContractTable({
         clearSelection();
       } catch (e) {
         toast.add({
-          title:
-            e instanceof Error
-              ? e.message
-              : "Couldn't update the selected contracts",
+          title: actionErrorMessage(
+            e,
+            "Couldn't update the selected contracts",
+          ),
           type: "error",
         });
       }
