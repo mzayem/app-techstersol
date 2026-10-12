@@ -7,7 +7,11 @@ import {
   DISTRIBUTION_SPLIT,
   formatPkr,
 } from "@/lib/finance/constants";
-import { resolveDateRange } from "@/lib/finance/date-range";
+import {
+  DATE_PRESET_LABELS,
+  resolveDateRange,
+  type DatePreset,
+} from "@/lib/finance/date-range";
 import {
   getBucketBalances,
   getDistributionBreakdown,
@@ -29,6 +33,12 @@ export default async function DistributionsPage({
     params.from,
     params.to,
   );
+
+  const preset = (params.range ?? "this-year") as DatePreset;
+  const periodName =
+    preset === "custom" && (params.from || params.to)
+      ? `${params.from ?? "…"} to ${params.to ?? "…"}`
+      : (DATE_PRESET_LABELS[preset] ?? "this period").toLowerCase();
 
   // The stat cards are running balances that carry credit/debit across
   // years, so they always show the all-time figure regardless of the time
@@ -58,6 +68,9 @@ export default async function DistributionsPage({
       <StatCards balances={allTimeBalances} />
 
       <div className="rounded-md bg-card p-4 ring-1 ring-foreground/10 sm:p-6">
+        <h2 className="mb-1 text-sm font-medium">
+          Allocated vs spent — {periodName}
+        </h2>
         <p className="text-sm text-muted-foreground">
           Earning is{" "}
           <span className="font-medium text-foreground">
@@ -76,7 +89,10 @@ export default async function DistributionsPage({
         <div className="mt-6 flex flex-col gap-5">
           {BUCKETS.map((bucket) => {
             const Icon = BUCKET_ICONS[bucket];
-            const { allocated, spent, remaining } = breakdown[bucket];
+            const { allocated, spent } = breakdown[bucket];
+            // Whole rupees, so a -0.25 leftover reads "Remaining: Rs 0"
+            // rather than "Over by Rs 0".
+            const remaining = Math.round(breakdown[bucket].remaining);
             const usedPct =
               allocated > 0 ? Math.min(100, (spent / allocated) * 100) : 0;
             return (

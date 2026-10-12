@@ -32,7 +32,7 @@ const COLORS = [
 /** The "Other" slice (earnings with no client invoice behind them) always
  * gets this neutral gray rather than a color from the client palette, so it
  * reads as a catch-all bucket rather than another client. */
-const OTHER_COLOR = "#94a3b8";
+const OTHER_COLOR = "#c9cfd8";
 
 function colorFor(client: ClientRevenueSlice, clientIndex: number) {
   return client.isOther ? OTHER_COLOR : COLORS[clientIndex % COLORS.length];

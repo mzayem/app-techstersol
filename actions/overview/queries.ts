@@ -429,7 +429,9 @@ export async function getClientRevenueBreakdown(
   if (otherRevenue > 0) {
     slices.push({
       clientId: OTHER_REVENUE_CLIENT_ID,
-      clientName: "Other",
+      // Earning recorded without an invoice (manual or imported entries)
+      // — not a client, so named for what it is.
+      clientName: "No client linked",
       revenue: otherRevenue,
       projectCount: 0,
       isOther: true,

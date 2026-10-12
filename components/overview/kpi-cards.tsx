@@ -285,7 +285,7 @@ export function KpiCards({
                 full={formatPkr(periodEarning)}
               />
               <p className="text-xs text-muted-foreground">
-                Avg {formatPkr(avgMonthlyEarning)}/mo for this period
+                After team pay · avg {formatPkr(avgMonthlyEarning)}/mo
               </p>
             </CardHeader>
           </Card>

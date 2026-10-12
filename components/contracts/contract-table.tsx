@@ -45,6 +45,7 @@ import {
 import { toast } from "@/components/ui/toast";
 import { formatContractNumber } from "@/lib/contracts/numbering-format";
 import { actionErrorMessage } from "@/lib/action-error";
+import { businessDay } from "@/lib/date/iso";
 
 export type ContractListItem = ContractEntry & {
   clientName: string;
@@ -270,7 +271,20 @@ export function ContractTable({
                   <TableCell>{formatDate(contract.date)}</TableCell>
                   <TableCell>
                     {contract.deadline ? (
-                      formatDate(contract.deadline)
+                      <>
+                        <span
+                          className={
+                            isPastDeadline(contract) ? "text-destructive" : ""
+                          }
+                        >
+                          {formatDate(contract.deadline)}
+                        </span>
+                        {isPastDeadline(contract) && (
+                          <span className="block text-xs font-medium text-destructive">
+                            Overdue · {daysPast(contract.deadline)}
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className="text-muted-foreground">Ongoing</span>
                     )}
@@ -371,6 +385,24 @@ export function ContractTable({
       </div>
     </div>
   );
+}
+
+/** Past its deadline and not finished — completed and cancelled contracts
+ * are done, so their deadline no longer matters. */
+function isPastDeadline(contract: ContractListItem) {
+  return (
+    !!contract.deadline &&
+    contract.deadline < businessDay() &&
+    contract.status !== "COMPLETED" &&
+    contract.status !== "CANCELLED"
+  );
+}
+
+function daysPast(deadline: Date) {
+  const days = Math.round(
+    (businessDay().getTime() - deadline.getTime()) / 86_400_000,
+  );
+  return `${days} day${days === 1 ? "" : "s"} past`;
 }
 
 /** When the next invoice goes out — or why it won't. */

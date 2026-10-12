@@ -73,8 +73,13 @@ export const PKR_FORMATTER = new Intl.NumberFormat("en-PK", {
   maximumFractionDigits: 0,
 });
 
+function wholeRupees(amount: number) {
+  const rounded = Math.round(amount);
+  return rounded === 0 ? 0 : rounded;
+}
+
 export function formatPkr(amount: number) {
-  return PKR_FORMATTER.format(amount);
+  return PKR_FORMATTER.format(wholeRupees(amount));
 }
 
 const COMPACT_PKR_FORMATTER = new Intl.NumberFormat("en-PK", {
@@ -89,5 +94,5 @@ const COMPACT_PKR_FORMATTER = new Intl.NumberFormat("en-PK", {
 export function formatCompactPkr(amount: number) {
   return Math.abs(amount) < 10_000
     ? formatPkr(amount)
-    : COMPACT_PKR_FORMATTER.format(amount);
+    : COMPACT_PKR_FORMATTER.format(wholeRupees(amount));
 }
