@@ -11,7 +11,8 @@ export type ActivityAction =
   | "sent-email"
   | "reminder-sent"
   | "reminders-toggled"
-  | "added-earning";
+  | "added-earning"
+  | "revealed";
 
 /** Anyone with a name — a CurrentAppUser, or null for the system itself
  * (the reminder job and other unattended work). */

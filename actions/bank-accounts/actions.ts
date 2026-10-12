@@ -123,3 +123,33 @@ export async function deleteBankAccount(id: string) {
 
   revalidatePath("/account/bank-details");
 }
+
+/** The real account number and IBAN for one bank account. The Bank Details
+ * page only ever receives masked versions ("•••• 1234"), so the full
+ * numbers never sit in the page's HTML; they're fetched here on demand —
+ * for the reveal button, copying the details, or opening the edit dialog —
+ * and every reveal is recorded in the activity log. */
+export async function revealBankAccount(id: string) {
+  const { appUser } = await requirePagePermission("bank-details", "view");
+
+  const account = await prisma.bankAccount.findUnique({
+    where: { id },
+    select: {
+      bankName: true,
+      accountHolderName: true,
+      accountNumber: true,
+      iban: true,
+    },
+  });
+  if (!account) throw new Error("Bank account not found");
+
+  await logActivity(appUser, {
+    action: "revealed",
+    entityType: "bank-account",
+    entityId: id,
+    summary: `Viewed the full account details of "${account.bankName} — ${account.accountHolderName}"`,
+    page: "bank-details",
+  });
+
+  return { accountNumber: account.accountNumber, iban: account.iban };
+}

@@ -76,7 +76,13 @@ export function PartnerPortalSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              render={<Link href="/partner-portal" onClick={closeOnMobile} />}
+              render={
+                <Link
+                  href="/partner-portal"
+                  prefetch={false}
+                  onClick={closeOnMobile}
+                />
+              }
             >
               <Image
                 src="/images/icon.webp"
@@ -106,7 +112,13 @@ export function PartnerPortalSidebar({
                         pathname.startsWith(item.url))
                     }
                     tooltip={item.title}
-                    render={<Link href={item.url} onClick={closeOnMobile} />}
+                    render={
+                      <Link
+                        href={item.url}
+                        prefetch={false}
+                        onClick={closeOnMobile}
+                      />
+                    }
                   >
                     <item.icon />
                     <span>{item.title}</span>

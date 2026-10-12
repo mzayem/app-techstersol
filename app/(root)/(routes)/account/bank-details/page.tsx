@@ -1,6 +1,7 @@
 import {
   BankAccountDialog,
   BankAccountRowActions,
+  BankDetailsCell,
 } from "@/components/bank-accounts/bank-account-dialog";
 import { BankAccountFilterBar } from "@/components/bank-accounts/bank-account-filter-bar";
 import {
@@ -15,14 +16,11 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { paginate, parsePageParam, parsePageSizeParam } from "@/lib/pagination";
 import type { PaymentCurrency } from "@/lib/clients/constants";
 import {
-  BANK_FIELD_LABELS,
-  CURRENCY_FIELDS,
-} from "@/lib/bank-accounts/constants";
-import {
   listBankAccounts,
   type SortOption,
 } from "@/actions/bank-accounts/queries";
 import { requirePagePermission } from "@/lib/rbac/permissions";
+import { maskBankNumber } from "@/lib/bank-accounts/mask";
 
 export const dynamic = "force-dynamic";
 
@@ -87,8 +85,10 @@ export default async function BankDetailsPage({
                 swift: account.swift,
                 accountType: account.accountType,
                 routingNumber: account.routingNumber,
-                accountNumber: account.accountNumber,
-                iban: account.iban,
+                // Masked here, on the server — the full numbers are
+                // fetched on demand (see revealBankAccount).
+                accountNumber: maskBankNumber(account.accountNumber),
+                iban: maskBankNumber(account.iban),
                 sortCode: account.sortCode,
                 bsbCode: account.bsbCode,
               };
@@ -102,12 +102,11 @@ export default async function BankDetailsPage({
                   <TableCell className="font-medium">{currency}</TableCell>
                   <TableCell>{account.bankName}</TableCell>
                   <TableCell>{account.accountHolderName}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {CURRENCY_FIELDS[currency].map((field) => (
-                      <div key={field} className="text-xs whitespace-nowrap">
-                        {BANK_FIELD_LABELS[field]}: {entry[field] ?? "—"}
-                      </div>
-                    ))}
+                  <TableCell
+                    className="text-muted-foreground"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <BankDetailsCell entry={entry} />
                   </TableCell>
                   <TableCell>{account.swift}</TableCell>
                 </BankAccountRowActions>

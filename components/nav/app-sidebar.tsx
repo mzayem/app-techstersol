@@ -59,7 +59,9 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              render={<Link href="/" onClick={closeOnMobile} />}
+              render={
+                <Link href="/" prefetch={false} onClick={closeOnMobile} />
+              }
             >
               <Image
                 src="/images/icon.webp"
@@ -84,7 +86,13 @@ export function AppSidebar({
                 <SidebarMenuButton
                   isActive={pathname === navMain.url}
                   tooltip={navMain.title}
-                  render={<Link href={navMain.url} onClick={closeOnMobile} />}
+                  render={
+                    <Link
+                      href={navMain.url}
+                      prefetch={false}
+                      onClick={closeOnMobile}
+                    />
+                  }
                 >
                   <navMain.icon />
                   <span>{navMain.title}</span>
@@ -103,7 +111,13 @@ export function AppSidebar({
                     <SidebarMenuButton
                       isActive={pathname === item.url}
                       tooltip={item.title}
-                      render={<Link href={item.url} onClick={closeOnMobile} />}
+                      render={
+                        <Link
+                          href={item.url}
+                          prefetch={false}
+                          onClick={closeOnMobile}
+                        />
+                      }
                     >
                       <item.icon />
                       <span>{item.title}</span>

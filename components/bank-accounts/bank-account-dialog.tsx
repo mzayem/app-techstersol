@@ -37,6 +37,10 @@ import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { BankAccountActionsMenu } from "@/components/bank-accounts/bank-account-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 import { missingChoices, submitForm } from "@/lib/form-submit";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { SENSITIVE_BANK_FIELDS } from "@/lib/bank-accounts/mask";
+import { actionErrorMessage } from "@/lib/action-error";
+import { revealBankAccount } from "@/actions/bank-accounts/actions";
 
 export type BankAccountEntry = {
   id: string;
@@ -280,6 +284,64 @@ export function BankAccountDialog({
   );
 }
 
+/** The account's detail lines, with the account number / IBAN masked
+ * ("•••• 1234") until "Reveal" fetches the real ones from the server. */
+export function BankDetailsCell({ entry }: { entry: BankAccountEntry }) {
+  const [revealed, setRevealed] = React.useState<{
+    accountNumber: string | null;
+    iban: string | null;
+  } | null>(null);
+  const [loading, startLoading] = React.useTransition();
+  const hasSecret = SENSITIVE_BANK_FIELDS.some(
+    (field) => CURRENCY_FIELDS[entry.currency].includes(field) && entry[field],
+  );
+
+  function toggle() {
+    if (revealed) {
+      setRevealed(null);
+      return;
+    }
+    startLoading(async () => {
+      try {
+        setRevealed(await revealBankAccount(entry.id));
+      } catch (e) {
+        toast.add({
+          title: actionErrorMessage(e, "Couldn't load the account details"),
+          type: "error",
+        });
+      }
+    });
+  }
+
+  const shown = revealed ? { ...entry, ...revealed } : entry;
+  return (
+    <div className="flex items-start gap-2">
+      <div>
+        {CURRENCY_FIELDS[entry.currency].map((field) => (
+          <div key={field} className="text-xs whitespace-nowrap">
+            {BANK_FIELD_LABELS[field]}: {shown[field] ?? "—"}
+          </div>
+        ))}
+      </div>
+      {hasSecret && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={
+            revealed ? "Hide account details" : "Reveal account details"
+          }
+          title={revealed ? "Hide" : "Reveal"}
+          loading={loading}
+          onClick={toggle}
+        >
+          {!loading && (revealed ? <EyeOffIcon /> : <EyeIcon />)}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function BankAccountRowActions({
   entry,
   children,
@@ -294,20 +356,46 @@ export function BankAccountRowActions({
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [locked, setLocked] = React.useState(true);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  // `entry` only carries masked numbers; the dialog and the copied text
+  // need the real ones — and the edit form must never save "•••• 1234"
+  // back over a real account number.
+  const [fullEntry, setFullEntry] = React.useState<BankAccountEntry | null>(
+    null,
+  );
+
+  async function loadFullEntry() {
+    if (fullEntry) return fullEntry;
+    const secrets = await revealBankAccount(entry.id);
+    const full = { ...entry, ...secrets };
+    setFullEntry(full);
+    return full;
+  }
+
+  async function openDialog(asLocked: boolean) {
+    try {
+      await loadFullEntry();
+      setLocked(asLocked);
+      setDialogOpen(true);
+    } catch (e) {
+      toast.add({
+        title: actionErrorMessage(e, "Couldn't load the account details"),
+        type: "error",
+      });
+    }
+  }
 
   function openView() {
-    setLocked(true);
-    setDialogOpen(true);
+    void openDialog(true);
   }
 
   function openEdit() {
-    setLocked(false);
-    setDialogOpen(true);
+    void openDialog(false);
   }
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(formatBankDetails(entry));
+      const full = await loadFullEntry();
+      await navigator.clipboard.writeText(formatBankDetails(full));
       toast.add({ title: "Copied to clipboard", type: "success" });
     } catch {
       toast.add({ title: "Couldn't copy to clipboard", type: "error" });
@@ -330,14 +418,16 @@ export function BankAccountRowActions({
           </div>
         </TableCell>
       </TableRow>
-      <BankAccountDialog
-        bankAccount={entry}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        locked={locked}
-        onUnlock={() => setLocked(false)}
-        canEdit={canEdit}
-      />
+      {fullEntry && (
+        <BankAccountDialog
+          bankAccount={fullEntry}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          locked={locked}
+          onUnlock={() => setLocked(false)}
+          canEdit={canEdit}
+        />
+      )}
       <DeleteEntryDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
