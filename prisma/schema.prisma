@@ -832,3 +832,11 @@ model InvoiceContract {
   @@unique([invoiceId, contractId])
   @@index([contractId])
 }
+
+/// Fixed-window counters for rate-limiting sensitive auth requests (sign-in,
+
+model AuthRateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+}

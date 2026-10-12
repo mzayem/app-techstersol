@@ -4,6 +4,63 @@ import { NEON_AUTH_COOKIE_PREFIX } from "@neondatabase/auth/server";
 
 import { auth } from "@/lib/auth/server";
 import { prisma } from "@/lib/prisma";
+import {
+  clientIp,
+  consumeRateLimit,
+  tooManyAttemptsResponse,
+} from "@/lib/auth/rate-limit";
+
+const WINDOW_SECONDS = 15 * 60;
+
+/** Attempts allowed per 15 minutes on endpoints worth brute-forcing.
+ * Neon Auth runs Better Auth on a hosted backend whose own rate limiter
+ * can't be configured from here (createNeonAuth only takes baseUrl and
+ * cookie settings), so this proxy route enforces it. Per-IP stops one
+ * machine hammering; per-email stops a slow guess spread across IPs. */
+const LIMITS: {
+  match: (path: string) => boolean;
+  scope: string;
+  perIp: number;
+  perEmail: number;
+}[] = [
+  {
+    // Password and email-OTP sign-in.
+    match: (path) =>
+      path.startsWith("sign-in/") ||
+      path === "email-otp/check-verification-otp",
+    scope: "sign-in",
+    perIp: 10,
+    perEmail: 5,
+  },
+  {
+    // Sending reset links/codes and using them.
+    match: (path) =>
+      path === "forget-password" ||
+      path === "request-password-reset" ||
+      path === "reset-password" ||
+      path.startsWith("email-otp/"),
+    scope: "reset",
+    perIp: 5,
+    perEmail: 3,
+  },
+  {
+    match: (path) => path.startsWith("sign-up/"),
+    scope: "sign-up",
+    perIp: 5,
+    perEmail: 3,
+  },
+];
+
+async function readEmail(request: Request) {
+  try {
+    const body = (await request.clone().json()) as { email?: unknown };
+    return typeof body.email === "string"
+      ? body.email.trim().toLowerCase()
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 const handlers = auth.handler();
 
@@ -55,8 +112,30 @@ export async function POST(
   ctx: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await ctx.params;
+  const joined = path.join("/");
 
-  if (path.join("/") === "sign-up/email") {
+  const limit = LIMITS.find((l) => l.match(joined));
+  const email = limit ? await readEmail(request) : null;
+  if (limit) {
+    const byIp = await consumeRateLimit(
+      `ip:${limit.scope}:${clientIp(request)}`,
+      limit.perIp,
+      WINDOW_SECONDS,
+    );
+    if (!byIp.allowed) return tooManyAttemptsResponse(byIp.retryAfterSeconds);
+    if (email) {
+      const byEmail = await consumeRateLimit(
+        `email:${limit.scope}:${email}`,
+        limit.perEmail,
+        WINDOW_SECONDS,
+      );
+      if (!byEmail.allowed) {
+        return tooManyAttemptsResponse(byEmail.retryAfterSeconds);
+      }
+    }
+  }
+
+  if (joined === "sign-up/email") {
     const existingCount = await prisma.appUser.count();
     if (existingCount > 0) {
       return NextResponse.json(
@@ -66,5 +145,14 @@ export async function POST(
     }
   }
 
-  return handlers.POST(request, ctx);
+  const response = await handlers.POST(request, ctx);
+
+  // A successful sign-in clears that email's count, so the real owner isn't
+  // left half-way to a lockout by their own earlier typos.
+  if (limit?.scope === "sign-in" && email && response.ok) {
+    await prisma.authRateLimit
+      .deleteMany({ where: { key: `email:sign-in:${email}` } })
+      .catch(() => {});
+  }
+  return response;
 }

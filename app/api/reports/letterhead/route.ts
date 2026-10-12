@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/server";
 import { getCurrentAppUser, checkPermission } from "@/lib/rbac/permissions";
 import { renderLetterheadPdf } from "@/lib/reports/letterhead/layout";
 import { todayIso } from "@/lib/date/iso";
+import { consumeRateLimit } from "@/lib/auth/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +61,17 @@ export async function POST(request: Request) {
     // The toggle is only a client-side convenience — this request is the
     // one that actually matters, so the password is re-checked here every
     // time, regardless of what the client claims about a prior check.
+    const limit = await consumeRateLimit(
+      `verify:${appUser.authUserId}`,
+      5,
+      15 * 60,
+    );
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Too many password attempts — try again later" },
+        { status: 429 },
+      );
+    }
     const { error } = await auth.signIn.email({
       email: appUser.email,
       password: signOffInput.password ?? "",
