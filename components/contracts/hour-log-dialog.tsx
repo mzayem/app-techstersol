@@ -28,9 +28,10 @@ import {
   listContractHourLogs,
   type HourLogRow,
 } from "@/actions/contracts/hours";
+import { todayIso } from "@/lib/date/iso";
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 /** An HOURLY contract's logged hours: log hours per week/month, then bill

@@ -33,6 +33,7 @@ import {
 } from "@/lib/invoices/earning";
 import { feesToPkr, parseFeeInputs } from "@/lib/invoices/fees";
 import { logActivity } from "@/lib/activity/log";
+import { businessDay } from "@/lib/date/iso";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -834,9 +835,7 @@ export async function sendInvoiceReminderNow(id: string) {
   }
 
   const now = new Date();
-  const today = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
+  const today = businessDay(now);
   if (invoice.dueDate >= today) {
     throw new Error(
       "This invoice isn't overdue yet — reminders can only be sent after its due date",

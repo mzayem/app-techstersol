@@ -20,9 +20,10 @@ import { Switch } from "@/components/ui/switch";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import type { PartnerOption } from "@/components/partners/partner-investment-dialog";
+import { todayIso } from "@/lib/date/iso";
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function formatPkr(amount: number) {

@@ -21,6 +21,7 @@ import { formatPkr } from "@/lib/finance/constants";
 import { formatWeekRange } from "@/lib/team/work-diary";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
+import { todayIso } from "@/lib/date/iso";
 
 export type TeamMemberOption = { id: string; name: string };
 export type ContractOption = {
@@ -38,7 +39,7 @@ export type WorkDiaryOption = {
 };
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function toDateInputValue(date: Date) {

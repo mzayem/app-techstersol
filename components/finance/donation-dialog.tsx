@@ -21,6 +21,7 @@ import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { EntryActionsMenu } from "@/components/finance/entry-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
+import { todayIso } from "@/lib/date/iso";
 
 export type DonationEntry = {
   id: string;
@@ -236,7 +237,7 @@ function Field({
 }
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function toDateInputValue(date: Date) {

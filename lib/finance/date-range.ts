@@ -5,6 +5,7 @@ export const DATE_PRESETS = [
   "custom",
   "all",
 ] as const;
+import { businessYearMonth } from "@/lib/date/iso";
 export type DatePreset = (typeof DATE_PRESETS)[number];
 
 export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
@@ -22,13 +23,14 @@ export function resolveDateRange(
   from: string | undefined,
   to: string | undefined,
 ): DateRange {
-  const now = new Date();
+  // Which month/year it is follows Pakistan, not the server's clock.
+  const { year, month } = businessYearMonth();
 
   switch (preset) {
     case "this-year":
-      return { from: new Date(now.getFullYear(), 0, 1) };
+      return { from: new Date(year, 0, 1) };
     case "6-months":
-      return { from: new Date(now.getFullYear(), now.getMonth() - 5, 1) };
+      return { from: new Date(year, month - 1 - 5, 1) };
     case "custom":
       return {
         from: from ? new Date(from) : undefined,
@@ -38,7 +40,7 @@ export function resolveDateRange(
       return {};
     case "this-month":
     default:
-      return { from: new Date(now.getFullYear(), now.getMonth(), 1) };
+      return { from: new Date(year, month - 1, 1) };
   }
 }
 

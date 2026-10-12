@@ -39,6 +39,7 @@ import {
   createPartnerContractRequest,
 } from "@/actions/partner-portal/actions";
 import type { PartnerClientOption } from "@/actions/partner-portal/queries";
+import { todayIso } from "@/lib/date/iso";
 
 const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: c }));
 
@@ -46,7 +47,7 @@ type MilestoneRow = { name: string; amount: string; deadline: string };
 type ClientMode = "existing" | "new";
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function emptyMilestoneRow(): MilestoneRow {

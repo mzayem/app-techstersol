@@ -12,6 +12,7 @@ import {
   createProjectExpense,
   deleteProjectExpense,
 } from "@/actions/contracts/expenses";
+import { todayIso } from "@/lib/date/iso";
 
 export type ProjectExpenseRow = {
   id: string;
@@ -25,7 +26,7 @@ export type ProjectExpenseRow = {
 };
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 /** Booked to the ledger immediately on add/remove — independent of the

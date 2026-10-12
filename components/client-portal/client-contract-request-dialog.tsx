@@ -30,11 +30,12 @@ import {
   type MilestoneInput,
 } from "@/lib/contracts/constants";
 import { createClientContractRequest } from "@/actions/client-portal/actions";
+import { todayIso } from "@/lib/date/iso";
 
 type MilestoneRow = { name: string; amount: string; deadline: string };
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function emptyMilestoneRow(): MilestoneRow {

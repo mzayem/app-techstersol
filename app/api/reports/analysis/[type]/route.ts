@@ -6,6 +6,7 @@ import {
   ANALYSIS_REPORTS,
   isAnalysisReportType,
 } from "@/lib/reports/analysis/registry";
+import { todayIso } from "@/lib/date/iso";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export async function GET(
   }
 
   const buffer = await reportDef.render(searchParams, appUser.name);
-  const dateStamp = new Date().toISOString().slice(0, 10);
+  const dateStamp = todayIso();
   const filename = `${reportDef.filename}-${dateStamp}.pdf`;
 
   return new NextResponse(new Uint8Array(buffer), {

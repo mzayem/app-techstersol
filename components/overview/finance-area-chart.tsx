@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { formatPkr } from "@/lib/finance/constants";
 import type { MonthlyPoint } from "@/actions/overview/queries";
+import { todayIso } from "@/lib/date/iso";
 
 const RANGE_OPTIONS = [
   { value: "3m", label: "Last 3 months" },
@@ -86,13 +87,11 @@ export function FinanceAreaChart({
   const [range, setRange] = React.useState<RangeValue>(initialRange);
   const [customFrom, setCustomFrom] = React.useState(() => {
     if (initialFrom) return initialFrom;
-    const d = new Date();
-    d.setMonth(d.getMonth() - 2);
+    const d = new Date(`${todayIso()}T00:00:00Z`);
+    d.setUTCMonth(d.getUTCMonth() - 2);
     return d.toISOString().slice(0, 10);
   });
-  const [customTo, setCustomTo] = React.useState(
-    () => initialTo ?? new Date().toISOString().slice(0, 10),
-  );
+  const [customTo, setCustomTo] = React.useState(() => initialTo ?? todayIso());
 
   const filtered = React.useMemo(() => {
     const from = monthKey(rangeStart(range, customFrom, new Date()));

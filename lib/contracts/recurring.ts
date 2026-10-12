@@ -17,6 +17,7 @@ import {
 import { formatInvoiceNumber } from "@/lib/invoices/constants";
 import { createNumberedInvoice } from "@/lib/invoices/create";
 import { notifyInvoiceCreated } from "@/lib/mail/notifications/invoices";
+import { businessDay } from "@/lib/date/iso";
 
 /** Most periods a single run will invoice for one contract — a safety cap
  * so a misconfigured date can never fire off a flood of invoices. */
@@ -71,7 +72,7 @@ export async function resolveNextInvoiceDate({
   const scheduleChanged =
     !previousNext || previousNext.getTime() !== base.getTime();
   if (!enteringBilling && !scheduleChanged) return base;
-  return firstCurrentPeriodStart(base, cycle, anchorDay, startOfDayUtc(now));
+  return firstCurrentPeriodStart(base, cycle, anchorDay, businessDay(now));
 }
 
 /** Generates (and emails) every recurring invoice that's due — one per
@@ -84,7 +85,7 @@ export async function generateDueRecurringInvoices({
   now = new Date(),
   contractId,
 }: { now?: Date; contractId?: string } = {}): Promise<RecurringRunResult> {
-  const today = startOfDayUtc(now);
+  const today = businessDay(now);
   const result: RecurringRunResult = { created: 0, skipped: 0, failed: 0 };
 
   const contracts = await prisma.contract.findMany({

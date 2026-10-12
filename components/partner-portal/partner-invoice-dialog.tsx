@@ -29,6 +29,7 @@ import {
   type PartnerInvoiceItemInput,
 } from "@/actions/partner-portal/actions";
 import type { PartnerInvoiceSources } from "@/actions/partner-portal/queries";
+import { todayIso, addDaysIso } from "@/lib/date/iso";
 
 function lineKey(
   option: Pick<
@@ -40,13 +41,11 @@ function lineKey(
 }
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function addDaysInput(dateStr: string, days: number) {
-  const d = new Date(`${dateStr}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return addDaysIso(dateStr, days);
 }
 
 /** A partner's own "new invoice" dialog — the same full-payment line

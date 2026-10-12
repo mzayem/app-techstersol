@@ -19,6 +19,7 @@ import {
   getPendingPayments,
   getTeamPendingPayments,
 } from "@/actions/overview/queries";
+import { toIsoDate } from "@/lib/date/iso";
 
 export const dynamic = "force-dynamic";
 
@@ -63,14 +64,14 @@ export default async function OverviewPage({
     periodKey === "custom"
       ? ({
           initialRange: "custom" as const,
-          initialFrom: period.from.toISOString().slice(0, 10),
-          initialTo: period.to.toISOString().slice(0, 10),
+          initialFrom: toIsoDate(period.from),
+          initialTo: toIsoDate(period.to),
         } as const)
       : periodKey === "last-year"
         ? ({
             initialRange: "custom" as const,
-            initialFrom: period.from.toISOString().slice(0, 10),
-            initialTo: period.to.toISOString().slice(0, 10),
+            initialFrom: toIsoDate(period.from),
+            initialTo: toIsoDate(period.to),
           } as const)
         : ({ initialRange: "this-year" as const } as const);
 

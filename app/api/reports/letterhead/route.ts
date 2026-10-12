@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { getCurrentAppUser, checkPermission } from "@/lib/rbac/permissions";
 import { renderLetterheadPdf } from "@/lib/reports/letterhead/layout";
+import { todayIso } from "@/lib/date/iso";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     },
   });
 
-  const dateStamp = new Date().toISOString().slice(0, 10);
+  const dateStamp = todayIso();
   const filename = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${dateStamp}.pdf`;
 
   return new NextResponse(new Uint8Array(buffer), {

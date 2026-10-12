@@ -1,4 +1,5 @@
 export const OVERVIEW_PERIODS = ["this-year", "last-year", "custom"] as const;
+import { businessYearMonth } from "@/lib/date/iso";
 export type OverviewPeriod = (typeof OVERVIEW_PERIODS)[number];
 
 export const OVERVIEW_PERIOD_LABELS: Record<OverviewPeriod, string> = {
@@ -25,10 +26,11 @@ export function resolveOverviewPeriod(
   to: string | undefined,
 ): ResolvedPeriod {
   const now = new Date();
+  const { year: thisYear } = businessYearMonth(now);
 
   switch (period) {
     case "last-year": {
-      const year = now.getFullYear() - 1;
+      const year = thisYear - 1;
       return {
         from: new Date(year, 0, 1),
         to: new Date(year, 11, 31, 23, 59, 59, 999),
@@ -36,11 +38,11 @@ export function resolveOverviewPeriod(
     }
     case "custom":
       return {
-        from: from ? new Date(from) : new Date(now.getFullYear(), 0, 1),
+        from: from ? new Date(from) : new Date(thisYear, 0, 1),
         to: to ? endOfDay(new Date(to)) : now,
       };
     case "this-year":
     default:
-      return { from: new Date(now.getFullYear(), 0, 1), to: now };
+      return { from: new Date(thisYear, 0, 1), to: now };
   }
 }

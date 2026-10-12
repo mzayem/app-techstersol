@@ -19,11 +19,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import type { PartnerAccrual } from "@/actions/partners/queries";
+import { todayIso } from "@/lib/date/iso";
 
 export type PartnerOption = { id: string; name: string };
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function formatPkr(amount: number) {

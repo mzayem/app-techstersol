@@ -1,3 +1,4 @@
+import { businessYearMonth } from "@/lib/date/iso";
 /** Normalizes any date to the Monday of its week (weeks always run
  * Monday–Sunday, regardless of what day within the week is picked). */
 export function mondayOf(date: Date) {
@@ -34,7 +35,7 @@ function monthValue(date: Date) {
  * filter deliberately doesn't offer a rolling window that bleeds into last
  * year, since "this year" already covers everything older. */
 export function currentYearMonthOptions() {
-  const year = new Date().getFullYear();
+  const year = businessYearMonth().year;
   const labelFmt = new Intl.DateTimeFormat("en-GB", { month: "short" });
   return Array.from({ length: 12 }, (_, i) => {
     const d = new Date(year, i, 1);
@@ -57,7 +58,7 @@ export function resolveWorkDiaryPeriod(
   from: string | undefined,
   to: string | undefined,
 ): { gte?: Date; lte?: Date; label: string } {
-  const year = new Date().getFullYear();
+  const year = businessYearMonth().year;
 
   if (period === "all") {
     return { label: "All time" };

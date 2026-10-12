@@ -13,11 +13,11 @@ import {
   addDaysUtc,
   formatPeriod,
   hourlyPeriodFor,
-  startOfDayUtc,
 } from "@/lib/contracts/billing";
 import { formatInvoiceNumber } from "@/lib/invoices/constants";
 import { createNumberedInvoice } from "@/lib/invoices/create";
 import { notifyInvoiceCreated } from "@/lib/mail/notifications/invoices";
+import { businessDay } from "@/lib/date/iso";
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -201,7 +201,7 @@ export async function invoiceContractHours(contractId: string) {
   const lines = [...periods.values()];
   const rateLabel = formatContractAmount(rate, contract.currency);
 
-  const today = startOfDayUtc(new Date());
+  const today = businessDay();
   const invoice = await createNumberedInvoice({
     clientId: contract.clientId,
     bankAccountId: contract.bankAccountId,

@@ -63,6 +63,7 @@ import {
 import { HourLogDialog } from "@/components/contracts/hour-log-dialog";
 import { formatContractNumber } from "@/lib/contracts/numbering-format";
 import { getFxEstimate } from "@/actions/contracts/actions";
+import { todayIso } from "@/lib/date/iso";
 
 export type ClientOption = {
   id: string;
@@ -126,7 +127,7 @@ export type ContractEntry = {
 type MilestoneRow = { name: string; amount: string; deadline: string };
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function toDateInputValue(date: Date) {

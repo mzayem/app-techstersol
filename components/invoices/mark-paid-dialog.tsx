@@ -25,6 +25,7 @@ import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import type { FeeInput } from "@/lib/invoices/fees";
 import { markInvoicePaid } from "@/actions/invoices/actions";
+import { todayIso } from "@/lib/date/iso";
 
 type FeeRow = { label: string; mode: FeeInput["mode"]; value: string };
 
@@ -126,11 +127,7 @@ export function MarkPaidDialog({
             <Input name="transactionId" placeholder="TID" required />
           </Field>
           <Field label="Paid on">
-            <DatePicker
-              name="paidOn"
-              required
-              defaultValue={new Date().toISOString().slice(0, 10)}
-            />
+            <DatePicker name="paidOn" required defaultValue={todayIso()} />
           </Field>
 
           <div className="flex flex-col gap-2 rounded-md px-3 py-2.5 ring-1 ring-foreground/10">

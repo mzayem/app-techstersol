@@ -7,6 +7,7 @@ import {
   INVOICE_REMINDER_MAX,
   formatInvoiceNumber,
 } from "@/lib/invoices/constants";
+import { businessDay } from "@/lib/date/iso";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** How far ahead "due soon" / "deadline soon" looks. */
@@ -42,10 +43,10 @@ export type AttentionAccess = {
   partnerPayslips: boolean;
 };
 
+/** The Pakistan calendar day containing `now`, as a UTC-midnight Date —
+ * the same shape as the DATE columns it's compared with. */
 function startOfTodayUtc(now: Date) {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
+  return businessDay(now);
 }
 
 function daysBetween(from: Date, to: Date) {

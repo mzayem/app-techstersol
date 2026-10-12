@@ -16,6 +16,7 @@ import type { PaymentCurrency } from "@/lib/clients/constants";
 import { formatContractAmount } from "@/lib/contracts/constants";
 import { addInvoiceEarning } from "@/actions/invoices/actions";
 import { Field, PkrAmountField } from "@/components/invoices/mark-paid-dialog";
+import { todayIso } from "@/lib/date/iso";
 
 /** For a paid invoice that was marked paid without booking an Earning —
  * books it once the money has actually reached the PKR account. */
@@ -87,11 +88,7 @@ export function AddEarningDialog({
         </DialogHeader>
         <form action={onSubmit} className="flex flex-col gap-3">
           <Field label="Received in PKR account on">
-            <DatePicker
-              name="receivedOn"
-              required
-              defaultValue={new Date().toISOString().slice(0, 10)}
-            />
+            <DatePicker name="receivedOn" required defaultValue={todayIso()} />
           </Field>
           {currency !== "PKR" && (
             <PkrAmountField

@@ -4,6 +4,7 @@ import { getCurrentAppUser, checkPermission } from "@/lib/rbac/permissions";
 import { REPORT_MODULES } from "@/lib/reports/modules";
 import { renderReportExcel } from "@/lib/reports/excel";
 import { renderReportPdf } from "@/lib/reports/pdf";
+import { todayIso } from "@/lib/date/iso";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export async function GET(
       ? await renderReportExcel(spec)
       : await renderReportPdf(spec, { generatedBy: appUser.name });
 
-  const dateStamp = new Date().toISOString().slice(0, 10);
+  const dateStamp = todayIso();
   const filename = `${moduleDef.filename}-${dateStamp}.${format}`;
 
   return new NextResponse(new Uint8Array(buffer), {

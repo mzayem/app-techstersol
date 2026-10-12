@@ -28,11 +28,12 @@ import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { INVESTMENT_METHOD_LABELS } from "@/lib/partners/investment-constants";
 import type { InvestmentMethod } from "@/generated/prisma/client";
 import type { PartnerAccrual } from "@/actions/partners/queries";
+import { todayIso } from "@/lib/date/iso";
 
 export type PartnerOption = { id: string; name: string };
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function formatPkr(amount: number) {
@@ -142,13 +143,13 @@ export function PartnerInvestmentDialog({
                 <SelectValue placeholder="Funded by" />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(INVESTMENT_METHOD_LABELS) as InvestmentMethod[]).map(
-                  (m) => (
-                    <SelectItem key={m} value={m}>
-                      {INVESTMENT_METHOD_LABELS[m]}
-                    </SelectItem>
-                  ),
-                )}
+                {(
+                  Object.keys(INVESTMENT_METHOD_LABELS) as InvestmentMethod[]
+                ).map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {INVESTMENT_METHOD_LABELS[m]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>

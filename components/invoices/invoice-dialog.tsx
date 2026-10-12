@@ -33,6 +33,7 @@ import {
 import { type InvoiceItemInput } from "@/actions/invoices/actions";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
+import { todayIso, addDaysIso } from "@/lib/date/iso";
 
 export type ClientOption = { id: string; name: string };
 
@@ -59,13 +60,11 @@ function lineKey(option: Pick<LineOption, "contractId" | "milestoneId">) {
 }
 
 function todayInput() {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function addDaysInput(dateStr: string, days: number) {
-  const d = new Date(`${dateStr}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return addDaysIso(dateStr, days);
 }
 
 export function InvoiceDialog({

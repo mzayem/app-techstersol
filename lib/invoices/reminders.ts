@@ -6,6 +6,7 @@ import {
   formatInvoiceNumber,
 } from "@/lib/invoices/constants";
 import { notifyInvoiceReminder } from "@/lib/mail/notifications/invoices";
+import { businessDay } from "@/lib/date/iso";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -15,12 +16,11 @@ export type ReminderRunResult = {
   failed: number;
 };
 
-/** Start of today in UTC — dueDate is a Postgres DATE (stored as UTC
- * midnight), so an invoice is overdue once its due date is before this. */
+/** Today in Pakistan, as the UTC-midnight Date that dueDate (a Postgres
+ * DATE) is stored as — an invoice is overdue once its due date is before
+ * this. */
 function startOfTodayUtc(now: Date) {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
+  return businessDay(now);
 }
 
 /** Sends every overdue-invoice reminder that's currently due. Only
