@@ -147,6 +147,7 @@ export function PartnerInvestmentDialog({
         >
           <Field label="Partner">
             <Combobox
+              required
               value={partnerId}
               onValueChange={onPartnerChange}
               options={partners.map((p) => ({ value: p.id, label: p.name }))}
@@ -159,7 +160,7 @@ export function PartnerInvestmentDialog({
 
           <Field label="Funded by">
             <Select name="method" value={method} onValueChange={onMethodChange}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger data-required className="w-full">
                 <SelectValue placeholder="Funded by" />
               </SelectTrigger>
               <SelectContent>

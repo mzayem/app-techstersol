@@ -156,3 +156,17 @@
 .table-scroll-area::-webkit-scrollbar {
   display: none;
 }
+/* Required-field marker. Every form field here is a <label> whose first
+   <span> is the label text, wrapping its control — so a red asterisk is
+   added to any label that contains a required control: native inputs
+   (required attribute, including the DatePicker's hidden input) and the
+   custom Combobox/Select triggers (data-required). Checkboxes and switches
+   are excluded. */
+label:has(
+    [required]:not([type="checkbox"]):not([type="radio"]),
+    [data-required]
+  )
+  > span:first-child::after {
+  content: " *";
+  color: var(--destructive);
+}

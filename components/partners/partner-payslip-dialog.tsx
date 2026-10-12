@@ -130,6 +130,7 @@ export function PartnerPayslipDialog({
         >
           <Field label="Partner">
             <Combobox
+              required
               value={partnerId}
               onValueChange={onPartnerChange}
               options={partners.map((p) => ({ value: p.id, label: p.name }))}

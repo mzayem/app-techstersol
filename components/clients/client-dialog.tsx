@@ -194,6 +194,7 @@ export function ClientDialog({
           </div>
           <Field label="Country">
             <Combobox
+              required
               value={country}
               onValueChange={setCountry}
               options={COUNTRY_OPTIONS}
@@ -211,7 +212,7 @@ export function ClientDialog({
                 defaultValue={client?.currency}
                 disabled={locked}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger data-required className="w-full">
                   <SelectValue placeholder="Currency" />
                 </SelectTrigger>
                 <SelectContent>

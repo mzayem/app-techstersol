@@ -188,6 +188,7 @@ export function PartnerInvoiceDialog({
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
             <Field label="Client">
               <Combobox
+                required
                 value={clientId}
                 onValueChange={onClientChange}
                 options={clients.map((c) => ({ value: c.id, label: c.name }))}
@@ -269,7 +270,7 @@ export function PartnerInvoiceDialog({
                 value={effectiveBankAccountId}
                 onValueChange={(v) => setBankAccountId(v ?? "")}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger data-required className="w-full">
                   <SelectValue placeholder="Select a currency first" />
                 </SelectTrigger>
                 <SelectContent>

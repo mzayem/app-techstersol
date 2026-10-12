@@ -32,6 +32,7 @@ export function Combobox({
   searchPlaceholder = "Search…",
   emptyText = "No results found.",
   disabled = false,
+  required = false,
   className,
 }: {
   options: ComboboxOption[];
@@ -41,10 +42,14 @@ export function Combobox({
   searchPlaceholder?: string;
   emptyText?: string;
   disabled?: boolean;
+  /** Marks the field as required (the red asterisk on
+   * its label). The form still checks the value itself before saving. */
+  required?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const searchRef = React.useRef<HTMLInputElement>(null);
 
   const filtered = React.useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -67,6 +72,7 @@ export function Combobox({
           <button
             type="button"
             disabled={disabled}
+            data-required={required || undefined}
             className={cn(
               "flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 dark:hover:bg-input/50",
               className,
@@ -84,26 +90,20 @@ export function Combobox({
         </span>
         <ChevronDownIcon className="pointer-events-none size-4 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-(--anchor-width) min-w-36 p-0">
+      <PopoverContent
+        align="start"
+        className="w-(--anchor-width) min-w-36 p-0"
+        // Focus the search box, not the popup, when the list opens.
+        initialFocus={searchRef}
+      >
         <Command shouldFilter={false}>
           <CommandInput
+            ref={searchRef}
             placeholder={searchPlaceholder}
             value={search}
             onValueChange={setSearch}
           />
           <CommandList>
-            <CommandGroup>
-              <CommandItem
-                value="__none__"
-                data-checked={value === ""}
-                onSelect={() => {
-                  onValueChange("");
-                  setOpen(false);
-                }}
-              >
-                <span className="text-muted-foreground">{placeholder}</span>
-              </CommandItem>
-            </CommandGroup>
             {filtered.length > 0 && (
               <CommandGroup>
                 {filtered.map((option) => (
@@ -122,6 +122,22 @@ export function Combobox({
               </CommandGroup>
             )}
             {filtered.length === 0 && <CommandEmpty>{emptyText}</CommandEmpty>}
+            {/* "Clear" sits last and only while not searching — first in the
+                list it was the highlighted item, so Enter on a search picked
+                it instead of the match. Never offered on required fields. */}
+            {!search && value !== "" && !required && (
+              <CommandGroup>
+                <CommandItem
+                  value="__none__"
+                  onSelect={() => {
+                    onValueChange("");
+                    setOpen(false);
+                  }}
+                >
+                  <span className="text-muted-foreground">Clear selection</span>
+                </CommandItem>
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

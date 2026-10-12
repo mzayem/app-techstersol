@@ -147,7 +147,7 @@ export function ExpenseDialog({
                 defaultValue={expense?.category ?? "EXPENSE"}
                 disabled={locked}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger data-required className="w-full">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>

@@ -456,6 +456,7 @@ export function ContractDialog({
           <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
             <Field label="Client">
               <Combobox
+                required
                 value={clientId}
                 onValueChange={onClientChange}
                 options={clients.map((c) => ({ value: c.id, label: c.name }))}
@@ -524,7 +525,7 @@ export function ContractDialog({
                   }
                   disabled={locked}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger data-required className="w-full">
                     <SelectValue placeholder="Currency" />
                   </SelectTrigger>
                   <SelectContent>

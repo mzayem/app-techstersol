@@ -172,7 +172,7 @@ export function PartnerDialog({
                 onValueChange={(v) => v && setCurrency(v as PaymentCurrency)}
                 disabled={locked}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger data-required className="w-full">
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>

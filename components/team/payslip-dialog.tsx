@@ -155,6 +155,7 @@ export function PayslipDialog({
         >
           <Field label="Team member">
             <Combobox
+              required
               value={teamMemberId}
               onValueChange={(v) => {
                 setTeamMemberId(v);

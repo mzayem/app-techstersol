@@ -189,7 +189,7 @@ export function BankAccountDialog({
               }
               disabled={locked}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger data-required className="w-full">
                 <SelectValue placeholder="Currency" />
               </SelectTrigger>
               <SelectContent>
