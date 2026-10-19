@@ -8,15 +8,22 @@ import {
 import {
   renderPartnerInvestmentRecordedEmail,
   renderPartnerPayslipIssuedEmail,
+  renderPartnerSpendRecordedEmail,
 } from "@/lib/mail/templates/partner-payslip";
-import { renderPartnerInvestmentPdf } from "@/lib/partners/investment-pdf";
+import {
+  formatSpendReference,
+  renderPartnerInvestmentPdf,
+  renderPartnerSpendPdf,
+} from "@/lib/partners/investment-pdf";
 import {
   INVESTMENT_METHOD_LABELS,
   formatPartnerInvestmentNumber,
 } from "@/lib/partners/investment-constants";
 import {
   getPartnerInvestmentForPdf,
+  getPartnerSpendForPdf,
   toPartnerInvestmentPdfData,
+  toPartnerSpendPdfData,
 } from "@/actions/partners/investment-queries";
 
 function appUrl() {
@@ -94,45 +101,109 @@ export async function notifyPartnerPayslipIssued(payslipId: string) {
   }
 }
 
-/** Emails the partner their investment slip (PDF attached) when an
- * investment from them is recorded — same opt-out as payslips
- * (Partner.payslipEmailsEnabled). Errors are logged, not thrown. */
+export type SlipEmailResult =
+  | { sent: true; to: string }
+  | { sent: false; reason: "not-found" | "no-email" | "opted-out" };
+
+/** Emails the partner their investment slip (PDF attached). Automatic
+ * sends (respectOptOut) honour the partner's "Payslip & investment slip
+ * emails" switch; the manual "Send email" button doesn't. Throws if the
+ * mail itself fails, so the manual button can report it. */
+export async function sendPartnerInvestmentSlipEmail(
+  investmentId: string,
+  { respectOptOut }: { respectOptOut: boolean },
+): Promise<SlipEmailResult> {
+  const investment = await getPartnerInvestmentForPdf(investmentId);
+  if (!investment) return { sent: false, reason: "not-found" };
+  if (!investment.partner.email) return { sent: false, reason: "no-email" };
+  if (respectOptOut && !investment.partner.payslipEmailsEnabled) {
+    return { sent: false, reason: "opted-out" };
+  }
+
+  const pdfData = toPartnerInvestmentPdfData(investment);
+  const buffer = await renderPartnerInvestmentPdf(pdfData);
+  const slipNumber = formatPartnerInvestmentNumber(investment.number);
+
+  await sendMail({
+    to: investment.partner.email,
+    subject: `Investment slip ${slipNumber}`,
+    html: renderPartnerInvestmentRecordedEmail({
+      slipNumber,
+      amount: formatPkr(pdfData.amount),
+      date: formatDate(investment.date),
+      method: INVESTMENT_METHOD_LABELS[investment.method],
+      transactionId: investment.transactionId,
+      projectName: pdfData.projectName,
+      portalUrl: `${appUrl()}/partner-portal/investments`,
+    }),
+    attachments: [
+      {
+        filename: `Investment-${slipNumber}.pdf`,
+        content: buffer,
+        contentType: "application/pdf",
+      },
+    ],
+  });
+  return { sent: true, to: investment.partner.email };
+}
+
+/** Automatic send when an investment is recorded — never fails the save. */
 export async function notifyPartnerInvestmentRecorded(investmentId: string) {
   try {
-    const investment = await getPartnerInvestmentForPdf(investmentId);
-    if (
-      !investment ||
-      !investment.partner.email ||
-      !investment.partner.payslipEmailsEnabled
-    ) {
-      return;
-    }
-
-    const pdfData = toPartnerInvestmentPdfData(investment);
-    const buffer = await renderPartnerInvestmentPdf(pdfData);
-    const slipNumber = formatPartnerInvestmentNumber(investment.number);
-
-    await sendMail({
-      to: investment.partner.email,
-      subject: `Investment slip ${slipNumber}`,
-      html: renderPartnerInvestmentRecordedEmail({
-        slipNumber,
-        amount: formatPkr(pdfData.amount),
-        date: formatDate(investment.date),
-        method: INVESTMENT_METHOD_LABELS[investment.method],
-        transactionId: investment.transactionId,
-        projectName: pdfData.projectName,
-        portalUrl: `${appUrl()}/partner-portal/investments`,
-      }),
-      attachments: [
-        {
-          filename: `Investment-${slipNumber}.pdf`,
-          content: buffer,
-          contentType: "application/pdf",
-        },
-      ],
-    });
+    await sendPartnerInvestmentSlipEmail(investmentId, { respectOptOut: true });
   } catch (err) {
     console.error("[mail] partner-investment notification failed:", err);
+  }
+}
+
+/** Emails the partner a spending slip (PDF attached) — what part of their
+ * investment was spent on, any company share, and the balance left. Same
+ * opt-out rules as sendPartnerInvestmentSlipEmail. */
+export async function sendPartnerSpendSlipEmail(
+  spendId: string,
+  { respectOptOut }: { respectOptOut: boolean },
+): Promise<SlipEmailResult> {
+  const spend = await getPartnerSpendForPdf(spendId);
+  if (!spend) return { sent: false, reason: "not-found" };
+  if (!spend.partner.email) return { sent: false, reason: "no-email" };
+  if (respectOptOut && !spend.partner.payslipEmailsEnabled) {
+    return { sent: false, reason: "opted-out" };
+  }
+
+  const pdfData = await toPartnerSpendPdfData(spend);
+  const buffer = await renderPartnerSpendPdf(pdfData);
+  const reference = formatSpendReference(spend.id);
+
+  await sendMail({
+    to: spend.partner.email,
+    subject: `Spending slip ${reference} — ${spend.category}`,
+    html: renderPartnerSpendRecordedEmail({
+      reference,
+      category: spend.category,
+      date: formatDate(spend.date),
+      partnerAmount: formatPkr(pdfData.partnerAmount),
+      companyShare:
+        pdfData.companyShare > 0 ? formatPkr(pdfData.companyShare) : null,
+      balanceAfter: formatPkr(pdfData.balanceAfter),
+      note: spend.note,
+      portalUrl: `${appUrl()}/partner-portal/investments`,
+    }),
+    attachments: [
+      {
+        filename: `Spending-${reference}.pdf`,
+        content: buffer,
+        contentType: "application/pdf",
+      },
+    ],
+  });
+  return { sent: true, to: spend.partner.email };
+}
+
+/** Automatic send when spending is logged — never fails the save. */
+export async function notifyPartnerSpendRecorded(spendId: string) {
+  try {
+    await sendPartnerSpendSlipEmail(spendId, { respectOptOut: true });
+  } catch (err) {
+    console.error("[mail] partner-spend notification failed:", err);
   }
 }

@@ -110,13 +110,14 @@ export default async function PartnerInvestmentsPage() {
             <TableHead>Note</TableHead>
             <TableHead>Date</TableHead>
             <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="w-0" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {spends.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={4}
+                colSpan={5}
                 className="py-8 text-center text-muted-foreground"
               >
                 No spending logged yet.
@@ -134,6 +135,23 @@ export default async function PartnerInvestmentsPage() {
               </TableCell>
               <TableCell className="text-right tabular-nums">
                 {formatPkr(Number(spend.amount))}
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Download spending slip"
+                  nativeButton={false}
+                  render={
+                    <a
+                      href={`/api/partner-investment-spends/${spend.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                    />
+                  }
+                >
+                  <DownloadIcon />
+                </Button>
               </TableCell>
             </TableRow>
           ))}

@@ -5,7 +5,14 @@ import { Prisma } from "@/generated/prisma/client";
 import type { InvestmentMethod } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { notifyPartnerInvestmentRecorded } from "@/lib/mail/notifications/partners";
+import {
+  notifyPartnerInvestmentRecorded,
+  notifyPartnerSpendRecorded,
+  sendPartnerInvestmentSlipEmail,
+  sendPartnerSpendSlipEmail,
+  type SlipEmailResult,
+} from "@/lib/mail/notifications/partners";
+import { formatSpendReference } from "@/lib/partners/investment-pdf";
 import {
   PARTNER_INVESTMENT_NUMBER_START,
   formatPartnerInvestmentNumber,
@@ -265,6 +272,7 @@ export async function createPartnerInvestmentSpend(formData: FormData) {
     });
   });
 
+  await notifyPartnerSpendRecorded(spend.id);
   await logActivity(appUser, {
     action: "created",
     entityType: "partner-investment",
@@ -316,4 +324,59 @@ export async function deletePartnerInvestmentSpend(id: string) {
     revalidatePath("/account/distributions");
     revalidatePath("/account/balance-sheet");
   }
+}
+
+function slipEmailError(result: Exclude<SlipEmailResult, { sent: true }>) {
+  return result.reason === "no-email"
+    ? "This partner has no email address — add one on their profile first"
+    : "Not found";
+}
+
+/** Manual "Send email" for an investment slip — sends even if the partner
+ * switched automatic slip emails off, since someone asked for it. */
+export async function emailPartnerInvestmentSlip(id: string) {
+  const { appUser } = await requirePagePermission(
+    "partner-investments",
+    "view",
+  );
+  const result = await sendPartnerInvestmentSlipEmail(id, {
+    respectOptOut: false,
+  });
+  // Returned, not thrown — production hides a thrown message.
+  if (!result.sent)
+    return { ok: false as const, error: slipEmailError(result) };
+
+  const investment = await prisma.partnerInvestment.findUnique({
+    where: { id },
+    select: { number: true, partner: { select: { name: true } } },
+  });
+  await logActivity(appUser, {
+    action: "sent-email",
+    entityType: "partner-investment",
+    entityId: id,
+    summary: `Emailed investment slip ${investment ? formatPartnerInvestmentNumber(investment.number) : ""} to ${investment?.partner.name ?? "partner"} (${result.to})`,
+    page: "partner-investments",
+  });
+  return { ok: true as const, sentTo: result.to };
+}
+
+/** Manual "Send email" for a spending slip — same rules as above. */
+export async function emailPartnerSpendSlip(id: string) {
+  const { appUser } = await requirePagePermission(
+    "partner-investments",
+    "view",
+  );
+  const result = await sendPartnerSpendSlipEmail(id, { respectOptOut: false });
+  // Returned, not thrown — production hides a thrown message.
+  if (!result.sent)
+    return { ok: false as const, error: slipEmailError(result) };
+
+  await logActivity(appUser, {
+    action: "sent-email",
+    entityType: "partner-investment",
+    entityId: id,
+    summary: `Emailed spending slip ${formatSpendReference(id)} to ${result.to}`,
+    page: "partner-investments",
+  });
+  return { ok: true as const, sentTo: result.to };
 }

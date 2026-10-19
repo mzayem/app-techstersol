@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentAppUser } from "@/lib/rbac/permissions";
+import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
 import { formatPartnerInvestmentNumber } from "@/lib/partners/investment-constants";
 import { renderPartnerInvestmentPdf } from "@/lib/partners/investment-pdf";
 import {
@@ -29,10 +29,14 @@ export async function GET(
     );
   }
 
-  if (
-    appUser.kind === "PARTNER" &&
-    investment.partnerId !== appUser.partner?.id
-  ) {
+  // Only the partner it belongs to, or dashboard staff allowed to see
+  // partner investments — never client or team logins.
+  const allowed =
+    appUser.kind === "PARTNER"
+      ? investment.partnerId === appUser.partner?.id
+      : appUser.kind === "DASHBOARD_HANDLER" &&
+        checkPermission(appUser, "partner-investments", "view");
+  if (!allowed) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

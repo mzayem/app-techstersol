@@ -1,3 +1,10 @@
+import {
+  HandCoinsIcon,
+  PiggyBankIcon,
+  ReceiptIcon,
+  WalletIcon,
+} from "lucide-react";
+
 import { PartnerInvestmentDialog } from "@/components/partners/partner-investment-dialog";
 import { PartnerInvestmentRowActions } from "@/components/partners/partner-investment-row-actions";
 import { PartnerInvestmentSpendDialog } from "@/components/partners/partner-investment-spend-dialog";
@@ -38,6 +45,17 @@ export default async function PartnerInvestmentsPage() {
       listPartnerOptions(),
       listPartnerPendingAccruals(),
     ],
+  );
+
+  // Headline totals, across every partner.
+  const totalInvested = investments.reduce(
+    (sum, i) => sum + Number(i.amount),
+    0,
+  );
+  const totalSpent = spends.reduce((sum, s) => sum + Number(s.amount), 0);
+  const totalMyShare = spends.reduce(
+    (sum, s) => sum + (s.companyExpense ? Number(s.companyExpense.amount) : 0),
+    0,
   );
 
   const balanceList = partners.map((p) => ({
@@ -178,6 +196,34 @@ export default async function PartnerInvestmentsPage() {
         )}
       </div>
 
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard
+          icon={<PiggyBankIcon className="size-4" />}
+          label="Total investment"
+          value={formatPkr(totalInvested)}
+          hint={`${investments.length} slip${investments.length === 1 ? "" : "s"} from partners`}
+        />
+        <KpiCard
+          icon={<ReceiptIcon className="size-4" />}
+          label="Spent"
+          value={formatPkr(totalSpent)}
+          hint="From partners' investment"
+        />
+        <KpiCard
+          icon={<WalletIcon className="size-4" />}
+          label="Remaining"
+          value={formatPkr(totalInvested - totalSpent)}
+          hint="Investment − spent"
+          negative={totalInvested - totalSpent < 0}
+        />
+        <KpiCard
+          icon={<HandCoinsIcon className="size-4" />}
+          label="My share"
+          value={formatPkr(totalMyShare)}
+          hint="Paid by you on joint spends"
+        />
+      </div>
+
       <PartnerInvestmentsTabs
         investmentsTable={investmentsTable}
         spendingTable={spendingTable}
@@ -200,4 +246,36 @@ function formatPkr(amount: number) {
     currency: "PKR",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function KpiCard({
+  icon,
+  label,
+  value,
+  hint,
+  negative = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint: string;
+  negative?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-md bg-card p-4 ring-1 ring-foreground/10">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        {icon}
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <span
+        className={
+          "text-lg font-medium tabular-nums " +
+          (negative ? "text-destructive" : "text-foreground")
+        }
+      >
+        {value}
+      </span>
+      <span className="text-xs text-muted-foreground">{hint}</span>
+    </div>
+  );
 }

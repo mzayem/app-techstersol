@@ -135,3 +135,37 @@ export function toPartnerInvestmentPdfData(
     },
   };
 }
+
+export async function getPartnerSpendForPdf(id: string) {
+  return prisma.partnerInvestmentSpend.findUnique({
+    where: { id },
+    include: {
+      partner: true,
+      companyExpense: { select: { amount: true } },
+    },
+  });
+}
+
+/** getPartnerSpendForPdf result → renderPartnerSpendPdf's shape, with the
+ * partner's investment balance as it stands now. */
+export async function toPartnerSpendPdfData(
+  spend: NonNullable<Awaited<ReturnType<typeof getPartnerSpendForPdf>>>,
+) {
+  const balance = await getPartnerInvestmentBalance(spend.partnerId);
+  return {
+    id: spend.id,
+    date: spend.date,
+    category: spend.category,
+    note: spend.note,
+    partnerAmount: Number(spend.amount),
+    companyShare: spend.companyExpense
+      ? Number(spend.companyExpense.amount)
+      : 0,
+    balanceAfter: balance.available,
+    partner: {
+      name: spend.partner.name,
+      phone: spend.partner.phone,
+      email: spend.partner.email,
+    },
+  };
+}

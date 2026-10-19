@@ -251,18 +251,14 @@ function InvestmentSlipDocument({
               {descriptionFor(investment)}
               {investment.note ? `\n${investment.note}` : ""}
             </Text>
-            <Text style={styles.amountCol}>
-              {formatPkr(investment.amount)}
-            </Text>
+            <Text style={styles.amountCol}>{formatPkr(investment.amount)}</Text>
           </View>
         </View>
 
         <View style={styles.totalsBlock}>
           <View style={styles.totalsRow}>
             <Text style={styles.amountDue}>Amount Invested</Text>
-            <Text style={styles.amountDue}>
-              {formatPkr(investment.amount)}
-            </Text>
+            <Text style={styles.amountDue}>{formatPkr(investment.amount)}</Text>
           </View>
         </View>
 
@@ -282,13 +278,10 @@ function InvestmentSlipDocument({
 
         <View style={styles.footer} fixed>
           <Text
-            style={[
-              styles.small,
-              { color: "#8d8d8d", fontStyle: "italic" },
-            ]}
+            style={[styles.small, { color: "#8d8d8d", fontStyle: "italic" }]}
           >
-            Computer-generated investment slip — proof of contribution to
-            your investment balance with {COMPANY_INFO.name}.
+            Computer-generated investment slip — proof of contribution to your
+            investment balance with {COMPANY_INFO.name}.
           </Text>
         </View>
       </Page>
@@ -301,6 +294,158 @@ export async function renderPartnerInvestmentPdf(
 ) {
   const logoDataUrl = await getLogoDataUrl();
   return renderToBuffer(
-    <InvestmentSlipDocument investment={investment} logoDataUrl={logoDataUrl} />,
+    <InvestmentSlipDocument
+      investment={investment}
+      logoDataUrl={logoDataUrl}
+    />,
+  );
+}
+
+export type PartnerSpendPdfData = {
+  id: string;
+  date: Date;
+  category: string;
+  note: string | null;
+  /** What came out of the partner's investment. */
+  partnerAmount: number;
+  /** The company's own share of the same spend, if it was split. */
+  companyShare: number;
+  /** The partner's investment balance after this spend (as of now). */
+  balanceAfter: number;
+  partner: { name: string; phone: string | null; email: string | null };
+};
+
+/** Short stable reference for a spend (spends have no running number). */
+export function formatSpendReference(id: string) {
+  return `SP-${id.slice(-6).toUpperCase()}`;
+}
+
+function SpendSlipDocument({
+  spend,
+  logoDataUrl,
+}: {
+  spend: PartnerSpendPdfData;
+  logoDataUrl: string | null;
+}) {
+  const total = spend.partnerAmount + spend.companyShare;
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.headerRow}>
+          {logoDataUrl ? (
+            // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is not an HTML <img>
+            <Image src={logoDataUrl} style={{ width: 150, height: 30 }} />
+          ) : (
+            <Text style={{ fontSize: 17, fontWeight: 700 }}>
+              {COMPANY_INFO.name.toUpperCase()}
+            </Text>
+          )}
+          <Text style={styles.title}>SPENDING SLIP</Text>
+        </View>
+
+        <View style={styles.infoBlock}>
+          {COMPANY_INFO.addressLines.map((line) => (
+            <Text key={line} style={styles.small}>
+              {line}
+            </Text>
+          ))}
+          <Text style={styles.small}>{COMPANY_INFO.website}</Text>
+          <Text style={styles.small}>{COMPANY_INFO.email}</Text>
+          <Text style={styles.small}>{COMPANY_INFO.phone}</Text>
+        </View>
+
+        <View style={styles.from}>
+          <View style={styles.fromCol}>
+            <Text style={styles.label}>SPENT FROM THE INVESTMENT OF</Text>
+            <Text style={styles.bold}>{spend.partner.name}</Text>
+            {spend.partner.phone && <Text>{spend.partner.phone}</Text>}
+            {spend.partner.email && <Text>{spend.partner.email}</Text>}
+          </View>
+          <View style={{ maxWidth: 220, gap: 4 }}>
+            <Text>
+              <Text style={styles.bold}>Reference</Text>:{" "}
+              {formatSpendReference(spend.id)}
+            </Text>
+            <Text>
+              <Text style={styles.bold}>Date</Text>: {formatDate(spend.date)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.table}>
+          <View style={styles.tableHeaderRow}>
+            <Text style={[styles.descCol, styles.bold]}>DESCRIPTION</Text>
+            <Text style={[styles.amountCol, styles.bold]}>Amount</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.descCol}>
+              {spend.category}
+              {spend.note ? `\n${spend.note}` : ""}
+            </Text>
+            <Text style={styles.amountCol}>{formatPkr(total)}</Text>
+          </View>
+          {spend.companyShare > 0 && (
+            <>
+              <View style={styles.tableRow}>
+                <Text style={styles.descCol}>
+                  Less: paid by {COMPANY_INFO.name} (company share)
+                </Text>
+                <Text style={styles.amountCol}>
+                  -{formatPkr(spend.companyShare)}
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+
+        <View style={styles.totalsBlock}>
+          <View style={styles.totalsRow}>
+            <Text style={styles.amountDue}>From your investment</Text>
+            <Text style={styles.amountDue}>
+              {formatPkr(spend.partnerAmount)}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.totalsRow,
+              { borderTopWidth: 0, marginTop: 4, paddingTop: 0 },
+            ]}
+          >
+            <Text style={styles.small}>Investment balance remaining</Text>
+            <Text style={styles.small}>{formatPkr(spend.balanceAfter)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.signBlock}>
+          {STAMP_DATA_URL && (
+            // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is not an HTML <img>
+            <Image src={STAMP_DATA_URL} style={styles.stampImage} />
+          )}
+          <View style={{ alignItems: "center" }}>
+            {SIGNATURE_DATA_URL && (
+              // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is not an HTML <img>
+              <Image src={SIGNATURE_DATA_URL} style={styles.signatureImage} />
+            )}
+            <Text style={styles.signCaption}>Authorized Signature</Text>
+          </View>
+        </View>
+
+        <View style={styles.footer} fixed>
+          <Text
+            style={[styles.small, { color: "#8d8d8d", fontStyle: "italic" }]}
+          >
+            Computer-generated spending slip — a record of how your investment
+            with {COMPANY_INFO.name} was used.
+          </Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
+export async function renderPartnerSpendPdf(spend: PartnerSpendPdfData) {
+  const logoDataUrl = await getLogoDataUrl();
+  return renderToBuffer(
+    <SpendSlipDocument spend={spend} logoDataUrl={logoDataUrl} />,
   );
 }

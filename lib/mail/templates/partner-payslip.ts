@@ -92,3 +92,43 @@ export function renderPartnerInvestmentRecordedEmail({
   `;
   return renderEmailShell({ title: `Investment slip ${slipNumber}`, bodyHtml });
 }
+
+/** Sent when part of a partner's investment is spent — the spending slip
+ * PDF is attached. */
+export function renderPartnerSpendRecordedEmail({
+  reference,
+  category,
+  date,
+  partnerAmount,
+  companyShare,
+  balanceAfter,
+  note,
+  portalUrl,
+}: {
+  reference: string;
+  category: string;
+  date: string;
+  partnerAmount: string;
+  companyShare: string | null;
+  balanceAfter: string;
+  note?: string | null;
+  portalUrl: string;
+}) {
+  const bodyHtml = `
+    <div style="margin-bottom:20px;">${emailBadge("Investment Spent")}</div>
+    <h1 class="em-heading" style="margin:0 0 12px 0;font-size:26px;font-weight:800;color:#18181b;">Spending slip ${reference}</h1>
+    <p class="em-muted" style="margin:0 0 24px 0;font-size:14px;line-height:1.8;color:#5b5b62;font-weight:300;">
+      Part of your investment has been spent. The spending slip is attached to this email.
+    </p>
+    ${emailInfoTable(
+      emailInfoRow("Spent on", category) +
+        (note ? emailInfoRow("Note", note) : "") +
+        emailInfoRow("Date", date) +
+        emailInfoRow("From your investment", partnerAmount) +
+        (companyShare ? emailInfoRow("Company share", companyShare) : "") +
+        emailInfoRow("Balance remaining", balanceAfter),
+    )}
+    <div style="margin-top:28px;">${emailButton("View your investments", portalUrl)}</div>
+  `;
+  return renderEmailShell({ title: `Spending slip ${reference}`, bodyHtml });
+}
