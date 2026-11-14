@@ -73,6 +73,25 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             Techstersol
           </span>
         </div>
+        {/* Registered before any framework code so it runs ahead of Next's
+            own unhandledrejection reporter (which logs "⨯ unhandledRejection"
+            to the browser console / dev terminal and ignores preventDefault).
+            Only the known harmless @neondatabase/auth-ui 404 is swallowed —
+            see components/auth/suppress-known-sdk-noise.tsx. */}
+        <Script
+          id="sdk-noise-guard"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `window.addEventListener('unhandledrejection', function (e) {
+              var r = e.reason;
+              if (r && r.name === 'AuthApiError' && (r.status === 404 || /HTTP 404/.test(String(r.message || '')))) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                console.debug('[known-sdk-issue] Suppressed AuthApiError 404 from @neondatabase/auth-ui internals.');
+              }
+            }, true);`,
+          }}
+        />
         <Script
           id="pwa-splash-inline"
           strategy="beforeInteractive"
