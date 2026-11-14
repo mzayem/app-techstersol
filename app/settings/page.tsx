@@ -6,11 +6,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { checkPermission, getCurrentAppUser } from "@/lib/rbac/permissions";
 import { SETTINGS_GROUPS } from "@/lib/settings/groups";
 
 export const dynamic = "force-dynamic";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const appUser = await getCurrentAppUser();
+  // Groups tied to a dashboard page only show to roles that can view it.
+  const groups = SETTINGS_GROUPS.filter(
+    (group) =>
+      !group.requiresPage ||
+      (appUser?.kind === "DASHBOARD_HANDLER" &&
+        checkPermission(appUser, group.requiresPage, "view")),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 sm:p-8">
       <div>
@@ -20,7 +30,7 @@ export default function SettingsPage() {
         </p>
       </div>
       <div className="flex flex-col gap-3">
-        {SETTINGS_GROUPS.map((group) => (
+        {groups.map((group) => (
           <Link key={group.key} href={group.href}>
             <Card className="transition-colors hover:bg-muted/50">
               <CardHeader>
