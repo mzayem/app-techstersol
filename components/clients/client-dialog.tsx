@@ -33,6 +33,7 @@ import { COUNTRIES } from "@/lib/clients/countries";
 import { enqueueMutation } from "@/lib/sync/mutate";
 import { formDataToRecord } from "@/lib/sync/actions-registry";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import { ClientActionsMenu } from "@/components/clients/client-actions-menu";
 import { DeleteEntryDialog } from "@/components/finance/delete-entry-dialog";
 import { missingChoices, submitForm } from "@/lib/form-submit";
@@ -392,6 +393,15 @@ export function ClientRowActions({
     setDialogOpen(true);
   }
 
+  async function copyId() {
+    try {
+      await navigator.clipboard.writeText(entry.id);
+      toast.add({ title: "Client ID copied", type: "success" });
+    } catch {
+      toast.add({ title: "Couldn't copy to clipboard", type: "error" });
+    }
+  }
+
   return (
     <>
       <TableRow className="cursor-pointer" onClick={openView}>
@@ -401,6 +411,7 @@ export function ClientRowActions({
             <ClientActionsMenu
               onEdit={openEdit}
               onDelete={() => setDeleteOpen(true)}
+              onCopyId={copyId}
               canEdit={canEdit}
               canDelete={canDelete}
             />

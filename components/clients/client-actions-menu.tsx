@@ -1,6 +1,11 @@
 "use client";
 
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import {
+  CopyIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,15 +21,17 @@ import {
 export function ClientActionsMenu({
   onEdit,
   onDelete,
+  onCopyId,
   canEdit = true,
   canDelete = true,
 }: {
   onEdit: () => void;
   onDelete: () => void;
+  onCopyId?: () => void;
   canEdit?: boolean;
   canDelete?: boolean;
 }) {
-  if (!canEdit && !canDelete) return null;
+  if (!canEdit && !canDelete && !onCopyId) return null;
 
   return (
     <DropdownMenu>
@@ -48,7 +55,13 @@ export function ClientActionsMenu({
               Update
             </DropdownMenuItem>
           )}
-          {canEdit && canDelete && <DropdownMenuSeparator />}
+          {onCopyId && (
+            <DropdownMenuItem onClick={onCopyId}>
+              <CopyIcon />
+              Copy client ID
+            </DropdownMenuItem>
+          )}
+          {(canEdit || onCopyId) && canDelete && <DropdownMenuSeparator />}
           {canDelete && (
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               <Trash2Icon />
