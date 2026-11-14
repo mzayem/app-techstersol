@@ -29,7 +29,8 @@ export type PageKey =
   | "roles"
   | "users"
   | "emails"
-  | "activity-log";
+  | "activity-log"
+  | "api-keys";
 
 export type PageRegistryEntry = {
   key: PageKey;
@@ -159,6 +160,12 @@ export const PAGE_REGISTRY: PageRegistryEntry[] = [
     key: "activity-log",
     label: "Activity Log",
     url: "/admin/activity",
+    group: "Admin",
+  },
+  {
+    key: "api-keys",
+    label: "API Keys",
+    url: "/admin/api-keys",
     group: "Admin",
   },
 ];
