@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { NeonAuthUIProvider } from "@neondatabase/auth-ui";
 
+import { SESSION_CHANGED_EVENT } from "@/components/auth/auth-form-gate";
 import { authClient } from "@/lib/auth-client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -16,7 +17,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       authClient={authClient}
       navigate={router.push}
       replace={router.replace}
-      onSessionChange={() => router.refresh()}
+      onSessionChange={() => {
+        window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+        router.refresh();
+      }}
       redirectTo={inPortal ? "/portal" : "/"}
       signUp={false}
       social={{ providers: ["google"] }}
