@@ -12,6 +12,7 @@ import {
 import { requirePagePermission } from "@/lib/rbac/permissions";
 import { logActivity } from "@/lib/activity/log";
 import { formatContractAmount } from "@/lib/contracts/constants";
+import { earningLedgerEntries } from "@/lib/finance/earning-service";
 
 function pkr(amount: string | number) {
   return formatContractAmount(Number(amount), "PKR");
@@ -24,37 +25,6 @@ function str(formData: FormData, key: string) {
 
 function decimalOrUndefined(value: string) {
   return value === "" ? undefined : value;
-}
-
-type LedgerEntryInput = {
-  type: "EARNING" | "EXPENSE" | "DONATION" | "TEAM_PAYMENT";
-  name: string;
-  date: Date;
-  debit?: string;
-  credit?: string;
-};
-
-/** An earning always credits the ledger for its full (gross) amount; a
- * teamPay cut is a separate debit, since that money actually left the
- * company for the team member rather than never having arrived. */
-function earningLedgerEntries(
-  name: string,
-  date: Date,
-  amount: string,
-  teamPay: string,
-): LedgerEntryInput[] {
-  const entries: LedgerEntryInput[] = [
-    { type: "EARNING", name, date, credit: amount },
-  ];
-  if (Number(teamPay) > 0) {
-    entries.push({
-      type: "TEAM_PAYMENT",
-      name: `Team pay — ${name}`,
-      date,
-      debit: teamPay,
-    });
-  }
-  return entries;
 }
 
 export async function createEarning(formData: FormData) {
