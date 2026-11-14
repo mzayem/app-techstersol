@@ -15,8 +15,9 @@ export const config = {
   // sign-in page — this can be hit signed-out too (e.g. a stale service
   // worker checking for updates after the session ends). api/cron/* is
   // called by the scheduler with no session — each route checks
-  // CRON_SECRET itself instead.
+  // CRON_SECRET itself instead. api/v1/* is the public machine API — each
+  // route authenticates an API key itself (lib/api/keys.ts).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|verify|credentials|api/cron|manifest.webmanifest|icon.png|apple-icon.png|icons/|images/|sw.js).*)",
+    "/((?!_next/static|_next/image|favicon.ico|verify|credentials|api/cron|api/v1|manifest.webmanifest|icon.png|apple-icon.png|icons/|images/|sw.js).*)",
   ],
 };
