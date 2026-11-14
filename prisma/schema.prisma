@@ -193,12 +193,31 @@ model Earning {
   referenceCurrency PaymentCurrency?
   invoiceId         String?          @unique
   invoice           Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  source            String?
+  externalId        String?
   createdByUserId   String
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   ledgerEntries     LedgerEntry[]
 
+  @@unique([source, externalId])
   @@index([date])
+}
+
+
+model ApiKey {
+  id              String    @id @default(cuid())
+
+  name            String
+  keyHash         String    @unique
+  keyPrefix       String
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  lastUsedAt      DateTime?
+  revokedAt       DateTime?
+  /// Optional hard stop: from this instant the key is rejected like a
+  /// revoked one. Null = never expires.
+  expiresAt       DateTime?
 }
 
 /// A spend against one of the four non-donation buckets.
